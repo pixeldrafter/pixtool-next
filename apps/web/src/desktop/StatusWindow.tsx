@@ -2,11 +2,12 @@
  * Bağlantı durumu penceresi.
  *
  * Giriş sonrası masaüstünde açılan ilk pencere: sistemin genel durumu.
+ * İçerik doğrudan döndürülür — pencere çerçevesini `ManagedWindow` sağlar.
  */
 
 import type { StatusResponse } from "../lib/api";
 import type { LoginSession } from "../login";
-import { Card, Window } from "./Window";
+import { Card } from "./Window";
 
 export interface StatusWindowProps {
   status: StatusResponse | null;
@@ -15,7 +16,6 @@ export interface StatusWindowProps {
   session: LoginSession | null;
   reportSaved: boolean | null;
   onRefresh: () => void;
-  onClose?: () => void;
 }
 
 function nocodbValue(nocodb: StatusResponse["integrations"]["nocodb"] | undefined): string {
@@ -34,12 +34,11 @@ export function StatusWindow({
   session,
   reportSaved,
   onRefresh,
-  onClose,
 }: StatusWindowProps) {
   const nocodb = status?.integrations.nocodb;
 
   return (
-    <Window title="Sistem Durumu" icon="🖥️" width={900} onClose={onClose}>
+    <div className="status-window">
       {loading && !status && <div className="dim">Backend'e bağlanılıyor…</div>}
 
       {error && !status && (
@@ -143,6 +142,6 @@ export function StatusWindow({
           {loading ? "Yenileniyor…" : "Durumu Yenile"}
         </button>
       </div>
-    </Window>
+    </div>
   );
 }

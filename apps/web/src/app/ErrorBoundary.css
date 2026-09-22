@@ -1,0 +1,111 @@
+/* Hata ekranı */
+
+.error-screen {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: var(--bg-void, #05070a);
+  color: var(--text-primary, #d8e2ec);
+  font-family: var(--font-sans, system-ui, sans-serif);
+  overflow-y: auto;
+}
+
+.error-screen__card {
+  width: min(680px, 100%);
+  padding: 30px;
+  background: var(--bg-surface, #0f141c);
+  border: 1px solid color-mix(in srgb, #ff3b4e 35%, transparent);
+  border-radius: 16px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+}
+
+.error-screen__icon {
+  font-size: 34px;
+  margin-bottom: 8px;
+}
+
+.error-screen__title {
+  margin: 0 0 8px;
+  font-size: 21px;
+  color: #ff8f8f;
+}
+
+.error-screen__text {
+  margin: 0 0 18px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-secondary, #8b9bb0);
+}
+
+.error-screen__message {
+  padding: 12px 14px;
+  font-size: 12.5px;
+  color: #ffb3b3;
+  background: rgba(255, 59, 78, 0.1);
+  border: 1px solid rgba(255, 59, 78, 0.3);
+  border-radius: 8px;
+  word-break: break-word;
+}
+
+.error-screen__details {
+  margin-top: 14px;
+  font-size: 11.5px;
+}
+
+.error-screen__details summary {
+  cursor: pointer;
+  color: var(--text-muted, #55637a);
+  padding: 4px 0;
+}
+
+.error-screen__details pre {
+  margin: 6px 0 0;
+  padding: 10px 12px;
+  max-height: 240px;
+  overflow: auto;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-secondary, #8b9bb0);
+  background: #04070a;
+  border: 1px solid var(--border-weak, rgba(120, 145, 175, 0.14));
+  border-radius: 6px;
+  white-space: pre-wrap;
+}
+
+.error-screen__actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+.error-screen__button {
+  padding: 9px 16px;
+  font-family: inherit;
+  font-size: 12.5px;
+  color: var(--text-primary, #d8e2ec);
+  background: transparent;
+  border: 1px solid var(--border-weak, rgba(120, 145, 175, 0.2));
+  border-radius: 6px;
+  cursor: pointer;
+  transition: border-color 140ms ease, color 140ms ease;
+}
+
+.error-screen__button:hover {
+  border-color: #ff3b4e;
+  color: #ff8f8f;
+}
+
+.error-screen__button--primary {
+  color: #05070a;
+  background: #ff8f8f;
+  border-color: #ff8f8f;
+  font-weight: 700;
+}
+
+.error-screen__button--primary:hover {
+  filter: brightness(1.1);
+  color: #05070a;
+}

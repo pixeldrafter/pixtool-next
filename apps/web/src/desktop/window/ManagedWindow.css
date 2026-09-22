@@ -1,0 +1,187 @@
+/* Yönetilen pencere — sürükle / boyutlandır */
+
+.mwin {
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  min-width: 320px;
+  min-height: 220px;
+  background: var(--bg-frost);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border-weak);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  animation: mwin-open 320ms var(--ease-out);
+  transition: box-shadow var(--dur-base) var(--ease-out), border-color var(--dur-base) var(--ease-out);
+}
+
+@keyframes mwin-open {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Odaklanmış pencere öne çıkar */
+.mwin.is-active {
+  border-color: color-mix(in srgb, var(--accent) 38%, transparent);
+  box-shadow:
+    0 22px 60px rgba(0, 0, 0, 0.6),
+    0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+.mwin.is-dragging {
+  cursor: grabbing;
+  transition: none;
+  user-select: none;
+}
+
+/* Büyütülmüş: köşe yuvarlaklığı yok */
+.mwin.is-maximized {
+  border-radius: 0;
+}
+
+/* ==================== Başlık çubuğu ==================== */
+.mwin__titlebar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-shrink: 0;
+  height: 38px;
+  padding: 0 var(--space-3) 0 var(--space-4);
+  background: color-mix(in srgb, var(--bg-elevated) 82%, transparent);
+  border-bottom: 1px solid var(--border-weak);
+  cursor: grab;
+  user-select: none;
+}
+
+.mwin.is-dragging .mwin__titlebar {
+  cursor: grabbing;
+}
+
+.mwin.is-maximized .mwin__titlebar {
+  cursor: default;
+}
+
+.mwin__icon {
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.mwin__title {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color var(--dur-fast) var(--ease-out);
+}
+
+.mwin.is-active .mwin__title {
+  color: var(--text-primary);
+}
+
+/* ==================== Denetim düğmeleri ==================== */
+.mwin__controls {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.mwin__btn {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+
+.mwin__btn svg {
+  width: 11px;
+  height: 11px;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  fill: none;
+  stroke-linecap: round;
+}
+
+.mwin__btn:hover {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--text-primary);
+}
+
+/* Gerçek işletim sistemlerindeki gibi renkli kapatma */
+.mwin__btn--close:hover {
+  background: var(--error);
+  color: #fff;
+}
+
+.mwin__btn--min:hover {
+  background: var(--warn);
+  color: #101010;
+}
+
+.mwin__btn--max:hover {
+  background: var(--ok);
+  color: #06120b;
+}
+
+/* ==================== İçerik ==================== */
+.mwin__body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--space-4);
+}
+
+/* ==================== Boyutlandırma tutamaçları ==================== */
+.mwin__resize {
+  position: absolute;
+  z-index: 5;
+}
+
+.mwin__resize--n { top: -3px; left: 8px; right: 8px; height: 7px; cursor: ns-resize; }
+.mwin__resize--s { bottom: -3px; left: 8px; right: 8px; height: 7px; cursor: ns-resize; }
+.mwin__resize--e { right: -3px; top: 8px; bottom: 8px; width: 7px; cursor: ew-resize; }
+.mwin__resize--w { left: -3px; top: 8px; bottom: 8px; width: 7px; cursor: ew-resize; }
+
+.mwin__resize--ne { top: -3px; right: -3px; width: 14px; height: 14px; cursor: nesw-resize; }
+.mwin__resize--nw { top: -3px; left: -3px; width: 14px; height: 14px; cursor: nwse-resize; }
+.mwin__resize--se { bottom: -3px; right: -3px; width: 14px; height: 14px; cursor: nwse-resize; }
+.mwin__resize--sw { bottom: -3px; left: -3px; width: 14px; height: 14px; cursor: nesw-resize; }
+
+/* Sağ alt köşede görsel tutamaç */
+.mwin__resize--se::after {
+  content: "";
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--text-muted);
+  border-bottom: 2px solid var(--text-muted);
+  opacity: 0.4;
+  border-radius: 0 0 3px 0;
+}
+
+.mwin.is-active .mwin__resize--se::after {
+  opacity: 0.75;
+  border-color: var(--accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mwin {
+    animation: none;
+  }
+}

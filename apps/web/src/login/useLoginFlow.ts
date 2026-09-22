@@ -9,7 +9,7 @@
  * giriş ekranına döner.
  */
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   apiLogin,
@@ -17,7 +17,7 @@ import {
   apiVerifyOtp,
   describeAuthError,
 } from "./api";
-import type { LoginCredentials, LoginStep, OtpChallenge } from "./types";
+import type { LoginCredentials, LoginStep, OtpChallenge, OtpStatus } from "./types";
 
 export interface LoginSession {
   token: string;
@@ -42,6 +42,8 @@ export interface UseLoginFlowResult {
   loading: boolean;
   error: string | null;
   challenge: OtpChallenge | null;
+  /** OTP kutularının görsel durumu (animasyonlar için) */
+  otpStatus: OtpStatus;
   wrongAttempts: number;
   session: LoginSession | null;
   submitCredentials: (credentials: LoginCredentials) => Promise<void>;
@@ -49,6 +51,8 @@ export interface UseLoginFlowResult {
   resendOtp: () => Promise<void>;
   cancelOtp: () => void;
   finishPunishment: () => void;
+  /** Başarı animasyonunu atlayıp doğrudan devam et */
+  skipOtpAnimation: () => void;
   reset: () => void;
 }
 
@@ -58,6 +62,9 @@ const CHANNEL_LABELS: Record<string, string> = {
   totp: "Authenticator",
 };
 
+/** Doğru kodda yeşil animasyonun gösterilme süresi (ms). */
+export const OTP_SUCCESS_DURATION_MS = 1150;
+
 export function useLoginFlow(
   config: LoginFlowConfig,
   onSuccess: (session: LoginSession) => void,
@@ -66,10 +73,25 @@ export function useLoginFlow(
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [challenge, setChallenge] = useState<OtpChallenge | null>(null);
+  const [otpStatus, setOtpStatus] = useState<OtpStatus>("idle");
   const [wrongAttempts, setWrongAttempts] = useState(0);
   const [session, setSession] = useState<LoginSession | null>(null);
   /** Ceza sonrası dönülecek kullanıcı adı */
   const [pendingUsername, setPendingUsername] = useState<string>("");
+
+  /** Başarı animasyonu zamanlayıcısı — erken atlanırsa temizlenir */
+  const successTimerRef = useRef<number | null>(null);
+  /** Başarıda verilecek oturum bilgisi */
+  const pendingSessionRef = useRef<LoginSession | null>(null);
+
+  useEffect(
+    () => () => {
+      if (successTimerRef.current !== null) {
+        window.clearTimeout(successTimerRef.current);
+      }
+    },
+    [],
+  );
 
   // ------------------------------------------------------------------
   //  1) Kimlik bilgileri
@@ -92,6 +114,7 @@ export function useLoginFlow(
             channelLabel: CHANNEL_LABELS[response.channel ?? ""] ?? "Telegram",
           });
           setWrongAttempts(0);
+          setOtpStatus("idle");
           setStep("otp");
           return;
         }
@@ -122,6 +145,7 @@ export function useLoginFlow(
 
       setLoading(true);
       setError(null);
+      setOtpStatus("verifying");
 
       try {
         const response = await apiVerifyOtp(challenge.challengeId, code);
@@ -132,8 +156,15 @@ export function useLoginFlow(
             username: pendingUsername,
           };
           setSession(granted);
-          setStep("success");
-          onSuccess(granted);
+          setOtpStatus("success");
+
+          // Yeşil animasyon gösterildikten sonra bir sonraki adıma geç
+          pendingSessionRef.current = granted;
+          successTimerRef.current = window.setTimeout(() => {
+            successTimerRef.current = null;
+            setStep("success");
+            onSuccess(granted);
+          }, OTP_SUCCESS_DURATION_MS);
           return;
         }
 
@@ -145,12 +176,16 @@ export function useLoginFlow(
 
         if (total >= config.maxAttempts && config.punishmentEnabled) {
           setError(null);
+          setOtpStatus("idle");
           setStep("punishment");
           return;
         }
 
+        // Kırmızı + sallanma animasyonu
+        setOtpStatus("error");
         setError(response.message ?? `Kod hatalı. ${attempts} deneme hakkın kaldı.`);
       } catch (caught) {
+        setOtpStatus("error");
         setError(describeAuthError(caught));
       } finally {
         setLoading(false);
@@ -158,6 +193,19 @@ export function useLoginFlow(
     },
     [challenge, config.maxAttempts, config.punishmentEnabled, onSuccess, pendingUsername, wrongAttempts],
   );
+
+  /** Başarı animasyonunu atla — doğrudan panele geç. */
+  const skipOtpAnimation = useCallback(() => {
+    if (otpStatus !== "success") return;
+    if (successTimerRef.current !== null) {
+      window.clearTimeout(successTimerRef.current);
+      successTimerRef.current = null;
+    }
+    const granted = pendingSessionRef.current;
+    if (!granted) return;
+    setStep("success");
+    onSuccess(granted);
+  }, [otpStatus, onSuccess]);
 
   // ------------------------------------------------------------------
   //  3) Kodu yeniden gönder
@@ -190,6 +238,7 @@ export function useLoginFlow(
   const finishPunishment = useCallback(() => {
     setWrongAttempts(0);
     setError(null);
+    setOtpStatus("idle");
 
     if (challenge) {
       // Yeni bir deneme hakkı ver
@@ -205,6 +254,7 @@ export function useLoginFlow(
     setChallenge(null);
     setError(null);
     setWrongAttempts(0);
+    setOtpStatus("idle");
   }, []);
 
   const reset = useCallback(() => {
@@ -213,6 +263,7 @@ export function useLoginFlow(
     setError(null);
     setWrongAttempts(0);
     setSession(null);
+    setOtpStatus("idle");
   }, []);
 
   return {
@@ -220,6 +271,7 @@ export function useLoginFlow(
     loading,
     error,
     challenge,
+    otpStatus,
     wrongAttempts,
     session,
     submitCredentials,
@@ -227,6 +279,7 @@ export function useLoginFlow(
     resendOtp,
     cancelOtp,
     finishPunishment,
+    skipOtpAnimation,
     reset,
   };
 }

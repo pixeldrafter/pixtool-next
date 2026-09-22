@@ -1,0 +1,96 @@
+/* OTP animasyon demosu — geliştirme aracı */
+
+.otp-demo {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  min-height: 100vh;
+  background: var(--bg-void);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+}
+
+.otp-demo__panel {
+  padding: var(--space-5);
+  border-right: 1px solid var(--border-weak);
+  background: var(--bg-surface);
+  overflow-y: auto;
+}
+
+.otp-demo__panel h1 {
+  margin: 0 0 4px;
+  font-size: 15px;
+}
+
+.otp-demo__note {
+  margin: 0 0 var(--space-5);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.otp-demo__note code {
+  color: var(--accent);
+}
+
+.otp-demo__panel h2 {
+  margin: var(--space-5) 0 var(--space-2);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.otp-demo__buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.otp-demo__buttons button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  padding: 8px 11px;
+  text-align: left;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-weak);
+  border-radius: var(--radius-sm);
+  transition: all var(--dur-fast) var(--ease-out);
+}
+
+.otp-demo__buttons button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.otp-demo__buttons button.is-active {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.otp-demo__buttons button small {
+  font-size: 10.5px;
+  opacity: 0.6;
+}
+
+.otp-demo__stage {
+  display: grid;
+  place-items: center;
+  padding: var(--space-6);
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(255, 255, 255, 0.03), transparent 60%),
+    var(--bg-void);
+}
+
+@media (max-width: 720px) {
+  .otp-demo {
+    grid-template-columns: 1fr;
+  }
+  .otp-demo__panel {
+    border-right: none;
+    border-bottom: 1px solid var(--border-weak);
+  }
+}

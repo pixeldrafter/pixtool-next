@@ -1,33 +1,23 @@
-/* Masaüstü kabuğu — tema duyarlı */
+/* ==========================================================================
+ *  Masaüstü kabuğu
+ * ========================================================================== */
 
 .desktop {
   position: fixed;
   inset: 0;
   z-index: 1;
-  display: flex;
-  flex-direction: column;
+  overflow: hidden;
   color: var(--text-primary);
 }
 
-/* --- Çalışma alanı --- */
-.desktop__area {
-  position: relative;
-  flex: 1;
-  padding: var(--space-5);
-  overflow: auto;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-}
-
-/* --- Kart ızgarası --- */
+/* ==================== Ortak kart ızgarası ==================== */
 .cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: var(--space-3);
 }
 
-/* --- Uyarı kutuları --- */
+/* ==================== Uyarı kutuları ==================== */
 .notice {
   margin-top: var(--space-4);
   border-radius: var(--radius-md);
@@ -53,7 +43,7 @@
   padding-left: var(--space-4);
 }
 
-/* --- Sonraki adımlar --- */
+/* ==================== Sonraki adımlar / listeler ==================== */
 .next-steps {
   margin-top: var(--space-5);
   padding-top: var(--space-4);
@@ -87,7 +77,7 @@
   font-size: 11px;
 }
 
-/* --- Ortak düğme --- */
+/* ==================== Ortak düğme ==================== */
 .ui-button {
   padding: 7px 16px;
   font-size: 12.5px;
@@ -96,6 +86,7 @@
   background: color-mix(in srgb, var(--accent) 12%, transparent);
   border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
   border-radius: var(--radius-md);
+  cursor: pointer;
   transition: background var(--dur-fast) var(--ease-out);
 }
 
@@ -108,10 +99,43 @@
   cursor: default;
 }
 
-/* --- Görev çubuğu --- */
+/* ==================== Hazır olmayan pencere içeriği ==================== */
+.desktop__placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  height: 100%;
+  min-height: 240px;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.desktop__placeholder span {
+  font-size: 34px;
+}
+
+.desktop__placeholder strong {
+  font-size: 13.5px;
+  color: var(--text-secondary);
+}
+
+.desktop__placeholder p {
+  margin: 0;
+  font-size: 12px;
+}
+
+/* ==========================================================================
+ *  Görev çubuğu
+ * ========================================================================== */
+
 .taskbar {
-  position: relative;
-  flex-shrink: 0;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 800;
   height: 46px;
   display: flex;
   align-items: center;
@@ -122,36 +146,55 @@
   border-top: 1px solid var(--border-weak);
 }
 
+/* --- Başlat --- */
 .taskbar__start {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
-  color: var(--accent);
-  border-radius: var(--radius-md);
-  padding: 5px 12px;
+  flex-shrink: 0;
+  padding: 6px 13px;
   font-size: 12px;
   font-weight: 600;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  border-radius: var(--radius-md);
+  cursor: pointer;
   transition: background var(--dur-fast) var(--ease-out);
 }
 
-.taskbar__start:hover {
-  background: color-mix(in srgb, var(--accent) 22%, transparent);
+.taskbar__start:hover,
+.taskbar__start.is-active {
+  background: color-mix(in srgb, var(--accent) 24%, transparent);
 }
 
+/* --- Açık pencereler --- */
 .taskbar__apps {
   display: flex;
   gap: var(--space-1);
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.taskbar__apps::-webkit-scrollbar {
+  display: none;
 }
 
 .taskbar__app {
-  padding: 5px 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 190px;
+  padding: 6px 11px;
   font-size: 12px;
   color: var(--text-secondary);
   background: transparent;
   border: 1px solid transparent;
+  border-bottom: 2px solid transparent;
   border-radius: var(--radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
   transition: all var(--dur-fast) var(--ease-out);
 }
 
@@ -162,22 +205,24 @@
 
 .taskbar__app.is-active {
   background: color-mix(in srgb, var(--accent) 16%, transparent);
-  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 32%, transparent);
+  border-bottom-color: var(--accent);
   color: var(--accent);
 }
 
-.taskbar__spacer {
-  flex: 1;
+.taskbar__app.is-minimized {
+  opacity: 0.55;
 }
 
-.taskbar__badge {
-  font-size: 10.5px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-muted);
-  border: 1px solid var(--border-weak);
-  border-radius: var(--radius-sm);
-  padding: 2px 7px;
+.taskbar__app-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* --- Sağ taraf --- */
+.taskbar__spacer {
+  flex: 1;
+  min-width: var(--space-3);
 }
 
 .taskbar__user {
@@ -195,6 +240,7 @@
   background: transparent;
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
+  cursor: pointer;
   transition: background var(--dur-fast) var(--ease-out);
 }
 
@@ -202,8 +248,28 @@
   background: color-mix(in srgb, var(--accent) 12%, transparent);
 }
 
+.taskbar__badge {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  border: 1px solid var(--border-weak);
+  border-radius: var(--radius-sm);
+  padding: 2px 7px;
+  flex-shrink: 0;
+}
+
 .taskbar__clock {
   font-family: var(--font-mono);
   font-size: 12px;
   color: var(--text-secondary);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+@media (max-width: 900px) {
+  .taskbar__app-label,
+  .taskbar__badge {
+    display: none;
+  }
 }

@@ -1,0 +1,255 @@
+/* ==========================================================================
+ *  Interactive Deadline — ilerleme çubuğu
+ *
+ *  Referans görsel dil: kırmızı (#BE002A) / beyaz kontrast, dolgu animasyonu,
+ *  ilerleme başında yürüyen figür, son tarih sayacı.
+ * ========================================================================== */
+
+.deadline {
+  --dl-accent: #be002a;
+  --dl-track: color-mix(in srgb, var(--dl-accent) 14%, transparent);
+
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  max-width: 620px;
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+}
+
+.deadline--compact {
+  max-width: none;
+  gap: 5px;
+}
+
+/* ==================== Başlık ==================== */
+.deadline__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.deadline__label {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+
+.deadline__time {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--dl-accent);
+  letter-spacing: 0.04em;
+}
+
+/* ==================== Ray ==================== */
+.deadline__track {
+  position: relative;
+  height: 14px;
+  border-radius: 999px;
+  background: var(--dl-track);
+  border: 1px solid color-mix(in srgb, var(--dl-accent) 30%, transparent);
+  overflow: visible;
+}
+
+.deadline--compact .deadline__track {
+  height: 8px;
+}
+
+/* ==================== Dolgu ==================== */
+.deadline__fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--dl-accent) 78%, #000),
+    var(--dl-accent)
+  );
+  transition: width 300ms var(--ease-out);
+  overflow: hidden;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--dl-accent) 45%, transparent);
+}
+
+/* Kayan çizgiler — hareket hissi */
+.deadline__fill-stripe {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    115deg,
+    rgba(255, 255, 255, 0.16) 0 6px,
+    transparent 6px 14px
+  );
+  animation: deadline-stripe 700ms linear infinite;
+}
+
+@keyframes deadline-stripe {
+  to {
+    transform: translateX(14px);
+  }
+}
+
+/* ==================== Yürüyen figür ==================== */
+.deadline__walker {
+  position: absolute;
+  top: 50%;
+  width: 20px;
+  height: 30px;
+  margin-left: -10px;
+  transform: translateY(-50%);
+  transition: left 300ms var(--ease-out);
+  pointer-events: none;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+}
+
+.deadline--compact .deadline__walker {
+  width: 14px;
+  height: 22px;
+  margin-left: -7px;
+}
+
+/* Kafa */
+.walker__head {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1.5px solid var(--dl-accent);
+}
+
+/* Gövde */
+.walker__body {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 9px;
+  height: 11px;
+  border-radius: 3px;
+  background: #fff;
+  border: 1.5px solid var(--dl-accent);
+}
+
+/* Kollar — krank çevirir gibi döner */
+.walker__arm {
+  position: absolute;
+  top: 10px;
+  width: 2px;
+  height: 8px;
+  background: var(--dl-accent);
+  border-radius: 1px;
+  transform-origin: top center;
+  animation: walker-crank 900ms ease-in-out infinite;
+}
+
+.walker__arm--left {
+  left: 2px;
+}
+
+.walker__arm--right {
+  right: 2px;
+  animation-delay: 450ms;
+}
+
+@keyframes walker-crank {
+  0%, 100% {
+    transform: rotate(-34deg);
+  }
+  50% {
+    transform: rotate(34deg);
+  }
+}
+
+/* Bacaklar — yürüme */
+.walker__leg {
+  position: absolute;
+  top: 19px;
+  width: 2.5px;
+  height: 9px;
+  background: var(--dl-accent);
+  border-radius: 1px;
+  transform-origin: top center;
+  animation: walker-step 560ms ease-in-out infinite alternate;
+}
+
+.walker__leg--left {
+  left: 6px;
+}
+
+.walker__leg--right {
+  right: 6px;
+  animation-delay: 280ms;
+}
+
+@keyframes walker-step {
+  from {
+    transform: rotate(-22deg);
+  }
+  to {
+    transform: rotate(22deg);
+  }
+}
+
+/* ==================== Alt bilgi ==================== */
+.deadline__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+.deadline__percent {
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.deadline__remaining,
+.deadline__ok,
+.deadline__fail {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ==================== Durumlar ==================== */
+.deadline--done {
+  --dl-accent: #2fa84f;
+  --dl-track: color-mix(in srgb, #2fa84f 14%, transparent);
+}
+
+.deadline--done .deadline__fill-stripe {
+  animation: none;
+}
+
+.deadline--failed {
+  --dl-accent: #be002a;
+  --dl-track: color-mix(in srgb, #be002a 16%, transparent);
+}
+
+.deadline--failed .deadline__track {
+  animation: deadline-fail-shake 420ms ease;
+}
+
+@keyframes deadline-fail-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  50% { transform: translateX(4px); }
+  75% { transform: translateX(-2px); }
+}
+
+/* ==================== Erişilebilirlik ==================== */
+@media (prefers-reduced-motion: reduce) {
+  .deadline__fill-stripe,
+  .walker__arm,
+  .walker__leg,
+  .deadline--failed .deadline__track {
+    animation: none !important;
+  }
+}

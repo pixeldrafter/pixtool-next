@@ -41,6 +41,9 @@ export function LoginScreen({ onSuccess }: LoginScreenProps) {
   );
 
   const isCredentials = flow.step === "credentials";
+  /** Animasyon gösterilirken şaka balonu dursun */
+  const showJoke =
+    isCredentials || (flow.step === "otp" && flow.otpStatus === "idle");
 
   return (
     <div className={`login-screen login-screen--${login.form}`}>
@@ -63,11 +66,12 @@ export function LoginScreen({ onSuccess }: LoginScreenProps) {
           <OtpStep
             theme={theme}
             challenge={flow.challenge}
-            verifying={flow.loading}
+            status={flow.otpStatus}
             error={flow.error}
             onSubmit={(code) => void flow.submitOtp(code)}
             onResend={() => void flow.resendOtp()}
             onCancel={flow.cancelOtp}
+            onSkipAnimation={flow.skipOtpAnimation}
           />
         )}
 
@@ -82,7 +86,7 @@ export function LoginScreen({ onSuccess }: LoginScreenProps) {
       </div>
 
       {/* Şaka — formun temasına uygun, üstte katman */}
-      {isCredentials && (
+      {showJoke && (
         <div className="login-screen__joke">
           <JokeBubble
             theme={theme}

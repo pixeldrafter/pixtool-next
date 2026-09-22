@@ -1,10 +1,22 @@
-/* OTP adımı — tema bazlı görünüm */
+/* ==========================================================================
+ *  OTP ADIMI — animasyonlu
+ *
+ *  Durumlar:
+ *    .otp--state-idle       normal
+ *    .otp--state-verifying  nabız
+ *    .otp--state-error      KIRMIZI + SALLANMA
+ *    .otp--state-success    YEŞİL + SIRAYLA ZIPLAMA
+ *
+ *  Biçim varyantları (temaya göre):
+ *    .otp--boxes · .otp--underline · .otp--glow · .otp--paws · .otp--snow
+ * ========================================================================== */
 
 .otp {
   font-family: var(--otp-font, system-ui, sans-serif);
   color: var(--otp-text, #f0f6fc);
   display: flex;
   justify-content: center;
+  width: 100%;
   animation: otp-in 380ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -22,17 +34,64 @@
   border-radius: 16px;
   backdrop-filter: blur(14px);
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.42);
+  transition: border-color 300ms ease, box-shadow 300ms ease, transform 300ms ease;
 }
 
+/* --- Başarıda kart yeşile döner --- */
+.otp--state-success .otp__card {
+  border-color: color-mix(in srgb, var(--otp-success) 55%, transparent);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--otp-success) 30%, transparent),
+    0 24px 60px rgba(0, 0, 0, 0.42),
+    0 0 60px color-mix(in srgb, var(--otp-success) 25%, transparent);
+  animation: otp-card-success 600ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes otp-card-success {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+
+/* --- Hatada kart kırmızıya döner --- */
+.otp--state-error .otp__card {
+  border-color: color-mix(in srgb, var(--otp-error) 50%, transparent);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--otp-error) 25%, transparent),
+    0 24px 60px rgba(0, 0, 0, 0.42);
+}
+
+/* ==================== İkon ==================== */
 .otp__icon {
   font-size: 30px;
   margin-bottom: 10px;
+  display: inline-block;
 }
 
+.otp__icon.is-pop {
+  animation: otp-icon-pop 700ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes otp-icon-pop {
+  0% { transform: scale(0.4) rotate(-18deg); opacity: 0; }
+  55% { transform: scale(1.28) rotate(7deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0); }
+}
+
+/* ==================== Başlık ==================== */
 .otp__title {
   margin: 0 0 6px;
   font-size: 19px;
   font-weight: 700;
+  transition: color 260ms ease;
+}
+
+.otp--state-success .otp__title {
+  color: var(--otp-success);
+}
+
+.otp--state-error .otp__title {
+  color: var(--otp-error);
 }
 
 .otp__subtitle {
@@ -45,7 +104,7 @@
   color: var(--otp-accent);
 }
 
-/* --- Geliştirme kipi uyarısı --- */
+/* ==================== Geliştirme ipucu ==================== */
 .otp__dev-hint {
   display: flex;
   flex-direction: column;
@@ -70,7 +129,7 @@
   opacity: 0.6;
 }
 
-/* --- Hata --- */
+/* ==================== Hata mesajı ==================== */
 .otp__error {
   display: flex;
   flex-direction: column;
@@ -82,7 +141,16 @@
   color: var(--otp-error);
   background: color-mix(in srgb, var(--otp-error) 12%, transparent);
   border: 1px solid color-mix(in srgb, var(--otp-error) 38%, transparent);
-  animation: otp-shake 340ms ease;
+  animation: otp-error-in 320ms var(--ease-out);
+}
+
+@keyframes otp-error-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: none; }
+}
+
+.otp__error-text {
+  font-weight: 600;
 }
 
 .otp__attempts {
@@ -90,19 +158,16 @@
   opacity: 0.82;
 }
 
-@keyframes otp-shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-6px); }
-  50% { transform: translateX(5px); }
-  75% { transform: translateX(-3px); }
+/* ==================== Girdi kutuları ==================== */
+.otp__inputs-wrap {
+  position: relative;
+  margin-bottom: 20px;
 }
 
-/* --- Girdi kutuları --- */
 .otp__inputs {
   display: flex;
   justify-content: center;
   gap: 9px;
-  margin-bottom: 20px;
 }
 
 .otp__input {
@@ -116,7 +181,12 @@
   background: color-mix(in srgb, var(--otp-surface) 65%, transparent);
   border: 1.5px solid var(--otp-border);
   border-radius: 10px;
-  transition: border-color 160ms ease, box-shadow 160ms ease, transform 140ms ease;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    background 200ms ease,
+    color 200ms ease,
+    transform 140ms ease;
 }
 
 .otp__input:focus {
@@ -131,7 +201,186 @@
   color: var(--otp-accent);
 }
 
-/* --- Gönder --- */
+/* ======================================================================
+   HATA DURUMU — kutular KIRMIZI ve SALLANIR
+   ====================================================================== */
+
+/* Kutuların bulunduğu satır sallanır */
+.otp--state-error .otp__inputs {
+  animation: otp-shake-row 520ms cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+
+@keyframes otp-shake-row {
+  0%, 100% { transform: translateX(0); }
+  10% { transform: translateX(-9px); }
+  20% { transform: translateX(8px); }
+  30% { transform: translateX(-7px); }
+  40% { transform: translateX(6px); }
+  50% { transform: translateX(-4px); }
+  60% { transform: translateX(4px); }
+  70% { transform: translateX(-2px); }
+  80% { transform: translateX(2px); }
+}
+
+/* Her kutu kırmızıya döner, sırayla yanıp söner */
+.otp--state-error .otp__input {
+  border-color: var(--otp-error);
+  background: color-mix(in srgb, var(--otp-error) 16%, transparent);
+  color: var(--otp-error);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--otp-error) 16%, transparent);
+  animation: otp-error-pulse 900ms ease both;
+  animation-delay: calc(var(--otp-index, 0) * 45ms);
+}
+
+@keyframes otp-error-pulse {
+  0% { transform: scale(1); }
+  25% { transform: scale(1.09); }
+  50% { transform: scale(0.98); }
+  100% { transform: scale(1); }
+}
+
+/* Kırmızı çarpı işareti kutuların üzerine biner */
+.otp__inputs-wrap::after {
+  content: "✕";
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 74px;
+  font-weight: 900;
+  color: var(--otp-error);
+  opacity: 0;
+  pointer-events: none;
+  text-shadow: 0 0 26px color-mix(in srgb, var(--otp-error) 70%, transparent);
+}
+
+.otp--state-error .otp__inputs-wrap::after {
+  animation: otp-cross 780ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes otp-cross {
+  0% { opacity: 0; transform: scale(2.2) rotate(-18deg); }
+  22% { opacity: 0.9; transform: scale(1) rotate(0); }
+  70% { opacity: 0.9; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0.85); }
+}
+
+/* ======================================================================
+   BAŞARI DURUMU — kutular SIRAYLA YEŞİLE döner ve ZIPLAR
+   ====================================================================== */
+
+.otp--state-success .otp__input {
+  border-color: var(--otp-success);
+  background: color-mix(in srgb, var(--otp-success) 18%, transparent);
+  color: var(--otp-success);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--otp-success) 45%, transparent),
+    0 0 22px color-mix(in srgb, var(--otp-success) 35%, transparent);
+  animation: otp-success-pop 620ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation-delay: calc(var(--otp-index, 0) * var(--otp-stagger, 70ms));
+}
+
+@keyframes otp-success-pop {
+  0% { transform: translateY(0) scale(1); }
+  35% { transform: translateY(-16px) scale(1.12); }
+  60% { transform: translateY(2px) scale(0.97); }
+  80% { transform: translateY(-3px) scale(1.02); }
+  100% { transform: translateY(0) scale(1); }
+}
+
+/* Başarıda yeşil bir dalga geçer */
+.otp__inputs-wrap::before {
+  content: "";
+  position: absolute;
+  inset: -8px;
+  border-radius: 14px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--otp-success) 40%, transparent),
+    transparent
+  );
+  opacity: 0;
+  pointer-events: none;
+}
+
+.otp--state-success .otp__inputs-wrap::before {
+  animation: otp-sweep 900ms var(--ease-out);
+}
+
+@keyframes otp-sweep {
+  0% { opacity: 0; transform: translateX(-100%); }
+  35% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(100%); }
+}
+
+/* ======================================================================
+   DOĞRULANIYOR — nabız
+   ====================================================================== */
+
+.otp--state-verifying .otp__input {
+  border-color: color-mix(in srgb, var(--otp-accent) 55%, transparent);
+  animation: otp-verifying 1.1s ease-in-out infinite;
+  animation-delay: calc(var(--otp-index, 0) * 90ms);
+}
+
+@keyframes otp-verifying {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.55; transform: scale(0.96); }
+}
+
+.otp__verifying {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  margin-bottom: 14px;
+  font-size: 12.5px;
+  color: var(--otp-accent);
+}
+
+.otp__spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid color-mix(in srgb, var(--otp-accent) 25%, transparent);
+  border-top-color: var(--otp-accent);
+  border-radius: 50%;
+  animation: otp-spin 700ms linear infinite;
+}
+
+@keyframes otp-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ======================================================================
+   BAŞARI ÇUBUĞU — panele geçmeden önce dolar
+   ====================================================================== */
+
+.otp__success-bar {
+  height: 4px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--otp-success) 18%, transparent);
+  overflow: hidden;
+  margin-top: 6px;
+}
+
+.otp__success-fill {
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: var(--otp-success);
+  transform-origin: left;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--otp-success) 60%, transparent);
+  animation: otp-fill var(--otp-success-duration, 1100ms) linear forwards;
+}
+
+@keyframes otp-fill {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+/* ==================== Gönder / bağlantılar ==================== */
 .otp__submit {
   width: 100%;
   padding: 13px;
@@ -143,7 +392,7 @@
   border: none;
   border-radius: 9px;
   cursor: pointer;
-  transition: filter 160ms ease, box-shadow 200ms ease;
+  transition: filter 160ms ease, box-shadow 200ms ease, transform 140ms ease;
 }
 
 .otp__submit:hover:not(:disabled) {
@@ -151,8 +400,12 @@
   box-shadow: 0 8px 22px color-mix(in srgb, var(--otp-accent) 34%, transparent);
 }
 
+.otp__submit:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
 .otp__submit:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: not-allowed;
 }
 
@@ -183,9 +436,25 @@
   cursor: default;
 }
 
-/* ==================== Biçim varyantları ==================== */
+.otp__skip {
+  margin-top: 14px;
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--otp-muted);
+  opacity: 0.6;
+  animation: otp-skip-pulse 2s ease-in-out infinite;
+}
 
-/* underline */
+@keyframes otp-skip-pulse {
+  50% { opacity: 0.3; }
+}
+
+/* ======================================================================
+   BİÇİM VARYANTLARI
+   ====================================================================== */
+
+/* --- underline (animasyonlu form) --- */
 .otp--underline .otp__input {
   border: none;
   border-bottom: 2px solid var(--otp-border);
@@ -198,31 +467,64 @@
   border-bottom-color: var(--otp-accent);
 }
 
-/* glow */
+.otp--underline.otp--state-error .otp__input {
+  background: transparent;
+  border-bottom-color: var(--otp-error);
+}
+
+.otp--underline.otp--state-success .otp__input {
+  background: transparent;
+  border-bottom-color: var(--otp-success);
+}
+
+/* --- glow (kenarlık formu) --- */
 .otp--glow .otp__input.is-filled {
   box-shadow:
     0 0 0 1px color-mix(in srgb, var(--otp-accent) 40%, transparent),
     0 0 18px color-mix(in srgb, var(--otp-accent) 30%, transparent);
 }
 
-/* paws — pati izli */
+/* --- paws (panda) — yuvarlak pati kutuları --- */
 .otp--paws .otp__input {
   border-radius: 50% 50% 46% 46%;
   width: 50px;
   height: 50px;
 }
 
-/* snow — kar taneli */
+/* --- snow (yeti) --- */
 .otp--snow .otp__input {
   border-radius: 12px;
   box-shadow: inset 0 0 18px color-mix(in srgb, var(--otp-accent) 10%, transparent);
 }
 
-.otp--snow .otp__input.is-filled::after {
-  content: "❄";
-}
-
 @media (max-width: 480px) {
   .otp__inputs { gap: 6px; }
   .otp__input { width: 38px; height: 50px; font-size: 19px; }
+  .otp--paws .otp__input { width: 42px; height: 42px; }
+}
+
+/* ======================================================================
+   ERİŞİLEBİLİRLİK
+   ====================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  .otp--state-error .otp__inputs,
+  .otp--state-error .otp__input,
+  .otp--state-success .otp__input,
+  .otp__icon.is-pop,
+  .otp--state-verifying .otp__input {
+    animation: none !important;
+  }
+
+  /* Hareket kapalıyken durum yalnızca RENKLE belirtilir */
+  .otp--state-error .otp__input {
+    border-color: var(--otp-error);
+    color: var(--otp-error);
+    background: color-mix(in srgb, var(--otp-error) 16%, transparent);
+  }
+
+  .otp--state-success .otp__input {
+    border-color: var(--otp-success);
+    color: var(--otp-success);
+    background: color-mix(in srgb, var(--otp-success) 18%, transparent);
+  }
 }

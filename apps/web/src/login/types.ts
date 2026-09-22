@@ -110,6 +110,16 @@ export type LoginStep =
   | "punishment"
   | "success";
 
+/**
+ * OTP kutularının görsel durumu.
+ *
+ *   idle      → normal
+ *   verifying → doğrulanıyor (nabız efekti)
+ *   error     → hatalı kod: kutular kırmızıya döner ve SALLANIR
+ *   success   → doğru kod: kutular sırayla yeşile döner ve ZIPLAR
+ */
+export type OtpStatus = "idle" | "verifying" | "error" | "success";
+
 export interface OtpChallenge {
   /** Sunucudan gelen meydan okuma kimliği */
   challengeId: string;

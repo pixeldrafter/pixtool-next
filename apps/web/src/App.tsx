@@ -20,7 +20,7 @@ import { CursorLayer } from "./cursor";
 import { Desktop } from "./desktop/Desktop";
 import { IdleScreen, useIdle } from "./idle";
 import { describeError, fetchStatus, type StatusResponse } from "./lib/api";
-import { LoginScreen, type LoginSession } from "./login";
+import { LoginScreen, OtpDemo, type LoginSession } from "./login";
 import { useSettings } from "./settings";
 import { LOGIN_FORM_OPTIONS, type FlowStep } from "./settings";
 import { ThemeBackdrop, useThemeSync } from "./theme";
@@ -28,6 +28,20 @@ import { ThemeBackdrop, useThemeSync } from "./theme";
 export default function App() {
   // Tema + hareket + ölçek ayarlarını DOM'a uygular
   useThemeSync();
+
+  // ------------------------------------------------------------------
+  //  GELİŞTİRME ARACI: ?demo=otp → OTP animasyon demosu
+  //  Üretim akışını etkilemez, yalnızca tasarım doğrulaması içindir.
+  // ------------------------------------------------------------------
+  const demoMode = new URLSearchParams(window.location.search).get("demo");
+  if (demoMode === "otp") {
+    return (
+      <>
+        <ThemeBackdrop />
+        <OtpDemo />
+      </>
+    );
+  }
 
   const { settings, update } = useSettings();
 
@@ -81,6 +95,25 @@ export default function App() {
   useEffect(() => {
     setStepIndex((index) => Math.min(index, Math.max(activeSteps.length - 1, 0)));
   }, [activeSteps.length]);
+
+  // ------------------------------------------------------------------
+  //  GELİŞTİRME ARACI: ?step=desktop → doğrudan o adıma atla
+  //  (giriş/konsol/boot adımlarını atlar — tasarım doğrulaması için)
+  // ------------------------------------------------------------------
+  useEffect(() => {
+    const target = new URLSearchParams(window.location.search).get("step");
+    if (!target) return;
+
+    const index = activeSteps.indexOf(target as FlowStep);
+    if (index < 0) return;
+
+    // Oturum yoksa sahte bir oturum ver ki masaüstü düzgün çizilsin
+    if (target === "desktop") {
+      setSession({ token: "dev", username: "dev" });
+    }
+    setStepIndex(index);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSteps.join(",")]);
 
   // ------------------------------------------------------------------
   //  Backend durumu

@@ -1,9 +1,12 @@
 /**
- * Masaüstü kabuğu.
+ * Masaüstü kabuğu — pencere yöneticisi ile.
  *
- * Faz C2: sekme tabanlı pencere geçişi (Durum / Ayarlar).
- * Faz C2+ (sıradaki): gerçek pencere yöneticisi — sürükle, boyutlandır,
- * küçült, z-sırası, başlat menüsü, Command Palette.
+ * Yapı:
+ *   ThemeBackdrop (App içinde)
+ *   ├─ DesktopIcons      → masaüstü kısayolları
+ *   ├─ ManagedWindow[]   → sürüklenebilir pencereler
+ *   ├─ Taskbar           → açık pencereler, kullanıcı, saat, kapat
+ *   └─ StartMenu         → başlat menüsü
  */
 
 import { useEffect, useState } from "react";
@@ -11,12 +14,15 @@ import { useEffect, useState } from "react";
 import type { StatusResponse } from "../lib/api";
 import type { LoginSession } from "../login";
 import { useSettings } from "../settings";
+import { AboutWindow } from "./apps/AboutWindow";
+import { DesktopIcons } from "./DesktopIcons";
 import { SettingsWindow } from "./SettingsWindow";
 import { ShutdownButton } from "./ShutdownButton";
+import { StartMenu } from "./StartMenu";
 import { StatusWindow } from "./StatusWindow";
+import { ManagedWindow } from "./window/ManagedWindow";
+import { useWindowManager, type WindowApp } from "./window/windowStore";
 import "./Desktop.css";
-
-export type DesktopApp = "status" | "settings";
 
 interface DesktopProps {
   status: StatusResponse | null;
@@ -39,29 +45,35 @@ export function Desktop({
   onLock,
   onLogout,
 }: DesktopProps) {
-  const [openApps, setOpenApps] = useState<DesktopApp[]>(["status"]);
-  const [activeApp, setActiveApp] = useState<DesktopApp>("status");
   const { settings } = useSettings();
+  const [startOpen, setStartOpen] = useState(false);
 
-  function open(app: DesktopApp) {
-    setOpenApps((apps) => (apps.includes(app) ? apps : [...apps, app]));
-    setActiveApp(app);
-  }
+  const windows = useWindowManager((state) => state.windows);
+  const open = useWindowManager((state) => state.open);
+  const focus = useWindowManager((state) => state.focus);
 
-  function close(app: DesktopApp) {
-    setOpenApps((apps) => {
-      const next = apps.filter((item) => item !== app);
-      if (activeApp === app) {
-        setActiveApp(next[next.length - 1] ?? "status");
+  // Açılışta Sistem Durumu penceresi
+  useEffect(() => {
+    open("status");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Ctrl+K → başlat menüsü (Command Palette yerine hızlı erişim)
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLocaleLowerCase("tr") === "k") {
+        event.preventDefault();
+        setStartOpen((value) => !value);
       }
-      return next.length > 0 ? next : ["status"];
-    });
-  }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
 
-  return (
-    <div className="desktop">
-      <div className="desktop__area">
-        {activeApp === "status" && (
+  function renderApp(app: WindowApp) {
+    switch (app) {
+      case "status":
+        return (
           <StatusWindow
             status={status}
             error={error}
@@ -69,20 +81,45 @@ export function Desktop({
             session={session}
             reportSaved={reportSaved}
             onRefresh={onRefresh}
-            onClose={openApps.length > 1 ? () => close("status") : undefined}
           />
-        )}
-        {activeApp === "settings" && <SettingsWindow />}
-      </div>
+        );
+      case "settings":
+        return <SettingsWindow />;
+      case "about":
+        return <AboutWindow />;
+      default:
+        return (
+          <div className="desktop__placeholder">
+            <span aria-hidden="true">🚧</span>
+            <strong>Bu pencere henüz hazır değil</strong>
+            <p>Faz 2'de eklenecek.</p>
+          </div>
+        );
+    }
+  }
+
+  return (
+    <div className="desktop">
+      <DesktopIcons />
+
+      {/* Pencereler */}
+      {windows.map((win) => (
+        <ManagedWindow key={win.id} window={win}>
+          {renderApp(win.app)}
+        </ManagedWindow>
+      ))}
+
+      {/* Başlat menüsü */}
+      {startOpen && <StartMenu onClose={() => setStartOpen(false)} />}
 
       <Taskbar
-        openApps={openApps}
-        activeApp={activeApp}
-        onOpen={open}
         theme={settings.appearance.theme}
         session={session}
         onLock={onLock}
         onLogout={onLogout}
+        onToggleStart={() => setStartOpen((value) => !value)}
+        startOpen={startOpen}
+        onToggleWindow={(id) => focus(id)}
       />
     </div>
   );
@@ -92,49 +129,64 @@ export function Desktop({
 //  Görev çubuğu
 // ----------------------------------------------------------------------
 function Taskbar({
-  openApps,
-  activeApp,
-  onOpen,
   theme,
   session,
   onLock,
   onLogout,
+  onToggleStart,
+  startOpen,
+  onToggleWindow,
 }: {
-  openApps: DesktopApp[];
-  activeApp: DesktopApp;
-  onOpen: (app: DesktopApp) => void;
   theme: string;
   session: LoginSession | null;
   onLock: () => void;
   onLogout: () => void;
+  onToggleStart: () => void;
+  startOpen: boolean;
+  onToggleWindow: (id: string) => void;
 }) {
   const [now, setNow] = useState(() => new Date());
+  const windows = useWindowManager((state) => state.windows);
+  const activeId = useWindowManager((state) => state.activeId);
+  const toggleMinimize = useWindowManager((state) => state.toggleMinimize);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 1000);
     return () => window.clearInterval(timer);
   }, []);
 
-  const titles: Record<DesktopApp, string> = {
-    status: "🖥️ Bağlantı Durumu",
-    settings: "⚙️ Ayarlar",
-  };
-
   return (
     <footer className="taskbar">
-      <button className="taskbar__start" type="button" onClick={() => onOpen("settings")}>
+      <button
+        type="button"
+        className={`taskbar__start${startOpen ? " is-active" : ""}`}
+        onClick={onToggleStart}
+        title="Başlat (Ctrl+K)"
+      >
         <span aria-hidden="true">◈</span> Başlat
       </button>
 
       <div className="taskbar__apps">
-        {openApps.map((app) => (
+        {windows.map((win) => (
           <button
-            key={app}
+            key={win.id}
             type="button"
-            className={`taskbar__app${activeApp === app ? " is-active" : ""}`}
-            onClick={() => onOpen(app)}
+            className={`taskbar__app${activeId === win.id ? " is-active" : ""}${
+              win.minimized ? " is-minimized" : ""
+            }`}
+            onClick={() => {
+              if (win.minimized) {
+                onToggleWindow(win.id);
+              } else if (activeId === win.id) {
+                toggleMinimize(win.id);
+              } else {
+                onToggleWindow(win.id);
+              }
+            }}
+            title={win.title}
           >
-            {titles[app]}
+            <span aria-hidden="true">{win.icon}</span>
+            <span className="taskbar__app-label">{win.title}</span>
           </button>
         ))}
       </div>
