@@ -1,0 +1,22 @@
+# Satır sonu normalizasyonu (Windows + Linux birlikte çalışma)
+* text=auto eol=lf
+
+# İkili dosyalar
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.mp4 binary
+*.zip binary
+
+# Windows'a özgü scriptler CRLF kalmalı
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Lock dosyaları diff gürültüsü yapmasın
+pnpm-lock.yaml -diff

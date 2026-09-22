@@ -1,0 +1,19 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+# ------------------------------------------------------------------------------
+#  Bağımlılık build-script izinleri (pnpm 11.23+ yeni biçim)
+#
+#  pnpm varsayılan olarak bağımlılıkların kurulum scriptlerini ÇALIŞTIRMAZ
+#  (tedarik zinciri saldırılarına karşı). İzin verilenler burada açıkça
+#  belirtilir; aksi hâlde kurulum ERR_PNPM_IGNORED_BUILDS ile durur.
+#
+#  esbuild → Vite'ın derleyicisi; kurulum scripti platform ikilisini doğrular.
+#
+#  Not: pnpm 11.23 öncesi anahtar adı "onlyBuiltDependencies" idi (liste).
+#  Kullanımdan kaldırıldı; ayar artık pnpm-workspace.yaml içinde bir map.
+#  Doküman: https://pnpm.io/settings/build
+# ------------------------------------------------------------------------------
+allowBuilds:
+  esbuild: true

@@ -1,0 +1,89 @@
+# ============================================================
+#  SIRLAR — ASLA COMMIT EDİLMEZ
+# ============================================================
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+credentials/
+secrets.json
+**/secrets.json
+
+# ============================================================
+#  Python
+# ============================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+ENV/
+*.egg-info/
+.eggs/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.tox/
+
+# ============================================================
+#  Node / JavaScript
+# ============================================================
+node_modules/
+.pnpm-store/
+.pnpm-debug.log*
+npm-debug.log*
+yarn-error.log*
+.pnp.*
+dist/
+dist-ssr/
+build/
+.vite/
+*.tsbuildinfo
+.eslintcache
+
+# ============================================================
+#  Rust / Tauri
+# ============================================================
+target/
+**/target/
+src-tauri/gen/
+
+# ============================================================
+#  Loglar ve geçici dosyalar
+# ============================================================
+logs/
+*.log
+tmp/
+temp/
+*.tmp
+*.bak
+~$*
+
+# ============================================================
+#  Editör / İşletim sistemi
+# ============================================================
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.example.json
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+
+# ============================================================
+#  Projeye özel
+# ============================================================
+# Eski kod tabanları buraya kopyalanmaz
+_referans/
+_eski/

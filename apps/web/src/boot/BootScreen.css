@@ -1,0 +1,121 @@
+.boot {
+  position: fixed;
+  inset: 0;
+  background: var(--bg-void);
+  color: var(--neon-green);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.45;
+  padding: var(--space-5);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* CRT tarama çizgileri */
+.boot::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0) 0px,
+    rgba(0, 0, 0, 0) 2px,
+    rgba(0, 0, 0, 0.16) 3px,
+    rgba(0, 0, 0, 0.16) 4px
+  );
+  opacity: 0.5;
+}
+
+.boot__logo {
+  margin: 0 0 var(--space-4);
+  white-space: pre;
+  color: var(--neon-green);
+  text-shadow: var(--glow-green);
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.boot__phase {
+  margin-bottom: var(--space-3);
+  animation: boot-fade-in var(--dur-slow) var(--ease-out);
+}
+
+.boot__phase-title {
+  color: var(--neon-orange);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin-bottom: var(--space-1);
+}
+
+.boot__line {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.boot__line::before {
+  content: "  ";
+}
+
+.boot__line--ok {
+  color: var(--ok);
+}
+.boot__line--warn {
+  color: var(--warn);
+}
+.boot__line--err {
+  color: var(--error);
+}
+.boot__line--info {
+  color: var(--info);
+}
+.boot__line--dim {
+  color: var(--text-muted);
+}
+.boot__line--accent {
+  color: var(--neon-purple);
+  font-weight: 600;
+}
+
+.boot__cursor {
+  display: inline-block;
+  width: 8px;
+  height: 15px;
+  margin-left: 2px;
+  background: var(--neon-green);
+  box-shadow: var(--glow-green);
+  vertical-align: text-bottom;
+}
+
+.boot__ready {
+  margin-top: auto;
+  padding-top: var(--space-5);
+  color: var(--neon-cyan);
+  text-shadow: var(--glow-cyan);
+  animation: boot-blink 1.1s steps(2, start) infinite;
+}
+
+.boot__hint {
+  margin-top: var(--space-2);
+  color: var(--text-muted);
+  font-size: 12px;
+  animation: none;
+}
+
+@keyframes boot-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes boot-blink {
+  50% {
+    opacity: 0.35;
+  }
+}
