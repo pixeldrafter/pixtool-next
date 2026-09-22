@@ -29,6 +29,16 @@ import "./forms/yeti.css";
 import "./forms/pixtool-extras.css";
 import "./YetiOtpStep.css";
 
+/**
+ * Tüm haneler dolu mu?
+ *
+ * ⚠️ `code.includes("")` KULLANILMAZ: boş string her stringin içinde
+ * bulunduğu için o ifade **her zaman `true`** döner ve buton hiç aktifleşmez.
+ */
+function isComplete(digits: string[], expectedLength: number): boolean {
+  return digits.length === expectedLength && digits.every((digit) => digit !== "");
+}
+
 interface YetiOtpStepProps {
   theme: LoginTheme;
   challenge: OtpChallenge;
@@ -60,19 +70,23 @@ export function YetiOtpStep({
    */
   const locked = status === "verifying" || status === "success";
   const code = digits.join("");
-  const complete = code.length === challenge.length && !code.includes("");
+  const complete = isComplete(digits, challenge.length);
 
   useEffect(() => {
     inputsRef.current[0]?.focus();
   }, []);
 
-  // Hata → kutuları temizle (ama açık bırak) ve odakla
+  // Hata → önce yanlış kod KIRMIZI olarak görünsün, sonra temizlensin
   useEffect(() => {
     if (status !== "error") return undefined;
-    setDigits(Array(challenge.length).fill(""));
-    setSubmittedCode("");
-    const timer = window.setTimeout(() => inputsRef.current[0]?.focus(), 520);
-    return () => window.clearTimeout(timer);
+
+    const clearTimer = window.setTimeout(() => {
+      setDigits(Array(challenge.length).fill(""));
+      setSubmittedCode("");
+      inputsRef.current[0]?.focus();
+    }, 900);
+
+    return () => window.clearTimeout(clearTimer);
   }, [status, challenge.length]);
 
   // Başarı → girilen kodu koru (yeşil animasyon için)
@@ -129,9 +143,9 @@ export function YetiOtpStep({
       if (index < digits.length - 1) inputsRef.current[index + 1]?.focus();
     }
 
-    const candidate = next.join("");
-    if (candidate.length === digits.length && !candidate.includes("")) {
-      send(candidate);
+    // Tüm haneler dolduysa otomatik gönder
+    if (isComplete(next, digits.length)) {
+      send(next.join(""));
     }
   }
 

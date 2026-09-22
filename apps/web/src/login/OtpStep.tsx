@@ -62,13 +62,17 @@ export function OtpStep({
     inputsRef.current[0]?.focus();
   }, []);
 
-  // Hata → kutuları temizle ve yeniden odakla
+  // Hata → önce yanlış kod KIRMIZI olarak görünsün, sonra temizlensin
   useEffect(() => {
     if (status !== "error") return;
-    setDigits(Array(challenge.length).fill(""));
-    setSubmittedCode("");
-    const timer = window.setTimeout(() => inputsRef.current[0]?.focus(), 480);
-    return () => window.clearTimeout(timer);
+
+    const clearTimer = window.setTimeout(() => {
+      setDigits(Array(challenge.length).fill(""));
+      setSubmittedCode("");
+      inputsRef.current[0]?.focus();
+    }, 900);
+
+    return () => window.clearTimeout(clearTimer);
   }, [status, challenge.length]);
 
   // Başarı → girilen kodu koru (yeşil animasyon için)
@@ -94,6 +98,17 @@ export function OtpStep({
   }, [status, onSkipAnimation]);
 
   const locked = status === "verifying" || status === "success";
+
+  /**
+   * Tüm haneler dolu mu?
+   *
+   * ⚠️ `code.includes("")` KULLANILMAZ: boş string her stringin içinde
+   * bulunduğu için o ifade **her zaman `true`** döner ve buton hiç
+   * aktifleşmez. (Önceki sürümdeki hata buydu.)
+   */
+  function isComplete(values: string[]): boolean {
+    return values.length === challenge.length && values.every((digit) => digit !== "");
+  }
 
   /**
    * ⚠️ ÖNEMLİ: hata durumu KİLİTLEMEZ.
@@ -123,7 +138,7 @@ export function OtpStep({
     }
 
     const candidate = next.join("");
-    if (candidate.length === digits.length && !candidate.includes("")) {
+    if (isComplete(next)) {
       setSubmittedCode(candidate);
       onSubmit(candidate);
     }
@@ -256,7 +271,7 @@ export function OtpStep({
             <button
               className="otp__submit"
               type="button"
-              disabled={locked || code.length !== challenge.length || code.includes("")}
+              disabled={locked || !isComplete(digits)}
               onClick={() => {
                 setSubmittedCode(code);
                 onSubmit(code);
