@@ -17,6 +17,7 @@ import {
   FLOW_STEP_LABELS,
   IDLE_SCREEN_OPTIONS,
   LOGIN_FORM_OPTIONS,
+  OTP_STYLE_OPTIONS,
   THEME_OPTIONS,
   VERBOSITY_OPTIONS,
   WALLPAPER_OPTIONS,
@@ -314,6 +315,16 @@ export function SettingsWindow() {
                 value={settings.login.otp.maxAttempts}
                 onChange={(maxAttempts) =>
                   update("login", { otp: { ...settings.login.otp, maxAttempts } })
+                }
+              />
+              <Select
+                label="OTP ekranı tasarımı"
+                value={settings.login.otp.style}
+                options={OTP_STYLE_OPTIONS}
+                onChange={(value) =>
+                  update("login", {
+                    otp: { ...settings.login.otp, style: value as "yeti" | "classic" },
+                  })
                 }
               />
               <Select

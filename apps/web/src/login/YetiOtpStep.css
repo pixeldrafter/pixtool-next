@@ -1,0 +1,344 @@
+/* ==========================================================================
+ *  OTP EKRANI — YETİ TASARIMI
+ *
+ *  Yeti formunun görsel diliyle (`yeti.css`) uyumlu OTP kutuları.
+ *  Renkler referanstan:
+ *    kenarlık #217093 · odak/buton #4eb8dd · zemin #f3fafd · metin #353538
+ *
+ *  Kutular `.lf--yeti form` düzeni içinde olduğu için üst kuralları geçersiz
+ *  kılacak kadar belirgin seçiciler kullanılır.
+ * ========================================================================== */
+
+/* ==================== Kutular ==================== */
+.otp-yeti .otp-yeti__boxes {
+  display: flex;
+  justify-content: space-between;
+  gap: 7px;
+  margin: 0 0 1.6em;
+  padding: 0;
+}
+
+/* Yeti formunun genel input kuralını geçersiz kıl */
+.lf--yeti form .otp-yeti__box,
+.otp-yeti .otp-yeti__box {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  height: 58px;
+  margin: 0;
+  padding: 0;
+  text-align: center;
+  font-family: "Source Sans Pro", sans-serif;
+  font-size: 1.5em;
+  font-weight: 600;
+  color: #353538;
+  background-color: #f3fafd;
+  border: solid 2px #217093;
+  border-radius: 4px;
+  box-sizing: border-box;
+  -webkit-appearance: none;
+  transition:
+    border-color 200ms ease,
+    box-shadow 200ms ease,
+    background-color 200ms ease,
+    color 200ms ease,
+    transform 160ms ease;
+}
+
+.otp-yeti .otp-yeti__box:focus {
+  outline: none;
+  border-color: #4eb8dd;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px);
+}
+
+.otp-yeti .otp-yeti__box.is-filled {
+  border-color: #4eb8dd;
+  color: #217093;
+}
+
+.otp-yeti .otp-yeti__box:disabled {
+  opacity: 0.65;
+}
+
+/* ==================== Metinler ==================== */
+/*
+ * ⚠️ `.helper` sınıfı KULLANILMAZ: referansta `.inputGroup1 .helper`
+ * `position: absolute` olduğu için kutuların üstüne biner.
+ * Burada normal akışta, blok yerleşimli metinler kullanılır.
+ */
+.otp-yeti .otp-yeti__helper,
+.otp-yeti .otp-yeti__dev,
+.otp-yeti .otp-yeti__error {
+  display: block;
+  position: static;
+}
+
+.otp-yeti .otp-yeti__helper {
+  margin: 0 0 14px;
+  font-family: "Source Sans Pro", sans-serif;
+  font-size: 0.95em;
+  line-height: 1.5;
+  color: #5a7d8c;
+}
+
+.otp-yeti .otp-yeti__helper strong {
+  color: #217093;
+}
+
+.otp-yeti .otp-yeti__dev {
+  margin: 0 0 14px;
+  padding: 8px 12px;
+  font-family: "Source Sans Pro", sans-serif;
+  font-size: 0.9em;
+  text-align: center;
+  color: #217093;
+  background: #eaf7fd;
+  border: 1px dashed #7fc9e4;
+  border-radius: 6px;
+}
+
+.otp-yeti .otp-yeti__dev strong {
+  font-size: 1.15em;
+  letter-spacing: 0.22em;
+}
+
+.otp-yeti .otp-yeti__error {
+  margin: 0 0 14px;
+  padding: 9px 12px;
+  font-family: "Source Sans Pro", sans-serif;
+  font-size: 0.95em;
+  line-height: 1.45;
+  color: #b32d2d;
+  background: #fdecec;
+  border: solid 1px #f0b4b4;
+  border-radius: 6px;
+  animation: otp-yeti-error-in 300ms ease;
+}
+
+@keyframes otp-yeti-error-in {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ==================== Bağlantılar ==================== */
+.otp-yeti .otp-yeti__actions {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 1.2em;
+}
+
+/* Yeti formunun buton kuralını geçersiz kıl (küçük metin bağlantıları) */
+.lf--yeti form .otp-yeti__link {
+  display: inline;
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: 0;
+  font-family: "Source Sans Pro", sans-serif;
+  font-size: 0.95em;
+  font-weight: 600;
+  color: #4eb8dd;
+  background: none;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  cursor: pointer;
+  transition: color 160ms ease;
+}
+
+.lf--yeti form .otp-yeti__link:hover:not(:disabled) {
+  color: #217093;
+  background: none;
+  text-decoration: underline;
+}
+
+.lf--yeti form .otp-yeti__link:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.otp-yeti .otp-yeti__skip {
+  margin: 0.9em 0 0;
+  text-align: center;
+  font-size: 0.85em;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #8aa8b4;
+  animation: otp-yeti-skip 2s ease-in-out infinite;
+}
+
+@keyframes otp-yeti-skip {
+  50% { opacity: 0.4; }
+}
+
+/* ==================== HATA durumu ==================== */
+/*
+ * ⚠️ ÖZGÜLLÜK: temel kural `.lf--yeti form .otp-yeti__box` (0,2,1).
+ * Durum kuralları bunu geçersiz kılabilmek için 3 sınıf kullanır.
+ */
+
+/* Kutular kırmızıya döner ve SALLANIR */
+.otp-yeti.otp-yeti--error .otp-yeti__boxes {
+  animation: otp-yeti-shake 520ms cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+
+@keyframes otp-yeti-shake {
+  0%, 100% { transform: translateX(0); }
+  10% { transform: translateX(-9px); }
+  20% { transform: translateX(8px); }
+  30% { transform: translateX(-7px); }
+  40% { transform: translateX(6px); }
+  50% { transform: translateX(-4px); }
+  60% { transform: translateX(4px); }
+  70% { transform: translateX(-2px); }
+  80% { transform: translateX(2px); }
+}
+
+.lf--yeti form .otp-yeti.otp-yeti--error .otp-yeti__box,
+.otp-yeti.otp-yeti--error .otp-yeti__box {
+  border: solid 2px #d9534f;
+  background-color: #fdecec;
+  color: #b32d2d;
+  box-shadow: 0 0 0 3px rgba(217, 83, 79, 0.16);
+  animation: otp-yeti-pop-error 900ms ease both;
+  animation-delay: calc(var(--otp-index, 0) * 45ms);
+}
+
+@keyframes otp-yeti-pop-error {
+  0% { transform: scale(1); }
+  25% { transform: scale(1.09); }
+  55% { transform: scale(0.98); }
+  100% { transform: scale(1); }
+}
+
+/* ==================== BAŞARI durumu ==================== */
+
+/* Kutular SIRAYLA yeşile döner ve ZIPLAR */
+.lf--yeti form .otp-yeti.otp-yeti--success .otp-yeti__box,
+.otp-yeti.otp-yeti--success .otp-yeti__box {
+  border: solid 2px #4caf7d;
+  background-color: #eafaf1;
+  color: #2f8a5b;
+  box-shadow:
+    0 0 0 1px rgba(76, 175, 125, 0.4),
+    0 0 18px rgba(76, 175, 125, 0.3);
+  animation: otp-yeti-pop-success 620ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation-delay: calc(var(--otp-index, 0) * var(--otp-stagger, 70ms));
+}
+
+@keyframes otp-yeti-pop-success {
+  0% { transform: translateY(0) scale(1); }
+  35% { transform: translateY(-15px) scale(1.12); }
+  60% { transform: translateY(2px) scale(0.97); }
+  80% { transform: translateY(-3px) scale(1.02); }
+  100% { transform: translateY(0) scale(1); }
+}
+
+/* ==================== DOĞRULANIYOR ==================== */
+.lf--yeti form .otp-yeti.otp-yeti--verifying .otp-yeti__box,
+.otp-yeti.otp-yeti--verifying .otp-yeti__box {
+  border: solid 2px #4eb8dd;
+  animation: otp-yeti-verifying 1.1s ease-in-out infinite;
+  animation-delay: calc(var(--otp-index, 0) * 90ms);
+}
+
+@keyframes otp-yeti-verifying {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.55; transform: scale(0.96); }
+}
+
+/* ==================== Karakter tepkileri ==================== */
+
+/* Üzgün: baş yana eğilir + sallanır */
+.otp-yeti.is-sad .svgContainer .mySVG {
+  animation: otp-yeti-sad 900ms ease;
+}
+
+@keyframes otp-yeti-sad {
+  0%, 100% { transform: rotate(0); }
+  30% { transform: rotate(-4deg); }
+  60% { transform: rotate(4deg); }
+}
+
+/* Sevinçli: zıplar */
+.otp-yeti.is-happy .svgContainer {
+  animation: otp-yeti-hop 700ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes otp-yeti-hop {
+  0%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-16px); }
+  70% { transform: translateY(3px); }
+}
+
+/* ==================== Başarı ilerleme çubuğu ==================== */
+.otp-yeti__progress {
+  margin-top: 1.1em;
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(76, 175, 125, 0.18);
+  overflow: hidden;
+}
+
+.otp-yeti__progress-fill {
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: #4caf7d;
+  transform-origin: left;
+  box-shadow: 0 0 10px rgba(76, 175, 125, 0.55);
+  animation: otp-yeti-fill var(--otp-success-duration, 1150ms) linear forwards;
+}
+
+@keyframes otp-yeti-fill {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+/* ==================== Karanlık tema uyumu ==================== */
+/*
+ * Yeti tasarımı AÇIK temalıdır. Uygulama teması koyu olsa bile kart beyaz
+ * kalır — referansa sadık kalmak için.
+ */
+.login-screen--yeti .otp-yeti,
+.otp-yeti {
+  background-color: #eff3f4;
+}
+
+/* ==================== Erişilebilirlik ==================== */
+@media (prefers-reduced-motion: reduce) {
+  .otp-yeti.otp-yeti--error .otp-yeti__boxes,
+  .otp-yeti.otp-yeti--error .otp-yeti__box,
+  .otp-yeti.otp-yeti--success .otp-yeti__box,
+  .otp-yeti.otp-yeti--verifying .otp-yeti__box,
+  .otp-yeti.is-happy .svgContainer,
+  .otp-yeti.is-sad .svgContainer .mySVG {
+    animation: none !important;
+  }
+
+  /* Hareket kapalıyken durum yalnızca RENKLE belirtilir */
+  .otp-yeti.otp-yeti--error .otp-yeti__box {
+    border-color: #d9534f;
+    background-color: #fdecec;
+    color: #b32d2d;
+  }
+
+  .otp-yeti.otp-yeti--success .otp-yeti__box {
+    border-color: #4caf7d;
+    background-color: #eafaf1;
+    color: #2f8a5b;
+  }
+}
+
+/* ==================== Küçük ekran ==================== */
+@media (max-width: 480px) {
+  .otp-yeti .otp-yeti__boxes {
+    gap: 5px;
+  }
+  .otp-yeti .otp-yeti__box {
+    height: 50px;
+    font-size: 1.25em;
+  }
+}

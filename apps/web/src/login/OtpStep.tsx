@@ -93,7 +93,13 @@ export function OtpStep({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [status, onSkipAnimation]);
 
-  const locked = status === "verifying" || status === "success" || status === "error";
+  const locked = status === "verifying" || status === "success";
+
+  /**
+   * ⚠️ ÖNEMLİ: hata durumu KİLİTLEMEZ.
+   * Hata sonrası kullanıcı yeniden yazabilmeli ve Doğrula'ya basabilmeli.
+   * (Önceki sürümde `error` de kilitliydi → kullanıcı ilerleyemiyordu.)
+   */
 
   function handleChange(index: number, value: string) {
     if (locked) return;

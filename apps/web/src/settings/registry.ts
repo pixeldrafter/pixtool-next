@@ -96,3 +96,19 @@ export const VERBOSITY_OPTIONS: Option<"off" | "summary" | "everything">[] = [
     hint: "Makinenin tüm bilgisi ekrana akar (önerilen)",
   },
 ];
+
+// ----------------------------------------------------------------------
+//  OTP ekranı tasarımı
+// ----------------------------------------------------------------------
+export const OTP_STYLE_OPTIONS: Option<"yeti" | "classic">[] = [
+  {
+    value: "yeti",
+    label: "Yeti tasarımı",
+    hint: "Yeti login formunun görsel dili — karakter tepki verir",
+  },
+  {
+    value: "classic",
+    label: "Klasik (forma uyumlu)",
+    hint: "Gönderilen login formunun temasına uyan kutular",
+  },
+];

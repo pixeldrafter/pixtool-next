@@ -119,6 +119,13 @@ export interface LoginSettings {
     maxAttempts: number;
     /** OTP nereden gönderilir */
     channel: "telegram" | "n8n" | "totp";
+    /**
+     * OTP ekranının tasarımı.
+     *
+     *   "yeti"    → Yeti login formunun görsel diliyle (VARSAYILAN)
+     *   "classic" → gönderilen login formunun temasına uyan kutular
+     */
+    style: "yeti" | "classic";
   };
   /** Ceza ekranı (The Impossible Light Bulb) */
   punishment: {

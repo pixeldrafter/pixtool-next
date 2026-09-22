@@ -59,6 +59,7 @@ export const DEFAULT_SETTINGS: PixSettings = {
       length: 6,
       maxAttempts: 3,
       channel: "telegram",
+      style: "yeti", // Yeti tasarımlı OTP (kullanıcı isteği)
     },
     punishment: {
       enabled: true,

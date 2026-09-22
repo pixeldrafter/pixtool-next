@@ -81,13 +81,21 @@ export function useLoginFlow(
 
   /** Başarı animasyonu zamanlayıcısı — erken atlanırsa temizlenir */
   const successTimerRef = useRef<number | null>(null);
+  /** Hata animasyonu sonrası normale dönüş zamanlayıcısı */
+  const errorTimerRef = useRef<number | null>(null);
   /** Başarıda verilecek oturum bilgisi */
   const pendingSessionRef = useRef<LoginSession | null>(null);
+
+  /** Hata animasyonunun gösterilme süresi (ms) — sonra kutular normale döner. */
+  const ERROR_ANIMATION_MS = 1400;
 
   useEffect(
     () => () => {
       if (successTimerRef.current !== null) {
         window.clearTimeout(successTimerRef.current);
+      }
+      if (errorTimerRef.current !== null) {
+        window.clearTimeout(errorTimerRef.current);
       }
     },
     [],
@@ -184,9 +192,21 @@ export function useLoginFlow(
         // Kırmızı + sallanma animasyonu
         setOtpStatus("error");
         setError(response.message ?? `Kod hatalı. ${attempts} deneme hakkın kaldı.`);
+
+        // Animasyon oynadıktan sonra kutular normale döner (hata mesajı kalır)
+        if (errorTimerRef.current !== null) window.clearTimeout(errorTimerRef.current);
+        errorTimerRef.current = window.setTimeout(() => {
+          errorTimerRef.current = null;
+          setOtpStatus((current) => (current === "error" ? "idle" : current));
+        }, ERROR_ANIMATION_MS);
       } catch (caught) {
         setOtpStatus("error");
         setError(describeAuthError(caught));
+        if (errorTimerRef.current !== null) window.clearTimeout(errorTimerRef.current);
+        errorTimerRef.current = window.setTimeout(() => {
+          errorTimerRef.current = null;
+          setOtpStatus((current) => (current === "error" ? "idle" : current));
+        }, ERROR_ANIMATION_MS);
       } finally {
         setLoading(false);
       }
@@ -250,6 +270,7 @@ export function useLoginFlow(
   }, [challenge, config.maxAttempts]);
 
   const cancelOtp = useCallback(() => {
+    if (errorTimerRef.current !== null) window.clearTimeout(errorTimerRef.current);
     setStep("credentials");
     setChallenge(null);
     setError(null);

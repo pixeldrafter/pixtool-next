@@ -13,6 +13,7 @@
 import { JokeBubble } from "./JokeBubble";
 import { OtpStep } from "./OtpStep";
 import { PunishmentScreen } from "./PunishmentScreen";
+import { YetiOtpStep } from "./YetiOtpStep";
 import { renderLoginForm } from "./registry";
 import { getLoginTheme } from "./themes";
 import { useLoginFlow, type LoginSession } from "./useLoginFlow";
@@ -43,7 +44,7 @@ export function LoginScreen({ onSuccess }: LoginScreenProps) {
   const isCredentials = flow.step === "credentials";
   /** Animasyon gösterilirken şaka balonu dursun */
   const showJoke =
-    isCredentials || (flow.step === "otp" && flow.otpStatus === "idle");
+    isCredentials || (flow.step === "otp" && flow.otpStatus === "idle" && !flow.error);
 
   return (
     <div className={`login-screen login-screen--${login.form}`}>
@@ -62,18 +63,31 @@ export function LoginScreen({ onSuccess }: LoginScreenProps) {
             disabled: false,
           })}
 
-        {flow.step === "otp" && flow.challenge && (
-          <OtpStep
-            theme={theme}
-            challenge={flow.challenge}
-            status={flow.otpStatus}
-            error={flow.error}
-            onSubmit={(code) => void flow.submitOtp(code)}
-            onResend={() => void flow.resendOtp()}
-            onCancel={flow.cancelOtp}
-            onSkipAnimation={flow.skipOtpAnimation}
-          />
-        )}
+        {flow.step === "otp" &&
+          flow.challenge &&
+          (login.otp.style === "yeti" ? (
+            <YetiOtpStep
+              theme={theme}
+              challenge={flow.challenge}
+              status={flow.otpStatus}
+              error={flow.error}
+              onSubmit={(code) => void flow.submitOtp(code)}
+              onResend={() => void flow.resendOtp()}
+              onCancel={flow.cancelOtp}
+              onSkipAnimation={flow.skipOtpAnimation}
+            />
+          ) : (
+            <OtpStep
+              theme={theme}
+              challenge={flow.challenge}
+              status={flow.otpStatus}
+              error={flow.error}
+              onSubmit={(code) => void flow.submitOtp(code)}
+              onResend={() => void flow.resendOtp()}
+              onCancel={flow.cancelOtp}
+              onSkipAnimation={flow.skipOtpAnimation}
+            />
+          ))}
 
         {flow.step === "punishment" && (
           <PunishmentScreen

@@ -8,6 +8,7 @@
 
 export { LoginScreen } from "./LoginScreen";
 export { OtpStep } from "./OtpStep";
+export { YetiOtpStep } from "./YetiOtpStep";
 export { OtpDemo } from "./OtpDemo";
 export { JokeBubble } from "./JokeBubble";
 export { PunishmentScreen } from "./PunishmentScreen";
