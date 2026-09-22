@@ -7,7 +7,7 @@
 
 import type { StatusResponse } from "../lib/api";
 import type { LoginSession } from "../login";
-import { Card } from "./Window";
+import { Card } from "./ui/Card";
 
 export interface StatusWindowProps {
   status: StatusResponse | null;
