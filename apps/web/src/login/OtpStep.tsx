@@ -220,11 +220,11 @@ export function OtpStep({
         {status === "error" && error && (
           <div className="otp__error" role="alert">
             <span className="otp__error-text">{error}</span>
-            <span className="otp__attempts">
-              {challenge.attemptsLeft > 0
-                ? `${challenge.attemptsLeft} deneme hakkın kaldı`
-                : "Deneme hakkın doldu"}
-            </span>
+            {challenge.attemptsLeft > 0 && !/deneme/i.test(error) && (
+              <span className="otp__attempts">
+                {challenge.attemptsLeft} deneme hakkın kaldı
+              </span>
+            )}
           </div>
         )}
 

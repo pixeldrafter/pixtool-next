@@ -62,6 +62,11 @@ export default function App() {
     if (theme && ["windows", "kde", "neon"].includes(theme)) {
       update("appearance", { theme: theme as typeof settings.appearance.theme });
     }
+
+    const otp = params.get("otp");
+    if (otp === "yeti" || otp === "classic") {
+      update("login", { otp: { ...settings.login.otp, style: otp } });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
