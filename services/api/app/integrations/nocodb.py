@@ -5,12 +5,10 @@ Tüm tablo erişimi bu modül üzerinden yapılır. Başka hiçbir yerde doğrud
 NocoDB HTTP çağrısı yazılmaz.
 
 NocoDB REST Data API v2 kullanılır:
-    GET {base}/api/v2/tables/{tableId}/records
+    GET  {base}/api/v2/tables/{tableId}/records
+    POST {base}/api/v2/tables/{tableId}/records
 Kimlik doğrulama:
     Header: xc-token: {API_TOKEN}
-
-Faz 0 kapsamı: bağlantı ve yapılandırma doğrulaması (`ping`).
-Tablo işlemleri sonraki fazlarda eklenir.
 """
 
 from __future__ import annotations
@@ -65,7 +63,7 @@ class NocoDBClient:
         return f"{self.base_url}/{path.lstrip('/')}"
 
     # ------------------------------------------------------------------
-    #  Faz 0 — bağlantı doğrulaması
+    #  Bağlantı doğrulaması
     # ------------------------------------------------------------------
     async def ping(self) -> NocoDBStatus:
         """
@@ -81,8 +79,8 @@ class NocoDBClient:
                 reachable=False,
                 base_url=self.base_url,
                 detail=(
-                    "NocoDB yapılandırılmamış — .env içinde "
-                    "NOCODB_BASE_URL ve NOCODB_API_TOKEN doldurulmalı."
+                    "NocoDB yapılandırılmamış — .env içinde NOCODB_BASE_URL "
+                    "ve NOCODB_API_TOKEN doldurulmalı."
                 ),
             )
 
@@ -93,13 +91,16 @@ class NocoDBClient:
                 reachable=False,
                 base_url=self.base_url,
                 detail=(
-                    f"NocoDB adresi hâlâ şablon değer: {self.base_url!r} — gerçek adres girilmeli."
+                    f"NocoDB adresi hâlâ şablon değer: {self.base_url!r} "
+                    "— gerçek adres girilmeli."
                 ),
             )
 
         try:
             async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
-                response = await client.get(self._url("/api/v2/meta/bases/"), headers=self._headers)
+                response = await client.get(
+                    self._url("/api/v2/meta/bases/"), headers=self._headers
+                )
         except httpx.HTTPError as exc:
             return NocoDBStatus(
                 configured=True,
@@ -116,7 +117,8 @@ class NocoDBClient:
                 reachable=True,
                 base_url=self.base_url,
                 detail=(
-                    "Sunucuya ulaşıldı ama token geçersiz (401). NOCODB_API_TOKEN kontrol edilmeli."
+                    "Sunucuya ulaşıldı ama token geçersiz (401). "
+                    "NOCODB_API_TOKEN kontrol edilmeli."
                 ),
             )
 
@@ -137,6 +139,9 @@ class NocoDBClient:
             detail="Bağlantı başarılı.",
         )
 
+    # ------------------------------------------------------------------
+    #  Base / tablo işlemleri
+    # ------------------------------------------------------------------
     async def list_bases(self) -> list[dict[str, Any]]:
         """Erişilebilen NocoDB base'lerini listeler."""
         async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
@@ -144,6 +149,39 @@ class NocoDBClient:
             response.raise_for_status()
             data = response.json()
         return data.get("list", data if isinstance(data, list) else [])
+
+    async def insert_record(self, table: str, record: dict[str, Any]) -> dict[str, Any]:
+        """Tabloya bir kayıt ekler."""
+        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+            response = await client.post(
+                self._url(f"/api/v2/tables/{table}/records"),
+                headers={**self._headers, "Content-Type": "application/json"},
+                json=record,
+            )
+            response.raise_for_status()
+            return response.json()
+
+    async def list_records(
+        self,
+        table: str,
+        limit: int = 25,
+        where: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """Tablo kayıtlarını listeler."""
+        params: dict[str, Any] = {"limit": limit}
+        if where:
+            params["where"] = where
+
+        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+            response = await client.get(
+                self._url(f"/api/v2/tables/{table}/records"),
+                headers=self._headers,
+                params=params,
+            )
+            response.raise_for_status()
+            data = response.json()
+
+        return data.get("list", [])
 
 
 def get_nocodb_client() -> NocoDBClient:

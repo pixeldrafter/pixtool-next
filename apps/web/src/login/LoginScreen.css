@@ -1,0 +1,91 @@
+/* Giriş ekranı — kapsayıcı */
+
+.login-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  padding: 24px;
+  overflow-y: auto;
+  font-family: var(--ls-font, system-ui, sans-serif);
+  color: var(--ls-text, #f0f6fc);
+  background: color-mix(in srgb, var(--ls-bg, #05070a) 82%, transparent);
+  backdrop-filter: blur(6px);
+}
+
+.login-screen__decor {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 22% 18%, color-mix(in srgb, var(--ls-accent) 12%, transparent), transparent 58%),
+    radial-gradient(ellipse at 80% 82%, color-mix(in srgb, var(--ls-accent) 8%, transparent), transparent 55%);
+}
+
+.login-screen__content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.login-screen__joke {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  max-width: min(560px, 92vw);
+}
+
+/* --- Alt bilgi --- */
+.login-screen__footer {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--ls-muted) 80%, transparent);
+  margin-top: 6px;
+}
+
+.login-screen__footer-sep {
+  opacity: 0.5;
+}
+
+/* ==================== Forma özel zemin ==================== */
+
+/* Panda tam sayfa: bambu ormanı arka planı */
+.login-screen--pandaPage {
+  background: color-mix(in srgb, var(--ls-bg) 88%, transparent);
+}
+
+/* Yeti: buz mavisi derinlik */
+.login-screen--yeti {
+  background:
+    linear-gradient(to bottom, rgba(10, 21, 36, 0.9), rgba(6, 14, 24, 0.96)),
+    var(--ls-bg);
+}
+
+/* Neon kenarlık formu: terminal ızgarası */
+.login-screen--animatedBorder .login-screen__decor {
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--ls-accent) 6%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--ls-accent) 6%, transparent) 1px, transparent 1px);
+  background-size: 42px 42px;
+}
+
+/* Lamba: sıcak vinyet */
+.login-screen--lamp .login-screen__decor {
+  background:
+    radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--ls-accent) 10%, transparent), transparent 60%),
+    radial-gradient(ellipse at 50% 120%, rgba(0, 0, 0, 0.6), transparent 60%);
+}

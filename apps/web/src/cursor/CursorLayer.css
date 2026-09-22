@@ -1,0 +1,28 @@
+/* İmleç katmanı */
+
+.cursor-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+.cursor-canvas {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* Özel imleç aktifken sistem imlecini gizle */
+.cursor-layer--spider,
+.cursor-layer--reptile,
+.cursor-layer--none {
+  cursor: none;
+}
+
+/* Tüm etkileşimli öğelerde de gizle (tarayıcı alt öğelerde kendi imlecini gösterir) */
+html:has(.cursor-layer--spider) *,
+html:has(.cursor-layer--reptile) *,
+html:has(.cursor-layer--none) * {
+  cursor: none !important;
+}

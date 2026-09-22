@@ -1,0 +1,45 @@
+/* Boşta kalma ekranı */
+
+.idle-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 8000;
+  cursor: pointer;
+  overflow: hidden;
+  animation: idle-fade-in 900ms var(--ease-out);
+}
+
+@keyframes idle-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.idle-screen--black {
+  background: #000;
+}
+
+.idle-screen__hint {
+  position: absolute;
+  bottom: 6vh;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  color: rgba(220, 230, 240, 0.5);
+  padding: 7px 16px;
+  border: 1px solid rgba(120, 145, 175, 0.18);
+  border-radius: 999px;
+  background: rgba(5, 7, 10, 0.55);
+  backdrop-filter: blur(8px);
+  animation: idle-pulse 3s ease-in-out infinite;
+}
+
+@keyframes idle-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}

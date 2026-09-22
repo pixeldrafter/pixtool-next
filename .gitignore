@@ -70,6 +70,14 @@ temp/
 ~$*
 
 # ============================================================
+#  Yerel veri deposu
+#  (NocoDB yapılandırılmadıysa cihaz raporları buraya yazılır)
+# ============================================================
+services/api/data/*.jsonl
+services/api/data/*.json
+!services/api/data/.gitkeep
+
+# ============================================================
 #  Editör / İşletim sistemi
 # ============================================================
 .idea/

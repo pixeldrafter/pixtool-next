@@ -1,0 +1,271 @@
+/* Animasyonlu kapatma butonu */
+
+.shutdown-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 12px 6px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--error) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--error) 28%, transparent);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  transition: color 160ms ease, border-color 160ms ease, background 160ms ease;
+}
+
+.shutdown-btn:hover:not(:disabled) {
+  color: var(--error);
+  border-color: var(--error);
+  background: color-mix(in srgb, var(--error) 14%, transparent);
+}
+
+.shutdown-btn:disabled {
+  cursor: default;
+}
+
+/* --- Küçük kapı ikonu --- */
+.shutdown-btn__door {
+  position: relative;
+  width: 15px;
+  height: 17px;
+  flex-shrink: 0;
+}
+
+.shutdown-btn__frame {
+  position: absolute;
+  inset: 0;
+  border: 1.5px solid currentColor;
+  border-radius: 2px 2px 0 0;
+  opacity: 0.75;
+}
+
+.shutdown-btn__inner {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  bottom: 0;
+  left: 4px;
+  background: currentColor;
+  border-radius: 1px 1px 0 0;
+  transform-origin: right center;
+  transition: transform 320ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.shutdown-btn:hover .shutdown-btn__inner {
+  transform: perspective(24px) rotateY(-46deg);
+}
+
+.shutdown-btn.is-running .shutdown-btn__inner {
+  transform: perspective(24px) rotateY(-78deg);
+}
+
+/* --- Küçük figür --- */
+.shutdown-btn__figure {
+  position: absolute;
+  left: 7px;
+  top: 3px;
+  width: 8px;
+  height: 13px;
+  opacity: 0;
+  transition: opacity 200ms ease;
+  pointer-events: none;
+}
+
+.shutdown-btn.is-running .shutdown-btn__figure {
+  opacity: 1;
+  animation: mini-walk 900ms linear forwards;
+}
+
+.shutdown-btn__head {
+  position: absolute;
+  top: 0;
+  left: 2px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--error);
+}
+
+.shutdown-btn__body {
+  position: absolute;
+  top: 5px;
+  left: 2.5px;
+  width: 3px;
+  height: 8px;
+  border-radius: 1px;
+  background: var(--error);
+}
+
+@keyframes mini-walk {
+  from { transform: translateX(0); }
+  to { transform: translateX(6px); }
+}
+
+.shutdown-btn__text {
+  position: relative;
+  z-index: 1;
+}
+
+/* ==================== Tam ekran perde ==================== */
+.shutdown-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9500;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  background: #05070a;
+  animation: shutdown-in 400ms var(--ease-out);
+}
+
+@keyframes shutdown-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* --- Oda --- */
+.shutdown-overlay__room {
+  position: relative;
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 12vh;
+  overflow: hidden;
+}
+
+.shutdown-overlay__light {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60vw;
+  height: 60vh;
+  background: radial-gradient(ellipse at 50% 0%, rgba(255, 230, 180, 0.16), transparent 62%);
+  transition: opacity 900ms ease;
+}
+
+/* Işık söner */
+.shutdown-overlay--exiting .shutdown-overlay__light,
+.shutdown-overlay--dark .shutdown-overlay__light {
+  opacity: 0;
+}
+
+/* --- Figür --- */
+.shutdown-overlay__figure {
+  position: relative;
+  width: 34px;
+  height: 66px;
+  margin-right: 220px;
+  animation: overlay-walk 1100ms linear forwards;
+}
+
+.shutdown-overlay--exiting .shutdown-overlay__figure {
+  animation-name: overlay-exit;
+}
+
+@keyframes overlay-walk {
+  from { transform: translateX(-40px); }
+  to { transform: translateX(0); }
+}
+
+@keyframes overlay-exit {
+  from { transform: translateX(0); opacity: 1; }
+  to { transform: translateX(190px); opacity: 0.15; }
+}
+
+.shutdown-figure__head {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: #cfe0ee;
+}
+
+.shutdown-figure__body {
+  position: absolute;
+  top: 19px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 22px;
+  height: 28px;
+  border-radius: 8px 8px 4px 4px;
+  background: #8fa6bb;
+}
+
+.shutdown-figure__leg {
+  position: absolute;
+  top: 47px;
+  width: 7px;
+  height: 19px;
+  border-radius: 3px;
+  background: #6b8095;
+  transform-origin: top center;
+  animation: leg-step 560ms ease-in-out infinite alternate;
+}
+
+.shutdown-figure__leg--left { left: 5px; }
+.shutdown-figure__leg--right { right: 5px; animation-delay: 280ms; }
+
+@keyframes leg-step {
+  from { transform: rotate(-11deg); }
+  to { transform: rotate(11deg); }
+}
+
+/* --- Kapı --- */
+.shutdown-overlay__door {
+  position: absolute;
+  bottom: 12vh;
+  left: calc(50% + 150px);
+  width: 62px;
+  height: 128px;
+  perspective: 400px;
+}
+
+.shutdown-door__panel {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to bottom, #1b2430, #101820);
+  border: 2px solid #2c3a49;
+  border-radius: 4px 4px 0 0;
+  transform-origin: left center;
+  transition: transform 700ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.shutdown-overlay--exiting .shutdown-door__panel,
+.shutdown-overlay--dark .shutdown-door__panel {
+  transform: rotateY(-72deg);
+}
+
+/* --- Mesaj --- */
+.shutdown-overlay__message {
+  position: absolute;
+  bottom: 4vh;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12.5px;
+  letter-spacing: 0.1em;
+  color: var(--neon-green);
+  text-shadow: 0 0 12px rgba(0, 255, 156, 0.4);
+}
+
+.shutdown-overlay--dark .shutdown-overlay__message {
+  color: var(--text-muted);
+  text-shadow: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shutdown-overlay__figure,
+  .shutdown-figure__leg {
+    animation: none !important;
+  }
+}

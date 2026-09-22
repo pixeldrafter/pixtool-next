@@ -1,18 +1,18 @@
 /**
  * Masaüstü kabuğu.
  *
- * Faz A: sekme ile pencere geçişi (Durum / Ayarlar) + görev çubuğu.
- * Faz B: gerçek pencere yöneticisi (sürükle, boyutlandır, küçült, z-sırası),
- *        başlat menüsü, masaüstü ikonları, Command Palette.
- *
- * Arkaplan katmanı App içinde (ThemeBackdrop) — temaya duyarlı.
+ * Faz C2: sekme tabanlı pencere geçişi (Durum / Ayarlar).
+ * Faz C2+ (sıradaki): gerçek pencere yöneticisi — sürükle, boyutlandır,
+ * küçült, z-sırası, başlat menüsü, Command Palette.
  */
 
 import { useEffect, useState } from "react";
 
 import type { StatusResponse } from "../lib/api";
+import type { LoginSession } from "../login";
 import { useSettings } from "../settings";
 import { SettingsWindow } from "./SettingsWindow";
+import { ShutdownButton } from "./ShutdownButton";
 import { StatusWindow } from "./StatusWindow";
 import "./Desktop.css";
 
@@ -22,10 +22,23 @@ interface DesktopProps {
   status: StatusResponse | null;
   error: string | null;
   loading: boolean;
+  session: LoginSession | null;
+  reportSaved: boolean | null;
   onRefresh: () => void;
+  onLock: () => void;
+  onLogout: () => void;
 }
 
-export function Desktop({ status, error, loading, onRefresh }: DesktopProps) {
+export function Desktop({
+  status,
+  error,
+  loading,
+  session,
+  reportSaved,
+  onRefresh,
+  onLock,
+  onLogout,
+}: DesktopProps) {
   const [openApps, setOpenApps] = useState<DesktopApp[]>(["status"]);
   const [activeApp, setActiveApp] = useState<DesktopApp>("status");
   const { settings } = useSettings();
@@ -37,7 +50,7 @@ export function Desktop({ status, error, loading, onRefresh }: DesktopProps) {
 
   function close(app: DesktopApp) {
     setOpenApps((apps) => {
-      const next = apps.filter((a) => a !== app);
+      const next = apps.filter((item) => item !== app);
       if (activeApp === app) {
         setActiveApp(next[next.length - 1] ?? "status");
       }
@@ -53,13 +66,13 @@ export function Desktop({ status, error, loading, onRefresh }: DesktopProps) {
             status={status}
             error={error}
             loading={loading}
+            session={session}
+            reportSaved={reportSaved}
             onRefresh={onRefresh}
             onClose={openApps.length > 1 ? () => close("status") : undefined}
           />
         )}
-        {activeApp === "settings" && (
-          <SettingsWindow />
-        )}
+        {activeApp === "settings" && <SettingsWindow />}
       </div>
 
       <Taskbar
@@ -67,6 +80,9 @@ export function Desktop({ status, error, loading, onRefresh }: DesktopProps) {
         activeApp={activeApp}
         onOpen={open}
         theme={settings.appearance.theme}
+        session={session}
+        onLock={onLock}
+        onLogout={onLogout}
       />
     </div>
   );
@@ -80,11 +96,17 @@ function Taskbar({
   activeApp,
   onOpen,
   theme,
+  session,
+  onLock,
+  onLogout,
 }: {
   openApps: DesktopApp[];
   activeApp: DesktopApp;
   onOpen: (app: DesktopApp) => void;
   theme: string;
+  session: LoginSession | null;
+  onLock: () => void;
+  onLogout: () => void;
 }) {
   const [now, setNow] = useState(() => new Date());
 
@@ -118,10 +140,24 @@ function Taskbar({
       </div>
 
       <span className="taskbar__spacer" />
+
+      {session && (
+        <span className="taskbar__user mono" title="Oturum sahibi">
+          👤 {session.username}
+        </span>
+      )}
+
+      <button type="button" className="taskbar__icon" onClick={onLock} title="Kilitle">
+        🔒
+      </button>
+
       <span className="taskbar__badge mono">{theme}</span>
+
       <span className="taskbar__clock">
         {now.toLocaleDateString("tr-TR")} · {now.toLocaleTimeString("tr-TR")}
       </span>
+
+      <ShutdownButton onShutdown={onLogout} label="Kapat" />
     </footer>
   );
 }

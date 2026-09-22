@@ -102,6 +102,16 @@ class Settings(BaseSettings):
     supported_windows: str = "10,11"
     supported_linux: str = "ubuntu,debian"
 
+    # --- 12) Kimlik doğrulama ---
+    #: Demo kullanıcı (yalnızca APP_ENV != production iken ve n8n
+    #: yapılandırılmamışken kullanılır)
+    auth_demo_user: str = "admin"
+    auth_demo_password: str = "pixtool"
+    #: OTP kod uzunluğu
+    auth_otp_length: int = 6
+    #: Ceza ekranından önceki yanlış deneme hakkı
+    auth_otp_max_attempts: int = 3
+
     # ------------------------------------------------------------------
     #  Türetilmiş / yardımcı alanlar
     # ------------------------------------------------------------------

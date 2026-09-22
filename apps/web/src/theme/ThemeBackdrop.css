@@ -26,7 +26,7 @@
   background: var(--bg-void);
 }
 
-/* --- Yıldız alanı (gradyan ve düz renkte görünür) --- */
+/* --- Yıldız alanı --- */
 .backdrop__stars {
   position: absolute;
   inset: 0;
@@ -40,13 +40,6 @@
   opacity: 0.7;
 }
 
-/* Görsel veya animasyon varken yıldızlar gereksiz */
-.backdrop__layer--image ~ .backdrop__stars,
-.backdrop__layer--spider-clock ~ .backdrop__stars,
-.backdrop__layer--pixel-bat ~ .backdrop__stars {
-  display: none;
-}
-
 /* --- Karartma katmanı (pencere okunabilirliği) --- */
 .backdrop__dim {
   position: absolute;
@@ -54,4 +47,12 @@
   background: #000;
   pointer-events: none;
   transition: opacity var(--dur-slow) var(--ease-out);
+}
+
+/* Tema işaretçisi — görünmez, yalnızca teşhis */
+.backdrop__theme-marker {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
 }

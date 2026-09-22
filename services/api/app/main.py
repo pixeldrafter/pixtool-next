@@ -21,6 +21,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import PROJECT_ROOT, settings
 from app.integrations.nocodb import NocoDBClient
+from app.routers.auth import router as auth_router
+from app.routers.devices import router as devices_router
 
 logging.basicConfig(
     level=logging.DEBUG if settings.debug else logging.INFO,
@@ -39,6 +41,9 @@ async def lifespan(app: FastAPI):
     if settings.nocodb_is_placeholder:
         logger.warning("  ⚠️  NocoDB adresi hâlâ ŞABLON değerde — .env doldurulmalı")
     logger.info("  Komut pol. : %s", settings.command_policy)
+    if not settings.api_secret_key:
+        logger.warning("  ⚠️  API_SECRET_KEY boş — geliştirme anahtarı kullanılıyor")
+    logger.info("  Kimlik     : demo kullanıcı=%s", settings.auth_demo_user)
     logger.info("=" * 66)
     yield
     logger.info("%s kapatılıyor.", settings.app_name)
@@ -58,6 +63,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# --- Uç nokta grupları ---
+app.include_router(auth_router)
+app.include_router(devices_router)
 
 
 # ----------------------------------------------------------------------

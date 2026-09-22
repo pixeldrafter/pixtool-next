@@ -1,16 +1,19 @@
 /**
  * Bağlantı durumu penceresi.
  *
- * Faz 0'ın çıkış kriterini görünür kılar: arayüz ↔ backend ↔ NocoDB zinciri.
+ * Giriş sonrası masaüstünde açılan ilk pencere: sistemin genel durumu.
  */
 
 import type { StatusResponse } from "../lib/api";
+import type { LoginSession } from "../login";
 import { Card, Window } from "./Window";
 
 export interface StatusWindowProps {
   status: StatusResponse | null;
   error: string | null;
   loading: boolean;
+  session: LoginSession | null;
+  reportSaved: boolean | null;
   onRefresh: () => void;
   onClose?: () => void;
 }
@@ -24,11 +27,19 @@ function nocodbValue(nocodb: StatusResponse["integrations"]["nocodb"] | undefine
   return "Yapılandırılmadı";
 }
 
-export function StatusWindow({ status, error, loading, onRefresh, onClose }: StatusWindowProps) {
+export function StatusWindow({
+  status,
+  error,
+  loading,
+  session,
+  reportSaved,
+  onRefresh,
+  onClose,
+}: StatusWindowProps) {
   const nocodb = status?.integrations.nocodb;
 
   return (
-    <Window title="Bağlantı Durumu" icon="🖥️" width={880} onClose={onClose}>
+    <Window title="Sistem Durumu" icon="🖥️" width={900} onClose={onClose}>
       {loading && !status && <div className="dim">Backend'e bağlanılıyor…</div>}
 
       {error && !status && (
@@ -45,6 +56,12 @@ export function StatusWindow({ status, error, loading, onRefresh, onClose }: Sta
         <>
           <div className="cards">
             <Card
+              label="Oturum"
+              value={session?.username ?? "—"}
+              tone={session ? "ok" : "warn"}
+              detail={session ? "Kimlik doğrulandı (OTP)" : "Giriş yapılmadı"}
+            />
+            <Card
               label="Backend API"
               value={`v${status.app.version}`}
               tone="ok"
@@ -55,6 +72,14 @@ export function StatusWindow({ status, error, loading, onRefresh, onClose }: Sta
               value={nocodbValue(nocodb)}
               tone={nocodb?.ok ? "ok" : nocodb?.reachable ? "warn" : "err"}
               detail={nocodb?.detail ?? ""}
+            />
+            <Card
+              label="Cihaz Raporu"
+              value={reportSaved === null ? "Sorulmadı" : reportSaved ? "Kaydedildi" : "Atlandı"}
+              tone={reportSaved === null ? "warn" : reportSaved ? "ok" : "warn"}
+              detail={
+                reportSaved ? "NocoDB devices / yerel dosya" : "Bu oturumda kaydedilmedi"
+              }
             />
             <Card
               label="n8n (otomasyon)"
@@ -94,17 +119,20 @@ export function StatusWindow({ status, error, loading, onRefresh, onClose }: Sta
           )}
 
           <div className="next-steps">
-            <div className="next-steps__title">Sonraki adımlar</div>
+            <div className="next-steps__title">Kullanılabilir özellikler</div>
             <ol>
               <li>
-                Gerçek sunucu adresleri <code>.env</code> içine (NocoDB / n8n / Telegram hâlâ şablon)
+                <strong>Ayarlar</strong> → tema, duvar kağıdı, cursor, login formu, akış sırası
               </li>
               <li>
-                NocoDB API token + base id → <code>NOCODB_API_TOKEN</code>,{" "}
-                <code>NOCODB_BASE_ID</code>
+                <strong>Login formu değiştir</strong> → Ayarlar → Giriş → Login formu → çıkış yap
               </li>
-              <li>Tema / cursor / duvar kağıdı sistemleri (Ayarlar sekmesinden dene)</li>
-              <li>Login formları + OTP + şaka sistemi</li>
+              <li>
+                <strong>Cursor</strong> → Ayarlar → Görünüm → Cursor (🕷️ örümcek / 🦎 sürüngen)
+              </li>
+              <li>
+                <strong>Duvar kağıdı</strong> → Ayarlar → Görünüm → Arkaplan (🕷️ saat / 🦇 yarasa)
+              </li>
             </ol>
           </div>
         </>

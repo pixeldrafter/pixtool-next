@@ -59,7 +59,46 @@
 
 ## Faz 1 — OS kabuğu & login
 
-### Adım A — Tema & kişiselleştirme altyapısı ← **TAMAMLANDI**
+### Adım A2 — Cursor, duvar kağıdı, boşta ekranı ← **TAMAMLANDI**
+
+- [x] **Örümcek imleci** — 8 bacaklı, yürüme döngüsü, ağ izi (canvas, bağımlılıksız)
+- [x] **Sürüngen imleci** — halkalı gövde, etkileşimli (arayüz öğelerine ilgi gösterir), dil/blink
+- [x] **Spider Clock** — sistem saatine bağlı analog saat + kadranda yürüyen örümcek
+- [x] **Pixel Bat** — box-shadow piksel sanatı, 6 yarasa, ay atmosferi
+- [x] **Boşta ekranı** — hareketsizlik takibi, seçilebilir ekran (Pixel Bat / Spider Clock / siyah)
+
+### Adım B — Login sistemi ← **TAMAMLANDI**
+
+- [x] **6 form portu** — Lamp (varsayılan), Animated, Animated Border, Panda, Panda Page, Yeti
+- [x] **Login kayıt defteri** — yeni form eklemek 5 adım
+- [x] **Form teması** — her form kendi rengi/fontu/animasyon karakteri/OTP biçimi/şaka biçimi
+- [x] **100 şaka** — v5'ten devralındı, forma göre temalı sunum, rastgele döner
+- [x] **OTP adımı** — 5 görsel varyant (boxes / underline / glow / paws / snow)
+- [x] **Ceza ekranı** — Impossible Light Bulb, 2 dk geri sayım, çekilebilir ip, yerel sesler
+- [x] **Backend kimlik doğrulama** — OTP meydan okuması, HMAC token, demo kipi (21 test)
+
+### Adım C1 — Konsol + akış ← **TAMAMLANDI**
+
+- [x] **Makine envanteri** — gerçek veri: çekirdek, bellek, ekran, GPU (WebGL), ağ, pil, depolama, medya
+- [x] **Köprü beklenen alanlar** — sahte veri yok, açıkça işaretli (12 alan)
+- [x] **Akış yöneticisi** — `flow.order` ayarına göre dinamik adımlar
+- [x] **Konsol kapalı modu** — sessiz açılış (adım atlanır)
+- [x] **Rapor kaydetme** — onay sorusu + NocoDB/yerel hedef (9 test)
+
+### Adım C2 — Kabuk ← **KISMEN**
+
+- [x] Sekme tabanlı pencere geçişi + görev çubuğu
+- [x] Ayarlar penceresi (7 bölüm)
+- [ ] Gerçek pencere yöneticisi (sürükle, boyutlandır, z-sırası)
+- [ ] Başlat menüsü + masaüstü ikonları
+- [ ] Command Palette (Ctrl+K)
+
+### Adım C3 — Bekleme & kapatma ← **KISMEN**
+
+- [x] **Animasyonlu kapatma** — Animated Logout (figür + kapı + ışık sönmesi)
+- [ ] **Interactive Deadline** ilerleme çubukları
+- [ ] **bg.gif** bekleme perdesi
+- [ ] i18n altyapısı (Türkçe varsayılan)
 
 - [x] **Ayar çekirdeği** — şema (`types.ts`), varsayılanlar, kayıt defteri, zustand + localStorage kalıcılığı
 - [x] **Şema evrimi** — `mergeDeep` ile eski kayıtlar bozulmaz (**13 test geçti**)

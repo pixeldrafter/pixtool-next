@@ -1,0 +1,58 @@
+/* Animated Border Login Form — dönen kenarlık */
+
+.lf--border {
+  display: flex;
+  justify-content: center;
+}
+
+.border-box {
+  position: relative;
+  width: min(420px, 92vw);
+  padding: 2px;
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+/* --- Dönen gradyan --- */
+.border-box__glow {
+  position: absolute;
+  inset: -140%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    var(--lf-accent) 40deg,
+    transparent 120deg,
+    transparent 200deg,
+    color-mix(in srgb, var(--lf-accent) 60%, #ffffff) 260deg,
+    transparent 320deg
+  );
+  animation: border-spin 4.5s linear infinite;
+  opacity: 0.9;
+}
+
+.border-box.is-busy .border-box__glow {
+  animation-duration: 1.6s;
+}
+
+@keyframes border-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* --- İç yüzey --- */
+.border-box__inner {
+  position: relative;
+  z-index: 1;
+  padding: 32px 30px;
+  border-radius: 16px;
+  background: var(--lf-surface);
+  backdrop-filter: blur(16px);
+  font-family: var(--lf-font);
+  color: var(--lf-text);
+}
+
+.lf--border .login-card__title {
+  font-family: var(--lf-font);
+  letter-spacing: 0.04em;
+}

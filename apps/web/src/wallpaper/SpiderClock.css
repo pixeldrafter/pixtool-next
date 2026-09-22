@@ -1,0 +1,44 @@
+/* Spider Clock duvar kağıdı */
+
+.spider-clock {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-5);
+  --accent: #00ff9c;
+}
+
+.spider-clock__svg {
+  width: min(46vmin, 420px);
+  height: min(46vmin, 420px);
+  overflow: visible;
+  filter: drop-shadow(0 0 24px color-mix(in srgb, var(--accent) 30%, transparent));
+}
+
+.spider-clock__digital {
+  font-size: clamp(18px, 2.4vmin, 30px);
+  letter-spacing: 0.18em;
+  color: var(--accent);
+  text-shadow: 0 0 14px color-mix(in srgb, var(--accent) 55%, transparent);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.spider-clock__date {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0.65;
+}
+
+@media (max-width: 640px) {
+  .spider-clock__svg {
+    width: 62vmin;
+    height: 62vmin;
+  }
+}
