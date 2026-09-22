@@ -1,91 +1,97 @@
-/* Giriş ekranı — kapsayıcı */
+/* ==========================================================================
+ *  Giriş ekranı — kapsayıcı katman
+ *
+ *  ⚠️ Bu katman forma DÜZEN MÜDAHALESİ YAPMAZ ve arka planını DEĞİŞTİRMEZ.
+ *  Her login formu kendi tam ekran düzenini ve kendi arka planını (referans
+ *  tasarımdan) getirir:
+ *    • lamp      → koyu #121417, lamba yanınca #1c1f24
+ *    • animated  → koyu #16171d
+ *    • border    → koyu #16171d
+ *    • panda     → SARI #f4c531
+ *    • yeti      → açık gri #eff3f4
+ *
+ *  Burada yalnızca şaka balonu ve alt bilgi üstte katman olarak konumlanır.
+ * ========================================================================== */
 
 .login-screen {
   position: fixed;
   inset: 0;
   z-index: 100;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 22px;
-  padding: 24px;
-  overflow-y: auto;
-  font-family: var(--ls-font, system-ui, sans-serif);
-  color: var(--ls-text, #f0f6fc);
-  background: color-mix(in srgb, var(--ls-bg, #05070a) 82%, transparent);
-  backdrop-filter: blur(6px);
+  overflow: hidden;
+  background: var(--bg-void);
 }
 
-.login-screen__decor {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(ellipse at 22% 18%, color-mix(in srgb, var(--ls-accent) 12%, transparent), transparent 58%),
-    radial-gradient(ellipse at 80% 82%, color-mix(in srgb, var(--ls-accent) 8%, transparent), transparent 55%);
-}
-
-.login-screen__content {
+/*
+ * Formu saran katman.
+ *
+ * ÖNEMLİ: Referans formlar `position: absolute; top: 50%` ile ortalanır.
+ * Yüzde tabanlı konumlandırmanın çalışması için bu katmanın **belirli bir
+ * yüksekliği** olmalıdır (`min-height` yetmez).
+ */
+.login-screen__stage {
   position: relative;
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  height: 100vh;
   width: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
+/* --- Şaka balonu (üstte katman) --- */
 .login-screen__joke {
-  position: relative;
-  z-index: 1;
+  position: fixed;
+  left: 50%;
+  bottom: 62px;
+  transform: translateX(-50%);
+  z-index: 20;
   display: flex;
   justify-content: center;
-  max-width: min(560px, 92vw);
+  width: min(560px, 92vw);
+  pointer-events: none;
 }
 
-/* --- Alt bilgi --- */
+.login-screen__joke > * {
+  pointer-events: auto;
+}
+
+/* --- Alt bilgi (üstte katman) --- */
 .login-screen__footer {
-  position: relative;
-  z-index: 1;
+  position: fixed;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  z-index: 20;
   display: flex;
   align-items: center;
   gap: 8px;
+  font-family: var(--font-mono);
   font-size: 10.5px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: color-mix(in srgb, var(--ls-muted) 80%, transparent);
-  margin-top: 6px;
+  color: rgba(180, 195, 210, 0.5);
+  pointer-events: none;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
 }
 
 .login-screen__footer-sep {
   opacity: 0.5;
 }
 
-/* ==================== Forma özel zemin ==================== */
-
-/* Panda tam sayfa: bambu ormanı arka planı */
-.login-screen--pandaPage {
-  background: color-mix(in srgb, var(--ls-bg) 88%, transparent);
+/*
+ * Açık temalı formlarda (panda, yeti) alt bilgi okunmuyor — koyu metin yap.
+ */
+.login-screen--panda .login-screen__footer,
+.login-screen--pandaPage .login-screen__footer,
+.login-screen--yeti .login-screen__footer {
+  color: rgba(45, 60, 70, 0.6);
+  text-shadow: none;
 }
 
-/* Yeti: buz mavisi derinlik */
-.login-screen--yeti {
-  background:
-    linear-gradient(to bottom, rgba(10, 21, 36, 0.9), rgba(6, 14, 24, 0.96)),
-    var(--ls-bg);
-}
-
-/* Neon kenarlık formu: terminal ızgarası */
-.login-screen--animatedBorder .login-screen__decor {
-  background-image:
-    linear-gradient(color-mix(in srgb, var(--ls-accent) 6%, transparent) 1px, transparent 1px),
-    linear-gradient(90deg, color-mix(in srgb, var(--ls-accent) 6%, transparent) 1px, transparent 1px);
-  background-size: 42px 42px;
-}
-
-/* Lamba: sıcak vinyet */
-.login-screen--lamp .login-screen__decor {
-  background:
-    radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--ls-accent) 10%, transparent), transparent 60%),
-    radial-gradient(ellipse at 50% 120%, rgba(0, 0, 0, 0.6), transparent 60%);
+/* --- OTP ve ceza ekranları kendi ortalamasını yapar --- */
+.login-screen__stage > .otp,
+.login-screen__stage > .punishment {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
 }

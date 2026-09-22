@@ -1,91 +1,88 @@
 /**
- * Animated Login Form — kayan etiketli (floating label) giriş formu.
+ * Animated Login Form.
  *
- * Referans: "Animated Login Form" — etiketler odak/doluluk durumunda yukarı
- * kayar, alt çizgi vurgu rengiyle dolar.
+ * ⚠️ Referans tasarımın **birebir** portu:
+ *    _referans/hosuma-giden-icerikler/Animated Login Form/
+ *
+ * Yapı: `.container > .login-box` + 13 adet animasyonlu `span` (yüzen küreler).
+ * Stil `animated.css` içinde referanstan kopyalanmıştır.
  */
 
-import type { LoginFormProps } from "../types";
-import { themeVars, useCredentials } from "./useCredentials";
-import "./AnimatedForm.css";
+import { useState } from "react";
 
-export function AnimatedForm({
-  theme,
-  labels,
-  onSubmit,
-  loading,
-  error,
-  disabled,
-  submitLabel = "Giriş",
-}: LoginFormProps) {
-  const credentials = useCredentials(onSubmit);
+import type { LoginFormProps } from "../types";
+import "./animated.css";
+
+/** Referanstaki yüzen küre sayısı. */
+const BUBBLE_COUNT = 13;
+
+export function AnimatedForm({ onSubmit, loading, error, disabled, submitLabel = "Login" }: LoginFormProps) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  function submit(event: React.FormEvent) {
+    event.preventDefault();
+    if (!email.trim() || !password) return;
+    onSubmit({ username: email.trim(), password });
+  }
 
   return (
-    <div className="lf lf--animated" style={themeVars(theme)}>
-      <form className="login-card login-form" onSubmit={credentials.submit}>
-        <h1 className="login-card__title">Giriş</h1>
-        <p className="login-card__subtitle">Hesabınla devam et</p>
+    <div className="lf--animated">
+      <div className="container">
+        <div className="login-box">
+          <h2>Login</h2>
+          <form onSubmit={submit}>
+            <div className="input-box">
+              <input
+                id="animated-email"
+                type="email"
+                required
+                autoComplete="username"
+                value={email}
+                disabled={disabled || loading}
+                onChange={(event) => setEmail(event.target.value)}
+              />
+              <label htmlFor="animated-email">Email</label>
+            </div>
 
-        {error && (
-          <div className="login-form__error" role="alert">
-            <span aria-hidden="true">⚠</span>
-            {error}
-          </div>
-        )}
+            <div className="input-box">
+              <input
+                id="animated-password"
+                type="password"
+                required
+                autoComplete="current-password"
+                value={password}
+                disabled={disabled || loading}
+                onChange={(event) => setPassword(event.target.value)}
+              />
+              <label htmlFor="animated-password">Password</label>
+            </div>
 
-        <div className={`float-field${credentials.username ? " is-filled" : ""}`}>
-          <input
-            className="float-field__input"
-            id="animated-username"
-            type="text"
-            autoComplete="username"
-            value={credentials.username}
-            disabled={disabled || loading}
-            onChange={(event) => credentials.setUsername(event.target.value)}
-          />
-          <label className="float-field__label" htmlFor="animated-username">
-            {labels.username}
-          </label>
-          <span className="float-field__bar" />
+            {error && <p className="lf-error">{error}</p>}
+
+            <div className="forgot-password">
+              <a href="#forgot" onClick={(event) => event.preventDefault()}>
+                Forgot Password?
+              </a>
+            </div>
+
+            <button type="submit" className="btn" disabled={disabled || loading}>
+              {loading ? "…" : submitLabel}
+            </button>
+
+            <div className="signup-link">
+              <a href="#signup" onClick={(event) => event.preventDefault()}>
+                Signup
+              </a>
+            </div>
+          </form>
         </div>
 
-        <div className={`float-field${credentials.password ? " is-filled" : ""}`}>
-          <input
-            className="float-field__input"
-            id="animated-password"
-            type="password"
-            autoComplete="current-password"
-            value={credentials.password}
-            disabled={disabled || loading}
-            onFocus={() => credentials.setPasswordFocused(true)}
-            onBlur={() => credentials.setPasswordFocused(false)}
-            onChange={(event) => credentials.setPassword(event.target.value)}
-          />
-          <label className="float-field__label" htmlFor="animated-password">
-            {labels.password}
-          </label>
-          <span className="float-field__bar" />
-        </div>
-
-        <div className="login-form__row">
-          <label className="login-form__checkbox">
-            <input type="checkbox" defaultChecked />
-            Beni hatırla
-          </label>
-          <button className="login-form__link" type="button">
-            Parolamı unuttum
-          </button>
-        </div>
-
-        <button
-          className="login-form__submit"
-          type="submit"
-          disabled={disabled || loading || !credentials.username || !credentials.password}
-        >
-          {loading && <span className="login-form__spinner" />}
-          {loading ? "Kontrol ediliyor…" : submitLabel}
-        </button>
-      </form>
+        {/* Yüzen küreler — referanstaki yapı */}
+        {Array.from({ length: BUBBLE_COUNT }, (_, index) => (
+          <span key={index} style={{ ["--i" as string]: index }} />
+        ))}
+      </div>
     </div>
   );
 }

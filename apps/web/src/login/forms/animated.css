@@ -1,0 +1,176 @@
+/* ==========================================================================
+ *  ANIMATED FORMU — REFERANS CSS (BİREBİR)
+ *  Kaynak: _referans/hosuma-giden-icerikler/Animated Login Form/style.css
+ *
+ *  Tek değişiklik: seçiciler `.lf--animated` altına kapsamlandırıldı ve keyframe
+ *  adları çakışmasın diye öneklendi. GÖRSEL SONUÇ DEĞİŞTİRİLMEDİ.
+ *  @import / @property / @font-face gibi at-rule'lar AYNEN korundu.
+ * ========================================================================== */
+
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500&display=swap");
+.lf--animated * {
+
+  margin: 0;
+  padding: 0;
+  font-family: "Poppins";
+  box-sizing: border-box;
+
+}
+.lf--animated {
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #0c0c0c;
+  min-height: 100vh;
+
+}
+.lf--animated .container {
+
+  position: relative;
+  width: 256px;
+  height: 256px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+}
+.lf--animated .container span {
+
+  position: absolute;
+  left: 0;
+  width: 32px;
+  height: 6px;
+  background: #2c4766;
+  border-radius: 8px;
+  transform-origin: 128px;
+  transform: scale(2.2) rotate(calc(var(--i) * (360deg / 50)));
+  animation: pxanimated-animateBlink 3s linear infinite;
+  animation-delay: calc(var(--i) * (3s / 50));
+
+}
+@keyframes pxanimated-animateBlink {
+  0% {
+    background: #0ef;
+  }
+
+  25% {
+    background: #2c4766;
+  }
+}
+.lf--animated .login-box {
+
+  position: absolute;
+  width: 400px;
+
+}
+.lf--animated .login-box form {
+
+  width: 100%;
+  padding: 0 50px;
+
+}
+.lf--animated h2 {
+
+  font-size: 2em;
+  color: #0ef;
+  text-align: center;
+
+}
+.lf--animated .input-box {
+
+  position: relative;
+  margin: 25px 0;
+
+}
+.lf--animated .input-box input {
+
+  width: 100%;
+  height: 50px;
+  background: transparent;
+  border: 2px solid #2c4766;
+  outline: none;
+  border-radius: 40px;
+  font-size: 1em;
+  color: #fff;
+  padding: 0 20px;
+  transition: 0.5s;
+
+}
+.lf--animated .input-box input:focus, .lf--animated .input-box input:valid {
+
+  border-color: #0ef;
+
+}
+.lf--animated .input-box label {
+
+  position: absolute;
+  top: 50%;
+  left: 20px;
+  transform: translateY(-50%);
+  font-size: 1em;
+  color: #fff;
+  pointer-events: none;
+  transition: 0.5s ease;
+
+}
+.lf--animated .input-box input:focus ~ label, .lf--animated .input-box input:valid ~ label {
+
+  top: 1px;
+  font-size: 0.8em;
+  background-color: #1f293a;
+  padding: 0 6px;
+  color: #0ef;
+
+}
+.lf--animated .forgot-password {
+
+  margin: -15px 0 10px;
+  text-align: center;
+
+}
+.lf--animated .forgot-password a {
+
+  font-size: 0.85em;
+  color: #fff;
+  text-decoration: none;
+
+}
+.lf--animated .forgot-password a:hover {
+
+  text-decoration: underline;
+
+}
+.lf--animated .btn {
+
+  width: 100%;
+  height: 45px;
+  border-radius: 45px;
+  background: #0ef;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  font-size: 1em;
+  color: #1f293a;
+  font-weight: 600;
+
+}
+.lf--animated .signup-link {
+
+  margin: 20px 0 10px;
+  text-align: center;
+
+}
+.lf--animated .signup-link a {
+
+  font-size: 1em;
+  color: #0ef;
+  text-decoration: none;
+  font-weight: 600;
+
+}
+.lf--animated .signup-link a:hover {
+
+  text-decoration: underline;
+
+}

@@ -95,3 +95,10 @@ desktop.ini
 # Eski kod tabanları buraya kopyalanmaz
 _referans/
 _eski/
+
+# Geliştirme ekran görüntüleri (yeniden üretilebilir)
+screenshots/
+.chrome-profile/
+
+# Referans islemleri icin gecici dosyalar
+apps/web/src/login/forms/_*.txt

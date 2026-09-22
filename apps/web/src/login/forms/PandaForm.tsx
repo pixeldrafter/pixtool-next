@@ -1,141 +1,100 @@
 /**
- * Panda Login Form — sevimli panda karakterli giriş formu.
+ * Panda Login Form (kart ve tam sayfa varyantları).
  *
- * Parola alanına odaklanınca panda **gözlerini patileriyle kapatır**.
- * Yanlış girişte panda üzülür, doğru girişte sevinir.
+ * ⚠️ Referans tasarımın **birebir** portu:
+ *    _referans/hosuma-giden-icerikler/Panda Login Form/panda login page/
  *
- * Referans: "Panda Login Form" / "panda login page"
+ * Yapı: `.container > form` + panda parçaları
+ * (ear-l/ear-r, panda-face → blush/eye/nose/mouth, hand-l/r, paw-l/r).
+ * Stil `panda.css` içinde referanstan kopyalanmıştır.
+ *
+ * Orijinal davranış: parola alanına odaklanınca panda elleriyle gözlerini
+ * kapatır (`script.js`). Burada CSS `:focus-within` ile aynı etki sağlanır.
  */
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+
 import type { LoginFormProps } from "../types";
-import { themeVars, useCredentials } from "./useCredentials";
-import "./PandaForm.css";
+import "./panda.css";
 
 export interface PandaFormProps extends LoginFormProps {
-  /** Tam sayfa (koyu bambu ormanı) varyantı */
   variant?: "card" | "page";
 }
 
 export function PandaForm({
-  theme,
-  labels,
   onSubmit,
   loading,
   error,
   disabled,
-  submitLabel = "Giriş",
-  variant = "card",
+  submitLabel = "Login",
 }: PandaFormProps) {
-  const credentials = useCredentials(onSubmit);
-  const [mood, setMood] = useState<"idle" | "happy" | "sad">("idle");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [shy, setShy] = useState(false);
 
-  // Hata gelince panda üzülür
-  useEffect(() => {
-    if (error) {
-      setMood("sad");
-      const timer = window.setTimeout(() => setMood("idle"), 1600);
-      return () => window.clearTimeout(timer);
-    }
-    return undefined;
-  }, [error]);
+  function submit(event: React.FormEvent) {
+    event.preventDefault();
+    if (!username.trim() || !password) return;
+    onSubmit({ username: username.trim(), password });
+  }
 
   return (
-    <div className={`lf lf--panda lf--panda-${variant}`} style={themeVars(theme)}>
-      <form
-        className={variant === "page" ? "panda-page__card login-form" : "login-card login-form"}
-        onSubmit={(event) => {
-          setMood("happy");
-          credentials.submit(event);
-        }}
-      >
-        {/* Panda */}
-        <div
-          className={`panda${credentials.passwordFocused ? " is-shy" : ""}${
-            mood === "sad" ? " is-sad" : ""
-          }${mood === "happy" ? " is-happy" : ""}`}
-          aria-hidden="true"
-        >
-          <div className="panda__ear panda__ear--left" />
-          <div className="panda__ear panda__ear--right" />
-          <div className="panda__head">
-            <div className="panda__patch panda__patch--left">
-              <span className="panda__eye" />
-            </div>
-            <div className="panda__patch panda__patch--right">
-              <span className="panda__eye" />
-            </div>
-            <div className="panda__nose" />
-          </div>
-          {/* Patiler — parolada gözleri kapatır */}
-          <div className="panda__paw panda__paw--left" />
-          <div className="panda__paw panda__paw--right" />
-        </div>
-
-        <h1 className="login-card__title">
-          {credentials.passwordFocused ? "Bakmıyorum! 🙈" : "Merhaba!"}
-        </h1>
-        <p className="login-card__subtitle">
-          {credentials.passwordFocused ? "Parolanı güvenle yazabilirsin" : "Giriş yapmaya hazır mısın?"}
-        </p>
-
-        {error && (
-          <div className="login-form__error" role="alert">
-            <span aria-hidden="true">⚠</span>
-            {error}
-          </div>
-        )}
-
-        <label className="login-form__field">
-          <span className="login-form__label">{labels.username}</span>
+    <div className={`lf--panda${shy ? " is-shy" : ""}`}>
+      <div className="container">
+        <form onSubmit={submit}>
+          <label htmlFor="panda-username">Username:</label>
           <input
-            className="login-form__input"
+            id="panda-username"
             type="text"
+            placeholder="Username here..."
             autoComplete="username"
-            placeholder="kullanıcı adı"
-            value={credentials.username}
+            value={username}
             disabled={disabled || loading}
-            onChange={(event) => credentials.setUsername(event.target.value)}
+            onChange={(event) => setUsername(event.target.value)}
           />
-        </label>
+          <br />
 
-        <label className="login-form__field">
-          <span className="login-form__label">{labels.password}</span>
+          <label htmlFor="panda-password">Password:</label>
           <input
-            className="login-form__input"
+            id="panda-password"
             type="password"
+            placeholder="Password here..."
             autoComplete="current-password"
-            placeholder="••••••••"
-            value={credentials.password}
+            value={password}
             disabled={disabled || loading}
-            onFocus={() => credentials.setPasswordFocused(true)}
-            onBlur={() => credentials.setPasswordFocused(false)}
-            onChange={(event) => credentials.setPassword(event.target.value)}
+            onFocus={() => setShy(true)}
+            onBlur={() => setShy(false)}
+            onChange={(event) => setPassword(event.target.value)}
           />
-        </label>
+          <br />
 
-        <button
-          className="login-form__submit"
-          type="submit"
-          disabled={disabled || loading || !credentials.username || !credentials.password}
-        >
-          {loading && <span className="login-form__spinner" />}
-          {loading ? "Kontrol ediliyor…" : submitLabel}
-        </button>
-      </form>
+          {error && <p className="lf-error">{error}</p>}
 
-      {/* Tam sayfa varyantında bambu ormanı */}
-      {variant === "page" && (
-        <div className="bamboo" aria-hidden="true">
-          {Array.from({ length: 9 }, (_, index) => (
-            <span key={index} className="bamboo__stalk" style={{ animationDelay: `${index * 0.6}s` }}>
-              {Array.from({ length: 7 }, (__, node) => (
-                <i key={node} className="bamboo__node" />
-              ))}
-            </span>
-          ))}
+          <button type="submit" disabled={disabled || loading}>
+            {loading ? "…" : submitLabel}
+          </button>
+        </form>
+
+        {/* Panda — referanstaki yapı */}
+        <div className="ear-l" />
+        <div className="ear-r" />
+        <div className="panda-face">
+          <div className="blush-l" />
+          <div className="blush-r" />
+          <div className="eye-l">
+            <div className="eyeball-l" />
+          </div>
+          <div className="eye-r">
+            <div className="eyeball-r" />
+          </div>
+          <div className="nose" />
+          <div className="mouth" />
         </div>
-      )}
+        <div className="hand-l" />
+        <div className="hand-r" />
+        <div className="paw-l" />
+        <div className="paw-r" />
+      </div>
     </div>
   );
 }

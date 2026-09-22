@@ -1,90 +1,82 @@
 /**
- * Animated Border Login Form — dönen neon kenarlıklı giriş formu.
+ * Animated Border Login Form.
  *
- * Kartın çevresinde bir gradyan kenarlık sürekli döner. Form gönderilirken
- * dönüş hızlanır.
+ * ⚠️ Referans tasarımın **birebir** portu:
+ *    _referans/hosuma-giden-icerikler/Animated Border Login Form/
  *
- * Referans: "Animated Border Login Form"
+ * Yapı: `.box > .login > .loginBx` + dönen kenarlık.
+ * Stil `animatedBorder.css` içinde referanstan kopyalanmıştır.
  */
 
+import { useState } from "react";
+
 import type { LoginFormProps } from "../types";
-import { themeVars, useCredentials } from "./useCredentials";
-import "./AnimatedBorderForm.css";
+import "./animatedBorder.css";
 
 export function AnimatedBorderForm({
-  theme,
-  labels,
   onSubmit,
   loading,
   error,
   disabled,
-  submitLabel = "Giriş yap",
+  submitLabel = "Sign in",
 }: LoginFormProps) {
-  const credentials = useCredentials(onSubmit);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+
+  function submit(event: React.FormEvent) {
+    event.preventDefault();
+    if (!username.trim() || !password) return;
+    onSubmit({ username: username.trim(), password });
+  }
 
   return (
-    <div className="lf lf--border" style={themeVars(theme)}>
-      <div className={`border-box${loading ? " is-busy" : ""}`}>
-        {/* Dönen kenarlık katmanı */}
-        <div className="border-box__glow" aria-hidden="true" />
+    <div className="lf--border">
+      <div className="box">
+        <div className="login">
+          <div className="loginBx">
+            <h2>
+              <i className="fa-solid fa-right-to-bracket" aria-hidden="true" />
+              Login
+              <i className="fa-solid fa-heart" aria-hidden="true" />
+            </h2>
 
-        <form className="border-box__inner login-form" onSubmit={credentials.submit}>
-          <h1 className="login-card__title">Giriş</h1>
-          <p className="login-card__subtitle">Yetkili erişim</p>
+            <form onSubmit={submit}>
+              <input
+                type="text"
+                placeholder="Username"
+                autoComplete="username"
+                value={username}
+                disabled={disabled || loading}
+                onChange={(event) => setUsername(event.target.value)}
+              />
+              <input
+                type="password"
+                placeholder="Password"
+                autoComplete="current-password"
+                value={password}
+                disabled={disabled || loading}
+                onChange={(event) => setPassword(event.target.value)}
+              />
 
-          {error && (
-            <div className="login-form__error" role="alert">
-              <span aria-hidden="true">⚠</span>
-              {error}
+              {error && <p className="lf-error">{error}</p>}
+
+              <input
+                type="submit"
+                value={loading ? "…" : submitLabel}
+                disabled={disabled || loading}
+              />
+            </form>
+
+            <div className="group">
+              <a href="#forgot" onClick={(event) => event.preventDefault()}>
+                Forgot Password
+              </a>
+              <a href="#signup" onClick={(event) => event.preventDefault()}>
+                Sign up
+              </a>
             </div>
-          )}
-
-          <label className="login-form__field">
-            <span className="login-form__label">{labels.username}</span>
-            <input
-              className="login-form__input"
-              type="text"
-              autoComplete="username"
-              placeholder="kullanıcı adı"
-              value={credentials.username}
-              disabled={disabled || loading}
-              onChange={(event) => credentials.setUsername(event.target.value)}
-            />
-          </label>
-
-          <label className="login-form__field">
-            <span className="login-form__label">{labels.password}</span>
-            <input
-              className="login-form__input"
-              type="password"
-              autoComplete="current-password"
-              placeholder="••••••••"
-              value={credentials.password}
-              disabled={disabled || loading}
-              onFocus={() => credentials.setPasswordFocused(true)}
-              onBlur={() => credentials.setPasswordFocused(false)}
-              onChange={(event) => credentials.setPassword(event.target.value)}
-            />
-          </label>
-
-          <div className="login-form__row">
-            <button className="login-form__link" type="button">
-              Parolamı unuttum
-            </button>
-            <button className="login-form__link" type="button">
-              Kayıt ol
-            </button>
           </div>
-
-          <button
-            className="login-form__submit"
-            type="submit"
-            disabled={disabled || loading || !credentials.username || !credentials.password}
-          >
-            {loading && <span className="login-form__spinner" />}
-            {loading ? "Doğrulanıyor…" : submitLabel}
-          </button>
-        </form>
+        </div>
       </div>
     </div>
   );

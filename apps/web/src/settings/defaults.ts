@@ -46,6 +46,7 @@ export const DEFAULT_SETTINGS: PixSettings = {
 
   login: {
     form: "lamp", // varsayılan: Login Form Lamp
+    lampStartLit: true, // form görünür başlasın (ipi çekmeye gerek kalmasın)
     usernameLabel: "Kullanıcı adı",
     passwordLabel: "Parola",
     jokes: {

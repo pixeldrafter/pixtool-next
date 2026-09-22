@@ -22,14 +22,34 @@ import { IdleScreen, useIdle } from "./idle";
 import { describeError, fetchStatus, type StatusResponse } from "./lib/api";
 import { LoginScreen, type LoginSession } from "./login";
 import { useSettings } from "./settings";
-import type { FlowStep } from "./settings/types";
+import { LOGIN_FORM_OPTIONS, type FlowStep } from "./settings";
 import { ThemeBackdrop, useThemeSync } from "./theme";
 
 export default function App() {
   // Tema + hareket + ölçek ayarlarını DOM'a uygular
   useThemeSync();
 
-  const { settings } = useSettings();
+  const { settings, update } = useSettings();
+
+  // ------------------------------------------------------------------
+  //  URL ile geçici geçersiz kılma (geliştirme / test)
+  //    ?login=yeti  ?theme=kde  ?step=login  ?skip=1
+  //  Kalıcı ayarı DEĞİŞTİRMEZ; yalnızca bu oturum için uygular.
+  // ------------------------------------------------------------------
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+
+    const form = params.get("login");
+    if (form && LOGIN_FORM_OPTIONS.some((option) => option.value === form)) {
+      update("login", { form: form as typeof settings.login.form });
+    }
+
+    const theme = params.get("theme");
+    if (theme && ["windows", "kde", "neon"].includes(theme)) {
+      update("appearance", { theme: theme as typeof settings.appearance.theme });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [status, setStatus] = useState<StatusResponse | null>(null);
   const [error, setError] = useState<string | null>(null);

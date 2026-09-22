@@ -265,6 +265,12 @@ export function SettingsWindow() {
                 value={settings.login.passwordLabel}
                 onChange={(passwordLabel) => update("login", { passwordLabel })}
               />
+              <Toggle
+                label="Lamba açılışta yanık"
+                hint="Kapalıysa form görünmez; önce lambanın ipini çekmen gerekir (orijinal etkileşim)"
+                checked={settings.login.lampStartLit}
+                onChange={(lampStartLit) => update("login", { lampStartLit })}
+              />
             </Group>
 
             <Group title="Şakalar">

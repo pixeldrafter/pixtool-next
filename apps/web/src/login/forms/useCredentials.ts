@@ -1,5 +1,8 @@
 /**
  * Login formu yardımcıları.
+ *
+ * Not: `themeVars` artık kullanılmıyor — formlar kendi referans CSS'lerini
+ * kullanıyor. Geriye dönük uyumluluk için tutuluyor.
  */
 
 import { useState } from "react";
@@ -8,7 +11,7 @@ import type { LoginCredentials, LoginTheme } from "../types";
 
 /**
  * Tema renklerini CSS değişkeni olarak forma geçirir.
- * Böylece form bileşenleri tema nesnesini bilmek zorunda kalmaz — sadece CSS yazar.
+ * (Referans CSS kullanan formlar bunu kullanmaz.)
  */
 export function themeVars(theme: LoginTheme): React.CSSProperties {
   return {
@@ -30,7 +33,6 @@ export interface CredentialState {
   setUsername: (value: string) => void;
   setPassword: (value: string) => void;
   submit: (event: React.FormEvent) => void;
-  /** Parola alanına odaklanıldı mı (panda gözlerini kapatsın vb.) */
   passwordFocused: boolean;
   setPasswordFocused: (value: boolean) => void;
 }

@@ -12,15 +12,17 @@
   "scripts": {
     "dev": "pnpm --filter @pixtool/web dev",
     "dev:web": "pnpm --filter @pixtool/web dev",
-    "dev:api": "cd services/api && .venv/Scripts/python -m uvicorn app.main:app --reload --port 8000",
+    "dev:api": "cd services/api && .venv\\Scripts\\python.exe -m uvicorn app.main:app --reload --port 8000",
     "dev:api:unix": "cd services/api && .venv/bin/python -m uvicorn app.main:app --reload --port 8000",
     "build": "pnpm --filter @pixtool/web build",
     "test": "pnpm --filter @pixtool/web test",
-    "test:api": "cd services/api && .venv/Scripts/python -m pytest",
-    "lint": "pnpm --filter @pixtool/web lint",
-    "lint:api": "cd services/api && .venv/Scripts/python -m ruff check .",
+    "test:api": "cd services/api && .venv\\Scripts\\python.exe -m pytest",
+    "test:api:unix": "cd services/api && .venv/bin/python -m pytest",
+    "lint": "pnpm --filter @pixtool/web typecheck",
+    "lint:api": "cd services/api && .venv\\Scripts\\python.exe -m ruff check .",
     "typecheck": "pnpm --filter @pixtool/web typecheck",
-    "setup:api": "cd services/api && python -m venv .venv && .venv/Scripts/python -m pip install -r requirements.txt",
+    "setup:api": "cd services/api && python -m venv .venv && .venv\\Scripts\\python.exe -m pip install -r requirements.txt",
+    "setup:api:unix": "cd services/api && python3 -m venv .venv && .venv/bin/python -m pip install -r requirements.txt",
     "health": "curl -s http://127.0.0.1:8000/health"
   }
 }

@@ -1,8 +1,13 @@
 /**
  * Giriş ekranı — akışın yöneticisi.
  *
- * Seçili login formunu (`settings.login.form`) çizer, şaka balonunu ve OTP /
- * ceza adımlarını yönetir. Tüm görsel dil seçili formun temasından gelir.
+ * Seçili login formunu çizer (`settings.login.form`), şaka balonunu ve
+ * OTP / ceza adımlarını yönetir.
+ *
+ * ⚠️ Formlar **kendi tam ekran düzenlerini** getirir (referans tasarımlar
+ * `body { min-height: 100vh; display: grid; place-items: center }` kullanır).
+ * Bu yüzden burada forma hiçbir düzen müdahalesi yapılmaz; şaka ve alt bilgi
+ * **üstte katman** olarak konumlanır.
  */
 
 import { JokeBubble } from "./JokeBubble";
@@ -11,8 +16,8 @@ import { PunishmentScreen } from "./PunishmentScreen";
 import { renderLoginForm } from "./registry";
 import { getLoginTheme } from "./themes";
 import { useLoginFlow, type LoginSession } from "./useLoginFlow";
-import type { LoginCredentials } from "./types";
 import { useSettings } from "../settings";
+import "./forms/pixtool-extras.css";
 import "./LoginScreen.css";
 
 interface LoginScreenProps {
@@ -35,28 +40,20 @@ export function LoginScreen({ onSuccess }: LoginScreenProps) {
     onSuccess,
   );
 
-  const themeStyle: React.CSSProperties = {
-    ["--ls-bg" as string]: theme.colors.bg,
-    ["--ls-accent" as string]: theme.colors.accent,
-    ["--ls-text" as string]: theme.colors.text,
-    ["--ls-muted" as string]: theme.colors.muted,
-    ["--ls-font" as string]: theme.font,
-  };
+  const isCredentials = flow.step === "credentials";
 
   return (
-    <div className={`login-screen login-screen--${login.form}`} style={themeStyle}>
-      {/* Dekoratif katman (form bazlı) */}
-      <div className="login-screen__decor" aria-hidden="true" />
-
-      <div className="login-screen__content">
-        {flow.step === "credentials" &&
+    <div className={`login-screen login-screen--${login.form}`}>
+      {/* Form / OTP / Ceza — kendi düzenlerini getirirler */}
+      <div className="login-screen__stage">
+        {isCredentials &&
           renderLoginForm(login.form, {
             theme,
             labels: {
               username: login.usernameLabel,
               password: login.passwordLabel,
             },
-            onSubmit: (credentials: LoginCredentials) => void flow.submitCredentials(credentials),
+            onSubmit: (credentials) => void flow.submitCredentials(credentials),
             loading: flow.loading,
             error: flow.error,
             disabled: false,
@@ -84,8 +81,8 @@ export function LoginScreen({ onSuccess }: LoginScreenProps) {
         )}
       </div>
 
-      {/* Şaka — formun temasına uygun */}
-      {flow.step === "credentials" && (
+      {/* Şaka — formun temasına uygun, üstte katman */}
+      {isCredentials && (
         <div className="login-screen__joke">
           <JokeBubble
             theme={theme}
@@ -96,7 +93,7 @@ export function LoginScreen({ onSuccess }: LoginScreenProps) {
       )}
 
       {/* Alt bilgi */}
-      <footer className="login-screen__footer mono">
+      <footer className="login-screen__footer">
         <span>PIXTOOL NEXT</span>
         <span className="login-screen__footer-sep">·</span>
         <span>{theme.name}</span>

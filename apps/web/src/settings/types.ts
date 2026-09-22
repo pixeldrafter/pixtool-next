@@ -91,6 +91,15 @@ export type LoginFormId =
 export interface LoginSettings {
   /** Aktif login formu — sıkıldıkça değiştirilir. */
   form: LoginFormId;
+  /**
+   * Lamp formu: açılışta lamba **yanık** (giriş formu görünür) başlasın mı?
+   *
+   * Referans tasarımda form, lamba ipi çekilene kadar gizlidir. Gerçek bir
+   * giriş ekranında formun hemen görünmesi daha kullanışlıdır — bu yüzden
+   * varsayılan `true`. Kapatılırsa orijinal etkileşim korunur:
+   * önce ipi çekmen gerekir.
+   */
+  lampStartLit: boolean;
   /** Kullanıcı adı alanı etiketi (formlar arası ortak) */
   usernameLabel: string;
   passwordLabel: string;

@@ -85,20 +85,20 @@ export const LOGIN_THEMES: Record<LoginFormId, LoginTheme> = {
   },
 
   // ------------------------------------------------------------------
-  //  Panda — bambu yeşili, sevimli
+  //  Panda — referans tasarım AÇIK temalıdır (sarı zemin, beyaz kart)
   // ------------------------------------------------------------------
   panda: {
     id: "panda",
     name: "Panda Login Form",
-    hint: "Sevimli panda, bambu tonları",
+    hint: "Sevimli panda, sarı zemin",
     colors: {
-      bg: "#f3f8f2",
-      surface: "rgba(255, 255, 255, 0.92)",
-      border: "rgba(90, 140, 90, 0.28)",
-      accent: "#4caf50",
-      text: "#1f2b1f",
-      muted: "#6b7d6b",
-      error: "#e04848",
+      bg: "#f4c531",
+      surface: "#ffffff",
+      border: "rgba(0, 0, 0, 0.12)",
+      accent: "#f4c531",
+      text: "#2f2f2f",
+      muted: "#7a7a7a",
+      error: "#d94343",
       success: "#3f9d4a",
     },
     font: "'Poppins', system-ui, sans-serif",
@@ -109,21 +109,21 @@ export const LOGIN_THEMES: Record<LoginFormId, LoginTheme> = {
   },
 
   // ------------------------------------------------------------------
-  //  Panda (tam sayfa) — koyu bambu
+  //  Panda (tam sayfa) — aynı görsel dil
   // ------------------------------------------------------------------
   pandaPage: {
     id: "pandaPage",
     name: "Panda Login Page",
-    hint: "Panda — tam sayfa, koyu bambu ormanı",
+    hint: "Panda — tam sayfa, sarı zemin",
     colors: {
-      bg: "#0d1a10",
-      surface: "rgba(20, 38, 24, 0.86)",
-      border: "rgba(120, 200, 120, 0.28)",
-      accent: "#7ad17a",
-      text: "#e8f5e8",
-      muted: "#8aa88a",
-      error: "#ff6b6b",
-      success: "#7ad17a",
+      bg: "#f4c531",
+      surface: "#ffffff",
+      border: "rgba(0, 0, 0, 0.12)",
+      accent: "#f4c531",
+      text: "#2f2f2f",
+      muted: "#7a7a7a",
+      error: "#d94343",
+      success: "#3f9d4a",
     },
     font: "'Poppins', system-ui, sans-serif",
     motion: "playful",
@@ -133,21 +133,21 @@ export const LOGIN_THEMES: Record<LoginFormId, LoginTheme> = {
   },
 
   // ------------------------------------------------------------------
-  //  Yeti — buz mavisi, kar temalı
+  //  Yeti — referans tasarım AÇIK temalıdır (buz mavisi, beyaz kart)
   // ------------------------------------------------------------------
   yeti: {
     id: "yeti",
     name: "Yeti Login Form Animation",
-    hint: "Kar temalı, buz mavisi, en zengin animasyon",
+    hint: "Kar temalı, açık zemin, en zengin animasyon",
     colors: {
-      bg: "#0a1524",
-      surface: "rgba(20, 40, 66, 0.78)",
-      border: "rgba(150, 210, 255, 0.32)",
-      accent: "#69c9ff",
-      text: "#eaf6ff",
-      muted: "#87a8c4",
-      error: "#ff7a7a",
-      success: "#7de8c0",
+      bg: "#eff3f4",
+      surface: "#ffffff",
+      border: "rgba(58, 94, 119, 0.25)",
+      accent: "#66c6e4",
+      text: "#2d4a56",
+      muted: "#7f9aa8",
+      error: "#d94343",
+      success: "#3f9d4a",
     },
     font: "'Source Sans Pro', system-ui, sans-serif",
     motion: "frost",

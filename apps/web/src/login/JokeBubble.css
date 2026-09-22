@@ -118,19 +118,23 @@
 
 /* --- ticker (animasyonlu form) — kayan şerit --- */
 .joke--ticker {
+  display: block;
+  width: 100%;
+  max-width: 100%;
   overflow: hidden;
   padding: 9px 0;
   border-top: 1px solid var(--joke-border);
   border-bottom: 1px solid var(--joke-border);
   background: color-mix(in srgb, var(--joke-surface) 55%, transparent);
   mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
 }
 
 .joke__track {
   display: inline-block;
   white-space: nowrap;
-  padding-left: 100%;
-  animation: joke-scroll 22s linear infinite;
+  will-change: transform;
+  animation: joke-scroll 24s linear infinite;
 }
 
 .joke__track .joke__text {
@@ -138,7 +142,10 @@
 }
 
 @keyframes joke-scroll {
-  to {
+  0% {
+    transform: translateX(100%);
+  }
+  100% {
     transform: translateX(-100%);
   }
 }
