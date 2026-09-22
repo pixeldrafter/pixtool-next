@@ -1,0 +1,101 @@
+/* Pencere çerçevesi ve ortak kart — tema duyarlı */
+
+.window {
+  background: var(--bg-frost);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--border-weak);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-window);
+  overflow: hidden;
+  animation: window-appear var(--dur-slow) var(--ease-out);
+}
+
+@keyframes window-appear {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.window__titlebar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 10px var(--space-4);
+  background: color-mix(in srgb, var(--bg-elevated) 80%, transparent);
+  border-bottom: 1px solid var(--border-weak);
+}
+
+.window__title {
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  color: var(--text-white);
+}
+
+.window__dots {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.window__dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: none;
+  padding: 0;
+  opacity: 0.8;
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+
+.window__dot:hover {
+  opacity: 1;
+}
+
+.window__dot--close {
+  background: var(--error);
+}
+.window__dot--min {
+  background: var(--warn);
+}
+.window__dot--max {
+  background: var(--ok);
+}
+
+.window__body {
+  padding: var(--space-5);
+}
+
+/* --- Ortak kart --- */
+.ui-card {
+  background: var(--bg-glass);
+  border: 1px solid var(--border-weak);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+}
+
+.ui-card__label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted);
+  margin-bottom: var(--space-1);
+}
+
+.ui-card__value {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.ui-card__detail {
+  margin-top: var(--space-1);
+  font-size: 11px;
+  color: var(--text-secondary);
+  word-break: break-word;
+}

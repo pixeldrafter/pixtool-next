@@ -1,30 +1,19 @@
 /**
- * Tasarım tokenları.
+ * Tasarım tokenları — tema sisteminin kalbi.
  *
- * Kaynak: v5 `config/themes.json` + `core/console_ui.py` renk paleti +
- * PixtoolDesktopDemo `theme.py` neon değerleri.
+ * Semantik tokenlar (`--bg-*`, `--text-*`, `--accent`, `--border-*`) temaya göre
+ * değişir. Neon palet (`--neon-*`) ise SABİTTİR — boot ekranı her temada
+ * yeşil terminal görünümünü korur.
  *
- * Bu değişkenler tüm arayüzde kullanılır. Tema değiştirme (Windows / KDE)
- * Faz 1'de bu tokenları yeniden tanımlayarak yapılacak.
+ * Tema değiştirme: <html data-theme="windows|kde|neon">
+ * Uygulama: src/theme/applyTheme.ts
  */
 
+/* ======================================================================
+   ORTAK — her temada aynı kalan değerler
+   ====================================================================== */
 :root {
-  /* --- Zemin --- */
-  --bg-void: #05070a;
-  --bg-solid: #0a0e14;
-  --bg-surface: #0f141c;
-  --bg-elevated: #141b26;
-  --bg-frost: rgba(15, 20, 28, 0.72);
-  --bg-glass: rgba(20, 27, 38, 0.45);
-
-  /* --- Metin --- */
-  --text-primary: #d8e2ec;
-  --text-secondary: #8b9bb0;
-  --text-muted: #55637a;
-  --text-inverse: #05070a;
-  --text-white: #f0f6fc;
-
-  /* --- Neon vurgular (boot paletinden) --- */
+  /* --- Neon palet (sabit — boot ekranı ve vurgular) --- */
   --neon-green: #00ff9c;
   --neon-cyan: #00e5ff;
   --neon-blue: #3d7bff;
@@ -35,26 +24,13 @@
   --neon-red: #ff3b4e;
   --neon-lime: #b6ff3d;
 
-  /* --- Anlamsal --- */
-  --ok: var(--neon-green);
-  --warn: var(--neon-yellow);
-  --error: var(--neon-red);
-  --info: var(--neon-cyan);
+  /* --- Anlamsal durum renkleri --- */
+  --ok: #22c55e;
+  --warn: #f5b700;
+  --error: #ef4444;
+  --info: #38bdf8;
 
-  /* --- Çizgiler --- */
-  --border-weak: rgba(120, 145, 175, 0.14);
-  --border-glow: rgba(0, 255, 156, 0.28);
-  --border-focus: rgba(0, 229, 255, 0.55);
-
-  /* --- Tipografi --- */
-  --font-mono: "Cascadia Mono", "JetBrains Mono", "Consolas", "Courier New", monospace;
-  --font-sans: "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, sans-serif;
-
-  /* --- Ölçek --- */
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 14px;
-
+  /* --- Ölçek (temadan bağımsız) --- */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -62,29 +38,168 @@
   --space-5: 24px;
   --space-6: 32px;
 
-  /* --- Gölge / parıltı --- */
-  --glow-green: 0 0 12px rgba(0, 255, 156, 0.45);
-  --glow-cyan: 0 0 12px rgba(0, 229, 255, 0.45);
-
   /* --- Hareket --- */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --dur-fast: 120ms;
   --dur-base: 240ms;
   --dur-slow: 480ms;
+
+  /* --- Arayüz ölçeği (ayarlardan) --- */
+  --ui-scale: 1;
+
+  /* --- Parıltı (tema başına değişir) --- */
+  --glow-accent: 0 0 12px rgba(0, 255, 156, 0.45);
+  --glow-green: 0 0 12px rgba(0, 255, 156, 0.45);
+  --glow-cyan: 0 0 12px rgba(0, 229, 255, 0.45);
 }
 
-/* Erişilebilirlik: hareketi azalt (ACIK-KONULAR #16) */
+/* ======================================================================
+   NEON — Pixtool'un klasik siber görünümü (varsayılan / yedek)
+   ====================================================================== */
+:root,
+[data-theme="neon"] {
+  --bg-void: #05070a;
+  --bg-solid: #0a0e14;
+  --bg-surface: #0f141c;
+  --bg-elevated: #141b26;
+  --bg-frost: rgba(15, 20, 28, 0.72);
+  --bg-glass: rgba(20, 27, 38, 0.45);
+
+  --text-primary: #d8e2ec;
+  --text-secondary: #8b9bb0;
+  --text-muted: #55637a;
+  --text-inverse: #05070a;
+  --text-white: #f0f6fc;
+
+  --accent: var(--neon-green);
+  --accent-hover: #4dffb8;
+  --accent-contrast: #05070a;
+
+  --border-weak: rgba(120, 145, 175, 0.14);
+  --border-glow: rgba(0, 255, 156, 0.28);
+  --border-focus: rgba(0, 229, 255, 0.55);
+
+  --font-sans: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-mono: "Cascadia Mono", "JetBrains Mono", "Consolas", monospace;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 14px;
+
+  --shadow-window:
+    0 18px 48px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(0, 255, 156, 0.06) inset;
+}
+
+/* ======================================================================
+   WINDOWS — Fluent / Mica görünümü
+   ====================================================================== */
+[data-theme="windows"] {
+  --bg-void: #0f0f0f;
+  --bg-solid: #1c1c1c;
+  --bg-surface: #202020;
+  --bg-elevated: #272727;
+  --bg-frost: rgba(32, 32, 32, 0.86);
+  --bg-glass: rgba(45, 45, 45, 0.55);
+
+  --text-primary: #ffffff;
+  --text-secondary: #c8c8c8;
+  --text-muted: #8a8a8a;
+  --text-inverse: #101010;
+  --text-white: #ffffff;
+
+  --accent: #60cdff;
+  --accent-hover: #8fdcff;
+  --accent-contrast: #0a1a24;
+
+  --border-weak: rgba(255, 255, 255, 0.09);
+  --border-glow: rgba(96, 205, 255, 0.35);
+  --border-focus: rgba(96, 205, 255, 0.75);
+
+  --font-sans: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "Cascadia Mono", "Consolas", monospace;
+
+  /* Windows 11 köşe yarıçapı ölçeği */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 8px;
+
+  --ok: #6ccb5f;
+  --warn: #fce100;
+  --error: #ff99a4;
+  --info: #60cdff;
+
+  --glow-accent: 0 0 0 rgba(0, 0, 0, 0);
+  --glow-green: 0 0 0 rgba(0, 0, 0, 0);
+  --glow-cyan: 0 0 0 rgba(0, 0, 0, 0);
+
+  --shadow-window:
+    0 8px 24px rgba(0, 0, 0, 0.44),
+    0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+/* ======================================================================
+   KDE — Breeze Dark paleti
+   ====================================================================== */
+[data-theme="kde"] {
+  --bg-void: #111315;
+  --bg-solid: #1b1e20;
+  --bg-surface: #232629;
+  --bg-elevated: #2a2e32;
+  --bg-frost: rgba(35, 38, 41, 0.92);
+  --bg-glass: rgba(42, 46, 50, 0.6);
+
+  --text-primary: #eff0f1;
+  --text-secondary: #bdc3c7;
+  --text-muted: #7f8c8d;
+  --text-inverse: #16191b;
+  --text-white: #ffffff;
+
+  --accent: #3daee9;
+  --accent-hover: #6cc7f2;
+  --accent-contrast: #06151d;
+
+  --border-weak: rgba(239, 240, 241, 0.1);
+  --border-glow: rgba(61, 174, 233, 0.4);
+  --border-focus: rgba(61, 174, 233, 0.8);
+
+  --font-sans: "Noto Sans", "Ubuntu", "DejaVu Sans", system-ui, sans-serif;
+  --font-mono: "Noto Sans Mono", "Hack", "DejaVu Sans Mono", monospace;
+
+  /* Breeze köşe yarıçapı */
+  --radius-sm: 3px;
+  --radius-md: 5px;
+  --radius-lg: 6px;
+
+  --ok: #27ae60;
+  --warn: #f67400;
+  --error: #da4453;
+  --info: #3daee9;
+
+  --glow-accent: 0 0 0 rgba(0, 0, 0, 0);
+  --glow-green: 0 0 0 rgba(0, 0, 0, 0);
+  --glow-cyan: 0 0 0 rgba(0, 0, 0, 0);
+
+  --shadow-window:
+    0 6px 18px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(239, 240, 241, 0.06);
+}
+
+/* ======================================================================
+   ERİŞİLEBİLİRLİK — hareketi azalt
+   ====================================================================== */
 @media (prefers-reduced-motion: reduce) {
   :root {
     --dur-fast: 0ms;
     --dur-base: 0ms;
     --dur-slow: 0ms;
   }
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
+}
+
+[data-motion="reduced"] *,
+[data-motion="reduced"] *::before,
+[data-motion="reduced"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
 }

@@ -59,14 +59,42 @@
 
 ## Faz 1 — OS kabuğu & login
 
-- [ ] Çoklu pencere yöneticisi (sürükle, boyutlandır, küçült, kapat)
-- [ ] Görev çubuğu + başlat menüsü
-- [ ] Masaüstü ikonları
-- [ ] Tema motoru: **Windows (Fluent)** + **Linux KDE (Breeze)**
+### Adım A — Tema & kişiselleştirme altyapısı ← **TAMAMLANDI**
+
+- [x] **Ayar çekirdeği** — şema (`types.ts`), varsayılanlar, kayıt defteri, zustand + localStorage kalıcılığı
+- [x] **Şema evrimi** — `mergeDeep` ile eski kayıtlar bozulmaz (**13 test geçti**)
+- [x] **Tema motoru** — Windows / KDE / Neon, saf CSS `[data-theme]` blokları
+- [x] **Ayar senkronizasyonu** — `useThemeSync` ayarları DOM'a uygular
+- [x] **Duvar kağıdı katmanı** — gradyan / düz / görsel / karartma
+- [x] **Ayarlar ekranı** — 7 bölüm, anında uygulanır
+- [x] **Açılış akışı düzenleyici** — sıra kullanıcı tarafından değiştirilebilir
+- [x] **Yeniden kullanılabilir pencere** bileşeni + görev çubuğu sekme geçişi
+- [x] **Referans organizasyonu** — ham demolar `_referans/`'ta (git dışı)
+- [x] **Ses varlıkları** — Impossible Light Bulb sesleri yerelleştirildi (5 dosya, 51 KB)
+- [ ] Cursor sistemi (Spider, Reptile)
+- [ ] Duvar kağıdı: Spider Clock portu
+- [ ] Duvar kağıdı: Pixel Bat portu
+
+### Adım B — Login sistemi (sıradaki)
+
+- [ ] Login kayıt defteri + `LoginHost` ortak akış
+- [ ] 6 form portu (Lamp varsayılan)
+- [ ] 100 şaka — forma göre temalı sunum, rastgele
+- [ ] OTP adımı — seçili formun temasıyla
+- [ ] Telegram / n8n OTP entegrasyonu
+- [ ] Ceza ekranı — 3×yanlış → 2 dk geri sayım + ses
+
+### Adım C — Kabuk & bekleme sistemleri
+
+- [ ] Pencere yöneticisi (sürükle, boyutlandır, küçült, z-sırası)
+- [ ] Başlat menüsü + masaüstü ikonları
 - [ ] Command Palette (Ctrl+K)
-- [ ] Animasyonlu login + OTP ekranı
+- [ ] Animated Logout → kapatma düğmesi
+- [ ] Interactive Deadline → ilerleme çubukları
+- [ ] bg.gif → belirsiz bekleme perdesi
+- [ ] Pixel Bat → boşta ekranı + panik ekranı
 - [ ] i18n altyapısı (Türkçe varsayılan)
-- [ ] Erişilebilirlik: klavye gezinme, "hareketi azalt"
+- [ ] Erişilebilirlik: klavye gezinme, "hareketi azalt" ✅ *(tema motorunda hazır)*
 
 ---
 

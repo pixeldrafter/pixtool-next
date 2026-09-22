@@ -1,22 +1,31 @@
 /**
  * Uygulama kökü.
  *
- * Akış:
- *   1. `/api/v1/status` çekilir (boot ile paralel)
- *   2. Boot ekranı diziyi oynatır
- *   3. Kullanıcı tıklar / Enter → masaüstü kabuğu
+ * Akış (ayarlardan değiştirilebilir — settings.flow.order):
+ *   varsayılan: Giriş → Konsol → Boot → Masaüstü
  *
- * Faz 1'de araya login + OTP ekranı girecek.
+ * Faz A durumu:
+ *   ✅ boot → masaüstü geçişi çalışıyor
+ *   ✅ tema senkronizasyonu (Windows / KDE / Neon)
+ *   ✅ ayarlar deposu + Ayarlar penceresi
+ *   ⏳ login / konsol adımları sonraki adımda eklenecek
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
+
 import { BootScreen } from "./boot/BootScreen";
 import { Desktop } from "./desktop/Desktop";
 import { describeError, fetchStatus, type StatusResponse } from "./lib/api";
+import { useSettings } from "./settings";
+import { ThemeBackdrop, useThemeSync } from "./theme";
 
 type Phase = "boot" | "desktop";
 
 export default function App() {
+  // Tema + hareket + ölçek ayarlarını DOM'a uygular
+  useThemeSync();
+
+  const { settings } = useSettings();
   const [phase, setPhase] = useState<Phase>("boot");
   const [status, setStatus] = useState<StatusResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -47,7 +56,7 @@ export default function App() {
     return () => abortRef.current?.abort();
   }, [load]);
 
-  // Sekme başlığını duruma göre güncelle
+  // Sekme başlığı
   useEffect(() => {
     if (phase === "boot") {
       document.title = "PIXTOOL — System Boot";
@@ -58,15 +67,28 @@ export default function App() {
     }
   }, [phase, error, status]);
 
-  if (phase === "boot") {
-    return (
-      <BootScreen
-        status={status}
-        error={error}
-        onFinished={() => setPhase("desktop")}
-      />
-    );
-  }
+  // Ayarlarda konsol kapalıysa boot ekranı atlanır (sessiz açılış)
+  useEffect(() => {
+    if (settings.flow.consoleVerbosity === "off" && phase === "boot") {
+      const timer = window.setTimeout(() => setPhase("desktop"), 400);
+      return () => window.clearTimeout(timer);
+    }
+    return undefined;
+  }, [settings.flow.consoleVerbosity, phase]);
 
-  return <Desktop status={status} error={error} loading={loading} onRefresh={() => void load()} />;
+  return (
+    <>
+      <ThemeBackdrop />
+      {phase === "boot" ? (
+        <BootScreen status={status} error={error} onFinished={() => setPhase("desktop")} />
+      ) : (
+        <Desktop
+          status={status}
+          error={error}
+          loading={loading}
+          onRefresh={() => void load()}
+        />
+      )}
+    </>
+  );
 }
