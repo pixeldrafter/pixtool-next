@@ -127,9 +127,7 @@ class AuthService:
         self._challenges[challenge_id] = challenge
 
         if self.demo_mode:
-            logger.info(
-                "OTP üretildi (demo) — kullanıcı=%s kod=%s", username, code
-            )
+            logger.info("OTP üretildi (demo) — kullanıcı=%s kod=%s", username, code)
         else:
             logger.info("OTP üretildi — kullanıcı=%s kanal=%s", username, self.otp_channel)
 

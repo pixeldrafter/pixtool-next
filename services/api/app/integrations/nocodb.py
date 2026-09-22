@@ -91,16 +91,13 @@ class NocoDBClient:
                 reachable=False,
                 base_url=self.base_url,
                 detail=(
-                    f"NocoDB adresi hâlâ şablon değer: {self.base_url!r} "
-                    "— gerçek adres girilmeli."
+                    f"NocoDB adresi hâlâ şablon değer: {self.base_url!r} — gerçek adres girilmeli."
                 ),
             )
 
         try:
             async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
-                response = await client.get(
-                    self._url("/api/v2/meta/bases/"), headers=self._headers
-                )
+                response = await client.get(self._url("/api/v2/meta/bases/"), headers=self._headers)
         except httpx.HTTPError as exc:
             return NocoDBStatus(
                 configured=True,
@@ -117,8 +114,7 @@ class NocoDBClient:
                 reachable=True,
                 base_url=self.base_url,
                 detail=(
-                    "Sunucuya ulaşıldı ama token geçersiz (401). "
-                    "NOCODB_API_TOKEN kontrol edilmeli."
+                    "Sunucuya ulaşıldı ama token geçersiz (401). NOCODB_API_TOKEN kontrol edilmeli."
                 ),
             )
 
