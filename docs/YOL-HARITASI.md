@@ -1,130 +1,86 @@
 # Yol Haritası
 
-## Faz 0 — İskelet & temel altyapı ✅ **TAMAMLANDI**
+## Faz 0 — İskelet & temel altyapı ✅
 
 - [x] Proje klasörü + araç zinciri (Git 2.55, pnpm 12.5, Node 25, Python 3.14)
-- [x] Kök dosyalar: `README`, `AGENTS`, `.gitignore`, `.gitattributes`, `.env.example`, workspace
+- [x] Kök dosyalar, workspace, .gitignore/.gitattributes
 - [x] Dokümanlar (KARARLAR, MIMARI, YOL-HARITASI, HASAT, OZELLESTIRME, API, ACIK-KONULAR)
-- [x] `git init` + commit'ler
-- [x] **Backend:** FastAPI + `/health` + `/api/v1/status` + NocoDB adapter
-- [x] **Backend:** 35 test (sağlık, kimlik doğrulama, cihaz raporu)
-- [x] **Arayüz:** React 19 + Vite 7 + TS strict + tasarım tokenları
-- [x] **Arayüz:** Boot ekranı + API istemcisi + Vite proxy
-- [x] Sırların git dışı tutulması doğrulandı
+- [x] Git deposu + commit'ler
+- [x] Backend: FastAPI + NocoDB adapter + 60 test
+- [x] Arayüz: React 19 + Vite 7 + TS strict
 
----
+## Faz 1 — OS kabuğu & login ✅
 
-## Faz 1 — OS kabuğu & login ✅ **BÜYÜK ÖLÇÜDE TAMAMLANDI**
+- [x] Ayar çekirdeği (şema, store, `mergeDeep` + 13 test)
+- [x] Tema motoru (Windows / KDE / Neon)
+- [x] Ayarlar ekranı (7 bölüm, akış sıralayıcı, JSON aktarımı)
+- [x] ErrorBoundary
+- [x] **6 login formu** — referans tasarımların birebir portu
+- [x] **100 şaka** — forma göre temalı
+- [x] **OTP ekranı** — 2 tasarım (klasik/form teması + yeti), 4 durum animasyonu
+- [x] **Ceza ekranı** — Impossible Light Bulb, 2 dk geri sayım, sesli
+- [x] **2 özel imleç** (örümcek, sürüngen)
+- [x] **2 animasyonlu duvar kağıdı** (Spider Clock, Pixel Bat)
+- [x] Boşta ekranı, animasyonlu kapatma
+- [x] Pencere yöneticisi (sürükle, boyutlandır, z-sırası)
+- [x] Başlat menüsü (Ctrl+K, arama, gruplar)
+- [x] Masaüstü ikonları + görev çubuğu
+- [x] Bekleme bileşenleri (DeadlineBar, WaitingCurtain)
+- [x] **i18n altyapısı** (TR tam, EN kısmi, 11 test)
 
-### Ayar & tema altyapısı ✅
+## Faz 2 — Özellikler ✅
 
-- [x] **Ayar çekirdeği** — şema, varsayılanlar, kayıt defteri, zustand + localStorage
-- [x] **Şema evrimi** — `mergeDeep` ile eski kayıtlar bozulmaz (13 test)
-- [x] **Tema motoru** — Windows / KDE / Neon, saf CSS `[data-theme]` blokları
-- [x] **Ayar senkronizasyonu** — tema, hareket, ölçek DOM'a uygulanır
-- [x] **Ayarlar ekranı** — 7 bölüm, akış sıralayıcı, JSON dışa/içe aktarma
-- [x] **ErrorBoundary** — boş ekran yerine okunabilir hata ekranı
-
-### Görsel sistemler ✅
-
-- [x] **6 login formu** — referans tasarımların **birebir** portu
-- [x] **100 şaka** — forma göre temalı sunum, rastgele
-- [x] **OTP adımı** — 4 görsel durum (idle / verifying / error / success)
-  - hatalı kod → kutular **kırmızı + sallanma** + kırmızı ✕
-  - doğru kod → kutular **sırayla yeşil + zıplama** + ilerleme çubuğu
-- [x] **Ceza ekranı** — Impossible Light Bulb, 2 dk geri sayım, çekilebilir ip, yerel sesler
-- [x] **Örümcek imleci** — 8 bacak, yürüme döngüsü, ağ izi
-- [x] **Sürüngen imleci** — halkalı gövde, arayüz öğelerine ilgi
-- [x] **Spider Clock** — sistem saatine bağlı, kadranda yürüyen örümcek
-- [x] **Pixel Bat** — box-shadow piksel sanatı, 6 yarasa
-- [x] **Boşta ekranı** — hareketsizlik takibi, seçilebilir ekran
-- [x] **Animasyonlu kapatma** — Animated Logout
-
-### Kabuk ✅
-
-- [x] **Pencere yöneticisi** — sürükle, 8 yönden boyutlandır, küçült, büyüt, z-sırası
-- [x] **Masaüstü ikonları** — çift tık / Enter
-- [x] **Başlat menüsü** — arama, klavye gezinme, Ctrl+K
-- [x] **Görev çubuğu** — açık pencereler, aktif vurgu, kullanıcı, saat, kapat
-- [x] **Hakkında penceresi** — yapılandırma özeti, kısayollar, bileşen demoları
-
-### Bekleme sistemleri ✅
-
-- [x] **DeadlineBar** — Interactive Deadline portu (kırmızı/beyaz, yürüyen figür, kalan süre)
-- [x] **WaitingCurtain** — bg.gif bekleme perdesi (Esc ile iptal)
-
-### Konsol & akış ✅
-
-- [x] **Makine envanteri** — gerçek tarayıcı/donanım verisi (çekirdek, GPU, ağ, pil, depolama)
-- [x] **Köprü beklenen alanlar** — sahte veri yok, açıkça işaretli
-- [x] **Akış yöneticisi** — `flow.order` ayarına göre dinamik adımlar
-- [x] **Sessiz açılış** — konsol kapalıysa adım atlanır
-- [x] **Rapor kaydetme** — onay sorusu → NocoDB / yerel dosya
-
-### Eksik kalanlar
-
-- [ ] **i18n altyapısı** — şu an yalnızca Türkçe (karar #13)
-- [ ] **Command Palette (Ctrl+K)** — şimdilik başlat menüsü açıyor
-- [ ] **Dosya yöneticisi / Terminal / Script kütüphanesi pencereleri** — iskelet hazır
-
----
-
-## Faz 2 — Özellikler (sıradaki)
-
-- [ ] **Overview** — ECharts grafikleri
-- [ ] **Scripts** — katalog, editör, çalıştırma, çıktı akışı
-- [ ] **Files** — SFTP dosya yöneticisi
-- [ ] **Terminal** — xterm.js + SSH
-- [ ] **Users** — RBAC, izinler
-- [ ] **Database** — NocoDB tablo görünümü
-- [ ] **Resources** — kaynak yönetimi
-- [ ] **NocoDB tablo şeması** — `bootstrap_nocodb.py` hasadı
-
----
+- [x] **Genel Bakış** — entegrasyon kartları, uzak kaynak göstergeleri
+- [x] **Script Kütüphanesi** — 18 PowerShell scripti, kategori/arama, içerik, çalıştırma
+- [x] **Terminal** — SSH komut çalıştırma, geçmiş, politika onayı
+- [x] **Dosya Yöneticisi** — SFTP dizin gezinme
+- [x] **Kullanıcılar** — uzak sistem hesapları (`getent passwd`)
+- [x] **Veritabanı** — NocoDB durumu + tablo eşlemeleri
+- [x] **Kaynaklar** — bu makine + uzak sunucu kapasitesi
+- [x] Backend: script/SSH/SFTP uç noktaları (60 test)
+- [ ] NocoDB tablo şeması kurulumu — *token bekleniyor*
+- [ ] Script çalıştırma (yerel) — *Faz 3 köprüsü gerekli*
 
 ## Faz 3 — Yerel köprü
 
-- [ ] Köprü servisi (psutil + paramiko), token doğrulaması
-- [ ] Sistem bilgisi (CPU / RAM / disk / iç-dış IP)
-- [ ] Kurulu programlar + sürümleri
-- [ ] Script çalıştırma + çıktı akışı
+- [ ] Köprü servisi (psutil), token doğrulaması
+- [ ] Yerel sistem bilgisi + kurulu programlar
+- [ ] Yerel script çalıştırma + çıktı akışı
 - [ ] Boot taraması → NocoDB `devices`
-- [ ] Cihaz kimliği
 - [ ] Zaafiyet taraması
-
----
 
 ## Faz 4 — Platform
 
-- [ ] Masaüstü paketleri (Tauri: msi/nsis, deb/AppImage)
+- [ ] Tauri masaüstü kabuğu (Rust + VS Build Tools gerekli)
+- [ ] Paketleme (msi/nsis, deb/AppImage)
 - [ ] Mobil uyarlama (PWA)
 - [ ] Sunucu dağıtımı (systemd + nginx + HTTPS)
 
----
-
 ## Faz 5 — İleride
 
-- [ ] Agent modeli (karar #9)
-- [ ] Ticari kısım (karar #1)
+- [ ] Agent modeli · Ticari kısım (lisans/marka)
 
 ---
 
 ## Geliştirme araçları
 
-| Araç | Kullanım |
+| Araç | Ne yapar |
 |---|---|
-| `tools/screenshot.mjs` | Chrome headless ile tasarım doğrulama |
-| `?demo=otp` | OTP durumlarını tek ekranda gör |
-| `?login=<form>` | Login formunu geçici değiştir |
-| `?theme=<tema>` | Temayı geçici değiştir |
-| `?step=desktop` | Akış adımlarını atla |
+| `node tools/e2e-test.mjs` | **Gerçek tarayıcıda** giriş + OTP akışını test eder (CDP) |
+| `node tools/screenshot.mjs` | Tüm ekranların görüntüsünü alır |
+| `?demo=otp` | OTP'nin 4 durumunu + 2 tasarımı tek ekranda |
+| `?step=desktop` | Akış adımlarını atlar |
+| `?window=<ad>` | Doğrudan bir pencere açar |
+| `?login=<form>` `?theme=<tema>` `?otp=<stil>` | Geçici geçersiz kılma |
 
 ---
 
-## Kalite durumu
+## Kalite
 
 ```
-PASS ✔  arayüz tip kontrolü      PASS ✔  arayüz testleri (13)
-PASS ✔  arayüz derlemesi         PASS ✔  backend lint + format
-PASS ✔  backend testleri (35)
+arayuz    : tip ✔ · 24 test ✔ · derleme ✔
+backend   : lint ✔ · format ✔ · 60 test ✔
+E2E       : giriş ✔ · OTP hatalı ✔ · OTP doğru ✔ · konsol ✔
 ```
+
+**Toplam: 84 otomatik test.**

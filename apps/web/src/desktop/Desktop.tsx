@@ -14,7 +14,16 @@ import { useEffect, useState } from "react";
 import type { StatusResponse } from "../lib/api";
 import type { LoginSession } from "../login";
 import { useSettings } from "../settings";
-import { AboutWindow } from "./apps/AboutWindow";
+import {
+  AboutWindow,
+  DatabaseWindow,
+  FilesWindow,
+  OverviewWindow,
+  ResourcesWindow,
+  ScriptsWindow,
+  TerminalWindow,
+  UsersWindow,
+} from "../apps";
 import { DesktopIcons } from "./DesktopIcons";
 import { SettingsWindow } from "./SettingsWindow";
 import { ShutdownButton } from "./ShutdownButton";
@@ -52,9 +61,22 @@ export function Desktop({
   const open = useWindowManager((state) => state.open);
   const focus = useWindowManager((state) => state.focus);
 
-  // Açılışta Sistem Durumu penceresi
+  // Açılışta Genel Bakış penceresi (veya ?window=<ad> ile belirtilen)
   useEffect(() => {
-    open("status");
+    const requested = new URLSearchParams(window.location.search).get("window");
+    const valid = [
+      "overview",
+      "scripts",
+      "terminal",
+      "files",
+      "users",
+      "database",
+      "resources",
+      "status",
+      "settings",
+      "about",
+    ];
+    open(requested && valid.includes(requested) ? (requested as WindowApp) : "overview");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -72,6 +94,20 @@ export function Desktop({
 
   function renderApp(app: WindowApp) {
     switch (app) {
+      case "overview":
+        return <OverviewWindow />;
+      case "scripts":
+        return <ScriptsWindow />;
+      case "terminal":
+        return <TerminalWindow />;
+      case "files":
+        return <FilesWindow />;
+      case "users":
+        return <UsersWindow />;
+      case "database":
+        return <DatabaseWindow />;
+      case "resources":
+        return <ResourcesWindow />;
       case "status":
         return (
           <StatusWindow
@@ -92,7 +128,6 @@ export function Desktop({
           <div className="desktop__placeholder">
             <span aria-hidden="true">🚧</span>
             <strong>Bu pencere henüz hazır değil</strong>
-            <p>Faz 2'de eklenecek.</p>
           </div>
         );
     }

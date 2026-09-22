@@ -9,7 +9,17 @@
 
 import { create } from "zustand";
 
-export type WindowApp = "status" | "settings" | "about" | "files" | "terminal" | "scripts";
+export type WindowApp =
+  | "overview"
+  | "scripts"
+  | "terminal"
+  | "files"
+  | "users"
+  | "database"
+  | "resources"
+  | "status"
+  | "settings"
+  | "about";
 
 export interface WindowState {
   id: string;
@@ -29,13 +39,20 @@ export interface WindowState {
   restore?: { x: number; y: number; width: number; height: number };
 }
 
-export const APP_DEFINITIONS: Record<WindowApp, { title: string; icon: string; width: number; height: number }> = {
-  status: { title: "Sistem Durumu", icon: "🖥️", width: 940, height: 620 },
-  settings: { title: "Ayarlar", icon: "⚙️", width: 900, height: 660 },
-  about: { title: "Pixtool Hakkında", icon: "ℹ️", width: 560, height: 420 },
-  files: { title: "Dosya Yöneticisi", icon: "📁", width: 860, height: 580 },
-  terminal: { title: "Terminal", icon: "⌨️", width: 760, height: 480 },
-  scripts: { title: "Script Kütüphanesi", icon: "📜", width: 880, height: 600 },
+export const APP_DEFINITIONS: Record<
+  WindowApp,
+  { title: string; icon: string; width: number; height: number }
+> = {
+  overview: { title: "Genel Bakış", icon: "📊", width: 1000, height: 680 },
+  scripts: { title: "Script Kütüphanesi", icon: "📜", width: 1100, height: 700 },
+  terminal: { title: "Terminal", icon: "⌨️", width: 880, height: 560 },
+  files: { title: "Dosya Yöneticisi", icon: "📁", width: 1000, height: 620 },
+  users: { title: "Kullanıcılar", icon: "👥", width: 940, height: 600 },
+  database: { title: "Veritabanı (NocoDB)", icon: "🗄️", width: 960, height: 680 },
+  resources: { title: "Kaynaklar", icon: "📈", width: 980, height: 700 },
+  status: { title: "Sistem Durumu", icon: "🖥️", width: 960, height: 640 },
+  settings: { title: "Ayarlar", icon: "⚙️", width: 920, height: 680 },
+  about: { title: "Pixtool Hakkında", icon: "ℹ️", width: 640, height: 560 },
 };
 
 interface WindowManagerState {

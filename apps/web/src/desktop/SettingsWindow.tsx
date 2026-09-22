@@ -65,10 +65,11 @@ export function SettingsWindow() {
           <Group title="Genel">
             <Select
               label="Arayüz dili"
+              hint="i18n altyapısı — çeviriler genişletilebilir"
               value={settings.general.lang}
               options={[
-                { value: "tr", label: "Türkçe" },
-                { value: "en", label: "English (henüz yok)" },
+                { value: "tr", label: "Türkçe (varsayılan)" },
+                { value: "en", label: "English (kısmi)" },
               ]}
               onChange={(value) => update("general", { lang: value as "tr" | "en" })}
             />

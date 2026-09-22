@@ -121,10 +121,20 @@
   transition: background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
 }
 
-.start__item.is-cursor:not(:disabled) {
+.start__item.is-cursor {
   background: color-mix(in srgb, var(--accent) 14%, transparent);
   border-color: color-mix(in srgb, var(--accent) 30%, transparent);
   color: var(--text-primary);
+}
+
+/* --- Grup başlığı --- */
+.start__group {
+  padding: 10px 12px 4px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  font-weight: 600;
 }
 
 .start__item:disabled {

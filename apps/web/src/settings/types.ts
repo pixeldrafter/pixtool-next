@@ -185,7 +185,7 @@ export interface PixSettings {
   version: number;
 
   general: {
-    /** Arayüz dili */
+    /** Arayüz dili (i18n) */
     lang: "tr" | "en";
     /** Geliştirici modu — ekstra günlük ve hata ayrıntısı */
     devMode: boolean;

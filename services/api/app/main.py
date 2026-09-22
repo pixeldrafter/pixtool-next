@@ -23,6 +23,9 @@ from app.core.config import PROJECT_ROOT, settings
 from app.integrations.nocodb import NocoDBClient
 from app.routers.auth import router as auth_router
 from app.routers.devices import router as devices_router
+from app.routers.remote import router as remote_router
+from app.routers.scripts import router as scripts_router
+from app.services.script_service import LIBRARY_ROOT as SCRIPT_LIBRARY
 
 logging.basicConfig(
     level=logging.DEBUG if settings.debug else logging.INFO,
@@ -44,6 +47,8 @@ async def lifespan(app: FastAPI):
     if not settings.api_secret_key:
         logger.warning("  ⚠️  API_SECRET_KEY boş — geliştirme anahtarı kullanılıyor")
     logger.info("  Kimlik     : demo kullanıcı=%s", settings.auth_demo_user)
+    logger.info("  Scriptler  : %s", SCRIPT_LIBRARY)
+    logger.info("  SSH        : %s", settings.ssh_default_host or "(ayarlanmamış)")
     logger.info("=" * 66)
     yield
     logger.info("%s kapatılıyor.", settings.app_name)
@@ -67,6 +72,8 @@ app.add_middleware(
 # --- Uç nokta grupları ---
 app.include_router(auth_router)
 app.include_router(devices_router)
+app.include_router(scripts_router)
+app.include_router(remote_router)
 
 
 # ----------------------------------------------------------------------
@@ -137,6 +144,15 @@ async def status() -> dict[str, Any]:
                 "ok": nocodb.ok,
                 "base_url": nocodb.base_url,
                 "detail": nocodb.detail,
+                #: Tablo eşlemeleri — arayüz bunları `.env`'den okumak zorunda kalmasın
+                "tables": {
+                    "users": settings.nocodb_table_users,
+                    "devices": settings.nocodb_table_devices,
+                    "scripts": settings.nocodb_table_scripts,
+                    "resources": settings.nocodb_table_resources,
+                    "logs": settings.nocodb_table_logs,
+                    "settings": settings.nocodb_table_settings,
+                },
             },
             "n8n": {"configured": bool(settings.n8n_base_url)},
             "telegram": {"configured": bool(settings.telegram_bot_token)},

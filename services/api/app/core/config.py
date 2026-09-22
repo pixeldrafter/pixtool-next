@@ -94,6 +94,10 @@ class Settings(BaseSettings):
     ssh_default_host: str = ""
     ssh_default_user: str = ""
     ssh_default_port: int = 22
+    #: SSH parolası (yalnızca `.env` içinde; git'e GİRMEZ).
+    #: Tercih edilen yöntem **anahtar kimlik doğrulamasıdır** —
+    #: parola boşsa servis `~/.ssh` anahtarlarını ve agent'ı dener.
+    ssh_default_password: str = ""
 
     # --- 10) Komut politikası ---
     command_policy: str = "confirm"

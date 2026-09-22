@@ -1,0 +1,371 @@
+/* ==========================================================================
+ *  UYGULAMA PENCERELERİ — ortak stiller
+ * ========================================================================== */
+
+.app {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  height: 100%;
+  min-height: 0;
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+}
+
+/* --- Araç çubuğu --- */
+.app__toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.app__title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.app__subtitle {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.app__spacer {
+  flex: 1;
+}
+
+/* --- Düğmeler --- */
+.app-btn {
+  padding: 6px 12px;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--text-secondary);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-weak);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+
+.app-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.app-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.app-btn--primary {
+  color: var(--accent-contrast, #05070a);
+  background: var(--accent);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+.app-btn--primary:hover:not(:disabled) {
+  filter: brightness(1.1);
+  color: var(--accent-contrast, #05070a);
+}
+
+.app-btn--danger:hover:not(:disabled) {
+  border-color: var(--error);
+  color: var(--error);
+}
+
+/* --- Arama / girdi --- */
+.app-input {
+  padding: 6px 11px;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--text-primary);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-weak);
+  border-radius: var(--radius-sm);
+  min-width: 160px;
+}
+
+.app-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.app-select {
+  padding: 6px 10px;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--text-primary);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-weak);
+  border-radius: var(--radius-sm);
+}
+
+/* --- Bölünmüş görünüm (liste + detay) --- */
+.app__split {
+  display: grid;
+  grid-template-columns: minmax(240px, 320px) 1fr;
+  gap: var(--space-3);
+  flex: 1;
+  min-height: 0;
+}
+
+@media (max-width: 820px) {
+  .app__split {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* --- Liste --- */
+.app-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+  padding: var(--space-2);
+  background: color-mix(in srgb, var(--bg-void) 45%, transparent);
+  border: 1px solid var(--border-weak);
+  border-radius: var(--radius-md);
+}
+
+.app-list__item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  text-align: left;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out);
+}
+
+.app-list__item:hover {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--text-primary);
+}
+
+.app-list__item.is-active {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+  color: var(--accent);
+}
+
+.app-list__name {
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.app-list__meta {
+  display: flex;
+  gap: 8px;
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
+
+/* --- Detay paneli --- */
+.app-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-height: 0;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--bg-void) 35%, transparent);
+  border: 1px solid var(--border-weak);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+}
+
+.app-panel__head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  flex-shrink: 0;
+}
+
+/* --- Kod/monospace alanı --- */
+.app-code {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  background: #04070a;
+  border: 1px solid var(--border-weak);
+  border-radius: var(--radius-sm);
+  white-space: pre;
+  tab-size: 2;
+}
+
+/* --- Etiket / değer --- */
+.app-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.app-facts > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: 7px 10px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-weak);
+  border-radius: var(--radius-sm);
+  font-size: 11.5px;
+}
+
+.app-facts dt {
+  color: var(--text-muted);
+}
+
+.app-facts dd {
+  margin: 0;
+  font-family: var(--font-mono);
+  color: var(--accent);
+  text-align: right;
+  word-break: break-word;
+}
+
+/* --- Etiketler --- */
+.app-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 10.5px;
+  border-radius: 999px;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  white-space: nowrap;
+}
+
+.app-tag--muted {
+  color: var(--text-muted);
+  background: transparent;
+  border-color: var(--border-weak);
+}
+
+/* --- Mesaj kutuları --- */
+.app-msg {
+  padding: 9px 12px;
+  font-size: 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid;
+  line-height: 1.55;
+}
+
+.app-msg--info {
+  color: var(--info);
+  background: color-mix(in srgb, var(--info) 10%, transparent);
+  border-color: color-mix(in srgb, var(--info) 32%, transparent);
+}
+
+.app-msg--warn {
+  color: var(--warn);
+  background: color-mix(in srgb, var(--warn) 10%, transparent);
+  border-color: color-mix(in srgb, var(--warn) 35%, transparent);
+}
+
+.app-msg--error {
+  color: var(--error);
+  background: color-mix(in srgb, var(--error) 10%, transparent);
+  border-color: color-mix(in srgb, var(--error) 38%, transparent);
+}
+
+.app-msg--ok {
+  color: var(--ok);
+  background: color-mix(in srgb, var(--ok) 10%, transparent);
+  border-color: color-mix(in srgb, var(--ok) 35%, transparent);
+}
+
+/* --- Boş durum --- */
+.app-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: var(--space-6);
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 12.5px;
+}
+
+.app-empty span {
+  font-size: 30px;
+}
+
+/* --- Yükleniyor --- */
+.app-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: var(--space-5);
+  color: var(--text-muted);
+  font-size: 12.5px;
+}
+
+.app-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: app-spin 700ms linear infinite;
+}
+
+@keyframes app-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* --- Tablo --- */
+.app-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.app-table th {
+  text-align: left;
+  padding: 8px 10px;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-weak);
+  position: sticky;
+  top: 0;
+  background: var(--bg-surface);
+}
+
+.app-table td {
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--border-weak);
+  color: var(--text-secondary);
+}
+
+.app-table tr:hover td {
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+  color: var(--text-primary);
+}
+
+.app-table__mono {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+}

@@ -17,7 +17,11 @@ interface DesktopIcon {
 }
 
 const ICONS: DesktopIcon[] = [
-  { app: "status", label: "Sistem Durumu", icon: "🖥️" },
+  { app: "overview", label: "Genel Bakış", icon: "📊" },
+  { app: "scripts", label: "Scriptler", icon: "📜" },
+  { app: "terminal", label: "Terminal", icon: "⌨️" },
+  { app: "files", label: "Dosyalar", icon: "📁" },
+  { app: "database", label: "Veritabanı", icon: "🗄️" },
   { app: "settings", label: "Ayarlar", icon: "⚙️" },
   { app: "about", label: "Hakkında", icon: "ℹ️" },
 ];

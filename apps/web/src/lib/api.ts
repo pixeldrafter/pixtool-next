@@ -39,6 +39,8 @@ export interface NocoDBState extends IntegrationState {
   ok: boolean;
   base_url: string;
   detail: string;
+  /** Tablo eşlemeleri — backend `.env`'den gelir */
+  tables?: Record<string, string>;
 }
 
 export interface IntegrationsInfo {
@@ -103,4 +105,167 @@ export function describeError(error: unknown): string {
     return error.message;
   }
   return "Bilinmeyen hata.";
+}
+
+// ======================================================================
+//  SCRIPT KÜTÜPHANESİ
+// ======================================================================
+export interface ScriptInfo {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  platform: string;
+  extension: string;
+  size_bytes: number;
+  lines: number;
+  author: string | null;
+  version: string | null;
+}
+
+export interface ScriptListResponse {
+  ok: boolean;
+  count: number;
+  categories: string[];
+  scripts: ScriptInfo[];
+}
+
+export interface ScriptDetailResponse {
+  ok: boolean;
+  script: ScriptInfo;
+  content: string;
+}
+
+export interface RunScriptResponse {
+  ok: boolean;
+  status: string;
+  command: string;
+  output?: string;
+  exit_code?: number | null;
+  message?: string | null;
+}
+
+export function fetchScripts(signal?: AbortSignal): Promise<ScriptListResponse> {
+  return request<ScriptListResponse>("/api/v1/scripts", signal);
+}
+
+export function fetchScript(id: string, signal?: AbortSignal): Promise<ScriptDetailResponse> {
+  return request<ScriptDetailResponse>(`/api/v1/scripts/${encodeURIComponent(id)}`, signal);
+}
+
+export async function runScript(
+  id: string,
+  options: { target?: string; policy?: string } = {},
+): Promise<RunScriptResponse> {
+  const response = await fetch(`${API_BASE}/api/v1/scripts/${encodeURIComponent(id)}/run`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ script_id: id, target: options.target ?? "local", policy: options.policy }),
+  });
+
+  const text = await response.text();
+  const parsed: unknown = text ? JSON.parse(text) : null;
+
+  if (!response.ok) {
+    const detail =
+      parsed && typeof parsed === "object" && "detail" in parsed
+        ? String((parsed as { detail: unknown }).detail)
+        : `HTTP ${response.status}`;
+    throw new Error(detail);
+  }
+  return parsed as RunScriptResponse;
+}
+
+// ======================================================================
+//  UZAK ERİŞİM (SSH / SFTP)
+// ======================================================================
+export interface RemoteStatus {
+  ok: boolean;
+  paramiko_available: boolean;
+  default_host_set: boolean;
+  default_user_set: boolean;
+  default_host: string | null;
+  default_user: string | null;
+  command_policy: string;
+  hint: string | null;
+}
+
+export interface SshExecResponse {
+  ok: boolean;
+  stdout: string;
+  stderr: string;
+  exit_code: number | null;
+  duration_ms: number;
+  message: string | null;
+}
+
+export interface RemoteFile {
+  name: string;
+  path: string;
+  is_dir: boolean;
+  size_bytes: number;
+  modified: string | null;
+  permissions: string | null;
+}
+
+export interface SftpListResponse {
+  ok: boolean;
+  path: string;
+  entries: RemoteFile[];
+  message: string | null;
+}
+
+export interface RemoteInfoResponse {
+  ok: boolean;
+  hostname: string | null;
+  os: string | null;
+  kernel: string | null;
+  uptime: string | null;
+  cpu_cores: number | null;
+  memory_total_mb: number | null;
+  memory_used_mb: number | null;
+  disk_total_gb: number | null;
+  disk_used_gb: number | null;
+  message: string | null;
+}
+
+async function post<T>(path: string, body: unknown): Promise<T> {
+  const response = await fetch(`${API_BASE}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify(body),
+  });
+
+  const text = await response.text();
+  let parsed: unknown = null;
+  try {
+    parsed = text ? JSON.parse(text) : null;
+  } catch {
+    parsed = null;
+  }
+
+  if (!response.ok) {
+    const detail =
+      parsed && typeof parsed === "object" && "detail" in parsed
+        ? String((parsed as { detail: unknown }).detail)
+        : `HTTP ${response.status}`;
+    throw new Error(detail);
+  }
+  return parsed as T;
+}
+
+export function fetchRemoteStatus(signal?: AbortSignal): Promise<RemoteStatus> {
+  return request<RemoteStatus>("/api/v1/remote/status", signal);
+}
+
+export function sshExec(command: string, timeoutSeconds = 30): Promise<SshExecResponse> {
+  return post<SshExecResponse>("/api/v1/remote/exec", { command, timeout_seconds: timeoutSeconds });
+}
+
+export function sftpList(path = "."): Promise<SftpListResponse> {
+  return post<SftpListResponse>("/api/v1/remote/list", { path });
+}
+
+export function fetchRemoteInfo(): Promise<RemoteInfoResponse> {
+  return post<RemoteInfoResponse>("/api/v1/remote/info", {});
 }
