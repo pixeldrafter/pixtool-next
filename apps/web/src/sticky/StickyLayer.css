@@ -1,0 +1,169 @@
+/* Masaüstü yapışkan notları */
+
+.stickies {
+  position: absolute;
+  inset: 0;
+  /* Katman kendi başına tıklamayı yakalamaz; yalnızca çift tıklama dinler.
+     Böylece masaüstü ikonları ve seçim çalışmaya devam eder. */
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* --- Not kartı --- */
+.sticky {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  border-radius: 3px;
+  box-shadow:
+    0 1px 1px hsl(0 0% 0% / 0.18),
+    0 8px 20px hsl(0 0% 0% / 0.28);
+  /* Not kartları tıklanabilir olmalı */
+  pointer-events: auto;
+  overflow: visible;
+  transition: box-shadow 0.15s ease;
+  font-family: "Segoe UI", Inter, system-ui, sans-serif;
+}
+
+.sticky:focus-within,
+.sticky:hover {
+  box-shadow:
+    0 2px 3px hsl(0 0% 0% / 0.2),
+    0 12px 28px hsl(0 0% 0% / 0.34);
+}
+
+/* --- Başlık çubuğu (sürükleme tutamacı) --- */
+.sticky__bar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 26px;
+  padding: 0 4px 0 6px;
+  border-bottom: 1px solid hsl(0 0% 0% / 0.09);
+  cursor: grab;
+  user-select: none;
+  flex: 0 0 auto;
+}
+
+.sticky__bar:active {
+  cursor: grabbing;
+}
+
+.sticky__grip {
+  font-size: 12px;
+  opacity: 0.42;
+  letter-spacing: -1px;
+}
+
+.sticky__spacer {
+  flex: 1;
+}
+
+/* --- Başlık butonları --- */
+.sticky__btn {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: inherit;
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.55;
+  transition:
+    opacity 0.12s ease,
+    background 0.12s ease;
+}
+
+.sticky__btn:hover {
+  opacity: 1;
+  background: hsl(0 0% 0% / 0.1);
+}
+
+.sticky__btn--close:hover {
+  background: #d13438;
+  color: #fff;
+  opacity: 1;
+}
+
+/* --- Renk paleti --- */
+.sticky__colors {
+  position: relative;
+}
+
+.sticky__palette {
+  position: absolute;
+  top: 24px;
+  right: 0;
+  z-index: 10;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 5px;
+  padding: 7px;
+  border-radius: 7px;
+  background: #2a2c30;
+  border: 1px solid hsl(0 0% 100% / 0.14);
+  box-shadow: 0 10px 26px hsl(0 0% 0% / 0.45);
+}
+
+.sticky__swatch {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid hsl(0 0% 0% / 0.22);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: transform 0.1s ease;
+}
+
+.sticky__swatch:hover {
+  transform: scale(1.12);
+}
+
+.sticky__swatch.is-active {
+  outline: 2px solid #fff;
+  outline-offset: 1px;
+}
+
+/* --- İçerik --- */
+.sticky__text {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  padding: 8px 9px 9px;
+  border: 0;
+  border-radius: 0 0 3px 3px;
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  font-size: 12.5px;
+  line-height: 1.5;
+  resize: none;
+  outline: none;
+  overflow: auto;
+}
+
+.sticky__text::placeholder {
+  color: currentColor;
+  opacity: 0.34;
+}
+
+/* Kaydırma çubuğu ince olsun */
+.sticky__text::-webkit-scrollbar {
+  width: 7px;
+}
+
+.sticky__text::-webkit-scrollbar-thumb {
+  background: hsl(0 0% 0% / 0.22);
+  border-radius: 4px;
+}
+
+/* --- Katlanmış hâl --- */
+.sticky.is-collapsed .sticky__bar {
+  border-bottom: 0;
+  height: 100%;
+}

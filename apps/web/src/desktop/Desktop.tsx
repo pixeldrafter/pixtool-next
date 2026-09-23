@@ -29,6 +29,7 @@ import { SettingsWindow } from "./SettingsWindow";
 import { ShutdownButton } from "./ShutdownButton";
 import { StartMenu } from "./StartMenu";
 import { StatusWindow } from "./StatusWindow";
+import { StickyLayer, useStickyStore } from "../sticky";
 import { ManagedWindow } from "./window/ManagedWindow";
 import { useWindowManager, type WindowApp } from "./window/windowStore";
 import "./Desktop.css";
@@ -60,6 +61,9 @@ export function Desktop({
   const windows = useWindowManager((state) => state.windows);
   const open = useWindowManager((state) => state.open);
   const focus = useWindowManager((state) => state.focus);
+
+  // Yapışkan notlar — görev çubuğundaki düğme yeni not açar
+  const addNote = useStickyStore((state) => state.add);
 
   // Açılışta Genel Bakış penceresi (veya ?window=<ad> ile belirtilen)
   useEffect(() => {
@@ -137,6 +141,9 @@ export function Desktop({
     <div className="desktop">
       <DesktopIcons />
 
+      {/* Masaüstü yapışkan notları — boş alana çift tıkla → yeni not */}
+      <StickyLayer />
+
       {/* Pencereler */}
       {windows.map((win) => (
         <ManagedWindow key={win.id} window={win}>
@@ -155,6 +162,7 @@ export function Desktop({
         onToggleStart={() => setStartOpen((value) => !value)}
         startOpen={startOpen}
         onToggleWindow={(id) => focus(id)}
+        onNewNote={() => addNote()}
       />
     </div>
   );
@@ -171,6 +179,7 @@ function Taskbar({
   onToggleStart,
   startOpen,
   onToggleWindow,
+  onNewNote,
 }: {
   theme: string;
   session: LoginSession | null;
@@ -179,6 +188,7 @@ function Taskbar({
   onToggleStart: () => void;
   startOpen: boolean;
   onToggleWindow: (id: string) => void;
+  onNewNote: () => void;
 }) {
   const [now, setNow] = useState(() => new Date());
   const windows = useWindowManager((state) => state.windows);
@@ -236,6 +246,15 @@ function Taskbar({
 
       <button type="button" className="taskbar__icon" onClick={onLock} title="Kilitle">
         🔒
+      </button>
+
+      <button
+        type="button"
+        className="taskbar__icon"
+        onClick={onNewNote}
+        title="Yeni yapışkan not"
+      >
+        🗒️
       </button>
 
       <span className="taskbar__badge mono">{theme}</span>
