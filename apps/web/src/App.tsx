@@ -23,6 +23,7 @@ import { describeError, fetchStatus, type StatusResponse } from "./lib/api";
 import { LoginScreen, OtpDemo, type LoginSession } from "./login";
 import { PunishmentScreen } from "./login/PunishmentScreen";
 import { getLoginTheme } from "./login/themes";
+import { ToastLayer } from "./notifications";
 import { useSettings } from "./settings";
 import { LOGIN_FORM_OPTIONS, type FlowStep } from "./settings";
 import { ThemeBackdrop, useThemeSync } from "./theme";
@@ -249,6 +250,9 @@ export default function App() {
       {renderStep()}
 
       <CursorLayer />
+
+      {/* Windows 11 tarzı bildirimler — sağ altta */}
+      <ToastLayer />
 
       {isIdle && <IdleScreen onDismiss={resetIdle} />}
     </>

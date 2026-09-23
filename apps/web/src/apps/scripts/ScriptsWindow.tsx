@@ -28,6 +28,7 @@ import {
   type ScriptKind,
 } from "../../lib/api";
 import { useBackendConfig } from "../../lib/useBackendConfig";
+import { toast } from "../../notifications";
 import "../apps.css";
 import "./scripts-window.css";
 
@@ -69,7 +70,6 @@ export function ScriptsWindow() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
   const [runResult, setRunResult] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
 
@@ -133,10 +133,9 @@ export function ScriptsWindow() {
     };
   }, [selected]);
 
-  /** Başarı bildirimi göster (kendiliğinden kaybolur). */
+  /** Başarı bildirimi göster (Windows toast). */
   const flash = useCallback((message: string) => {
-    setNotice(message);
-    window.setTimeout(() => setNotice(null), 3500);
+    toast.ok(message, undefined, "Script Kütüphanesi");
   }, []);
 
   // --- Süzme ---
@@ -216,6 +215,7 @@ export function ScriptsWindow() {
       }
     } catch (caught) {
       setFormError(describeError(caught));
+      toast.error("Kaydedilemedi", describeError(caught), "Script Kütüphanesi");
     } finally {
       setBusy(false);
     }
@@ -231,6 +231,7 @@ export function ScriptsWindow() {
       flash(result.message);
     } catch (caught) {
       setError(describeError(caught));
+      toast.error("Silinemedi", describeError(caught), "Script Kütüphanesi");
     } finally {
       setBusy(false);
     }
@@ -471,7 +472,6 @@ export function ScriptsWindow() {
         </button>
       </div>
 
-      {notice && <div className="app-msg app-msg--ok">{notice}</div>}
       {error && <div className="app-msg app-msg--error">{error}</div>}
 
       <div className="app__split">

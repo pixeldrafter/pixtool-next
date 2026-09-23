@@ -1,0 +1,163 @@
+/* Windows 11 tarzı toast bildirimleri */
+
+.toasts {
+  position: fixed;
+  right: 14px;
+  bottom: 62px; /* görev çubuğunun üstü */
+  z-index: 1500;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 350px;
+  max-width: calc(100vw - 28px);
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 12px 12px 13px;
+  border-radius: 8px;
+  /* Windows 11 akrilik bildirim zemini */
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0) 40%),
+    var(--bg-frost);
+  backdrop-filter: blur(28px) saturate(150%);
+  -webkit-backdrop-filter: blur(28px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.32),
+    0 14px 36px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+  pointer-events: auto;
+  animation: toast-in 260ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.12s ease;
+}
+
+.toast:hover {
+  transform: translateX(-2px);
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Azaltılmış hareket tercihi */
+.toasts--reduced .toast {
+  animation: none;
+}
+
+/* --- Sol kenar renk şeridi (durum rengi) --- */
+.toast::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+
+.toast {
+  position: relative;
+  overflow: hidden;
+}
+
+.toast--ok::before {
+  background: #4ed17a;
+}
+
+.toast--warn::before {
+  background: #ffb454;
+}
+
+.toast--error::before {
+  background: #ff5f56;
+}
+
+/* --- İkon --- */
+.toast__icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.toast__icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+/* --- Metin --- */
+.toast__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.toast__source {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.toast__title {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.35;
+}
+
+.toast__message {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+  word-break: break-word;
+}
+
+/* --- Kapatma --- */
+.toast__close {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 10px;
+  cursor: pointer;
+  opacity: 0;
+  transition:
+    opacity 0.12s ease,
+    background 0.12s ease;
+}
+
+.toast:hover .toast__close,
+.toast__close:focus-visible {
+  opacity: 1;
+}
+
+.toast__close:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text-primary);
+}
