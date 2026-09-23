@@ -41,6 +41,7 @@ export const DEFAULT_SETTINGS: PixSettings = {
     },
     motion: "full",
     scale: 1,
+    iconSize: "medium",
     soundEnabled: true,
   },
 

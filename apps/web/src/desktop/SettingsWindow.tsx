@@ -151,6 +151,21 @@ export function SettingsWindow() {
                 format={(v) => `${v.toFixed(2)}×`}
                 onChange={(scale) => update("appearance", { scale })}
               />
+              <Select
+                label="Masaüstü ikon boyutu"
+                hint="Windows'taki gibi küçük / orta / büyük"
+                value={settings.appearance.iconSize}
+                options={[
+                  { value: "small", label: "Küçük", hint: "30 px" },
+                  { value: "medium", label: "Orta", hint: "40 px" },
+                  { value: "large", label: "Büyük", hint: "60 px" },
+                ]}
+                onChange={(value) =>
+                  update("appearance", {
+                    iconSize: value as typeof settings.appearance.iconSize,
+                  })
+                }
+              />
             </Group>
 
             <Group title="Duvar kağıdı">

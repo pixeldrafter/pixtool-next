@@ -78,6 +78,8 @@ export interface AppearanceSettings {
   motion: "full" | "reduced";
   /** Arayüz ölçeği (0.85 - 1.3) */
   scale: number;
+  /** Masaüstü ikon boyutu (Windows'taki gibi) */
+  iconSize: "small" | "medium" | "large";
   /** Bildirim sesleri */
   soundEnabled: boolean;
 }

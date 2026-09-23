@@ -208,7 +208,13 @@ function Taskbar({
         onClick={onToggleStart}
         title="Başlat (Ctrl+K)"
       >
-        <span aria-hidden="true">◈</span> Başlat
+        <span className="taskbar__logo" aria-hidden="true">
+          <i />
+          <i />
+          <i />
+          <i />
+        </span>
+        Başlat
       </button>
 
       <div className="taskbar__apps">

@@ -146,26 +146,59 @@
   border-top: 1px solid var(--border-weak);
 }
 
-/* --- Başlat --- */
+/* --- Başlat — Windows logosu düğmesi --- */
 .taskbar__start {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: 7px;
   flex-shrink: 0;
-  padding: 6px 13px;
+  height: 36px;
+  padding: 0 12px;
   font-size: 12px;
-  font-weight: 600;
-  color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
-  border-radius: var(--radius-md);
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
   cursor: pointer;
-  transition: background var(--dur-fast) var(--ease-out);
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease,
+    color 0.12s ease;
 }
 
 .taskbar__start:hover,
 .taskbar__start.is-active {
-  background: color-mix(in srgb, var(--accent) 24%, transparent);
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Windows logosu — 4 kare */
+.taskbar__logo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5px;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+}
+
+.taskbar__logo i {
+  background: #60cdff;
+  border-radius: 1px;
+}
+
+.taskbar__logo i:nth-child(2) {
+  background: #4aa3ff;
+}
+
+.taskbar__logo i:nth-child(3) {
+  background: #3d8ef0;
+}
+
+.taskbar__logo i:nth-child(4) {
+  background: #2f7ae0;
 }
 
 /* --- Açık pencereler --- */
@@ -182,17 +215,18 @@
 }
 
 .taskbar__app {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 6px;
   max-width: 190px;
-  padding: 6px 11px;
+  height: 36px;
+  padding: 0 10px;
   font-size: 12px;
   color: var(--text-secondary);
   background: transparent;
   border: 1px solid transparent;
-  border-bottom: 2px solid transparent;
-  border-radius: var(--radius-sm);
+  border-radius: 6px;
   cursor: pointer;
   white-space: nowrap;
   transition: all var(--dur-fast) var(--ease-out);
