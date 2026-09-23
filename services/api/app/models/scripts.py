@@ -1,10 +1,37 @@
 """
 Script kütüphanesi modelleri.
+
+Script **tipi** (PowerShell / CMD / Bash / Python) artık açıkça belirtilebilir;
+dosya uzantısından otomatik çıkarılır ama `.meta.json` ile geçersiz kılınabilir.
 """
 
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import BaseModel, Field
+
+#: Desteklenen script tipleri
+ScriptKind = Literal["powershell", "cmd", "bash", "python"]
+
+#: Uzantı → tip eşlemesi (otomatik algılama için)
+EXTENSION_KIND: dict[str, ScriptKind] = {
+    ".ps1": "powershell",
+    ".psm1": "powershell",
+    ".cmd": "cmd",
+    ".bat": "cmd",
+    ".sh": "bash",
+    ".bash": "bash",
+    ".py": "python",
+}
+
+#: Tip → varsayılan uzantı (yeni script oluştururken)
+KIND_EXTENSION: dict[ScriptKind, str] = {
+    "powershell": ".ps1",
+    "cmd": ".cmd",
+    "bash": ".sh",
+    "python": ".py",
+}
 
 
 class ScriptInfo(BaseModel):
@@ -12,14 +39,16 @@ class ScriptInfo(BaseModel):
 
     #: Dosya adı (kimlik olarak kullanılır)
     id: str
-    #: Görünen ad (dosya adından üretilir)
+    #: Görünen ad (dosya adından üretilir, `.meta.json` ile geçersiz kılınabilir)
     name: str
-    #: PowerShell `.SYNOPSIS` bloğundan çıkarılan açıklama
+    #: Yorum bloğundan çıkarılan açıklama
     description: str = ""
-    #: Kategori (dosya adı önekine göre: ağ, güvenlik, sürücü…)
-    category: str = "genel"
+    #: Kategori (önekten otomatik, `.meta.json` ile geçersiz kılınabilir)
+    category: str = "Genel"
     #: Hedef platform
     platform: str = "windows"
+    #: Script tipi — powershell | cmd | bash | python
+    type: ScriptKind = "powershell"
     #: Dosya uzantısı
     extension: str = ".ps1"
     #: Bayt cinsinden boyut
@@ -30,6 +59,8 @@ class ScriptInfo(BaseModel):
     author: str | None = None
     #: Yorumdan çıkarılan sürüm (varsa)
     version: str | None = None
+    #: Kategori/tip elle belirlendi mi (`.meta.json` kaydı var mı)
+    customized: bool = False
 
 
 class ScriptListResponse(BaseModel):
@@ -38,6 +69,8 @@ class ScriptListResponse(BaseModel):
     ok: bool
     count: int
     categories: list[str]
+    #: Bilinen tüm script tipleri (arayüz filtresi için)
+    kinds: list[str] = []
     scripts: list[ScriptInfo]
 
 
@@ -47,6 +80,42 @@ class ScriptDetailResponse(BaseModel):
     ok: bool
     script: ScriptInfo
     content: str
+
+
+class ScriptCreateRequest(BaseModel):
+    """Yeni script oluşturma isteği."""
+
+    #: Görünen ad — dosya adı bundan üretilir
+    name: str = Field(min_length=1, max_length=120)
+    #: Script tipi
+    type: ScriptKind = "powershell"
+    #: Kategori (boşsa "Genel")
+    category: str = Field(default="Genel", max_length=60)
+    #: Açıklama
+    description: str = Field(default="", max_length=600)
+    #: Script içeriği
+    content: str = ""
+    #: Alt klasör (isteğe bağlı: "windows", "linux"…)
+    folder: str = Field(default="", max_length=60)
+
+
+class ScriptUpdateRequest(BaseModel):
+    """Script güncelleme isteği — yalnızca verilen alanlar değişir."""
+
+    name: str | None = Field(default=None, max_length=120)
+    type: ScriptKind | None = None
+    category: str | None = Field(default=None, max_length=60)
+    description: str | None = Field(default=None, max_length=600)
+    #: Verilirse dosya içeriği de değiştirilir
+    content: str | None = None
+
+
+class ScriptMutationResponse(BaseModel):
+    """Oluşturma / güncelleme / silme sonucu."""
+
+    ok: bool
+    message: str
+    script: ScriptInfo | None = None
 
 
 class RunScriptRequest(BaseModel):

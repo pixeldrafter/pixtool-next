@@ -110,24 +110,71 @@ export function describeError(error: unknown): string {
 // ======================================================================
 //  SCRIPT KÜTÜPHANESİ
 // ======================================================================
+/** Desteklenen script tipleri — dosya uzantısından otomatik çıkarılır. */
+export type ScriptKind = "powershell" | "cmd" | "bash" | "python";
+
+/** Arayüzde gösterilen tip etiketleri. */
+export const SCRIPT_KIND_LABELS: Record<ScriptKind, string> = {
+  powershell: "PowerShell (.ps1)",
+  cmd: "CMD (.cmd / .bat)",
+  bash: "Bash / Linux (.sh)",
+  python: "Python (.py)",
+};
+
+export const SCRIPT_KIND_SHORT: Record<ScriptKind, string> = {
+  powershell: "PS",
+  cmd: "CMD",
+  bash: "BASH",
+  python: "PY",
+};
+
 export interface ScriptInfo {
   id: string;
   name: string;
   description: string;
   category: string;
   platform: string;
+  /** Script tipi — powershell | cmd | bash | python */
+  type: ScriptKind;
   extension: string;
   size_bytes: number;
   lines: number;
   author: string | null;
   version: string | null;
+  /** Kategori/tip elle belirlendi mi (`.meta.json` kaydı var mı) */
+  customized: boolean;
 }
 
 export interface ScriptListResponse {
   ok: boolean;
   count: number;
   categories: string[];
+  /** Kütüphanede bulunan script tipleri */
+  kinds: string[];
   scripts: ScriptInfo[];
+}
+
+export interface ScriptMutationResponse {
+  ok: boolean;
+  message: string;
+  script: ScriptInfo | null;
+}
+
+export interface ScriptCreatePayload {
+  name: string;
+  type: ScriptKind;
+  category: string;
+  description: string;
+  content: string;
+  folder?: string;
+}
+
+export interface ScriptUpdatePayload {
+  name?: string;
+  type?: ScriptKind;
+  category?: string;
+  description?: string;
+  content?: string;
 }
 
 export interface ScriptDetailResponse {
@@ -147,6 +194,64 @@ export interface RunScriptResponse {
 
 export function fetchScripts(signal?: AbortSignal): Promise<ScriptListResponse> {
   return request<ScriptListResponse>("/api/v1/scripts", signal);
+}
+
+/** Yeni script oluşturur. Boş içerik verilirse tipe uygun şablon üretilir. */
+export function createScript(
+  payload: ScriptCreatePayload,
+): Promise<ScriptMutationResponse> {
+  return mutate<ScriptMutationResponse>("/api/v1/scripts", "POST", payload);
+}
+
+/** Scripti günceller. Ad/tip değişirse dosya yeniden adlandırılır. */
+export function updateScript(
+  id: string,
+  payload: ScriptUpdatePayload,
+): Promise<ScriptMutationResponse> {
+  return mutate<ScriptMutationResponse>(
+    `/api/v1/scripts/${encodeURIComponent(id)}`,
+    "PUT",
+    payload,
+  );
+}
+
+/** Scripti ve üst verisini siler. */
+export function deleteScript(id: string): Promise<ScriptMutationResponse> {
+  return mutate<ScriptMutationResponse>(
+    `/api/v1/scripts/${encodeURIComponent(id)}`,
+    "DELETE",
+  );
+}
+
+/** Değişiklik istekleri için ortak yardımcı (hata ayrıştırmalı). */
+async function mutate<T>(
+  path: string,
+  method: "POST" | "PUT" | "DELETE",
+  body?: unknown,
+): Promise<T> {
+  const response = await fetch(`${API_BASE}${path}`, {
+    method,
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+
+  const text = await response.text();
+  let parsed: unknown = null;
+  try {
+    parsed = text ? JSON.parse(text) : null;
+  } catch {
+    parsed = null;
+  }
+
+  if (!response.ok) {
+    const detail =
+      parsed && typeof parsed === "object" && "detail" in parsed
+        ? String((parsed as { detail: unknown }).detail)
+        : `HTTP ${response.status}`;
+    throw new Error(detail);
+  }
+
+  return parsed as T;
 }
 
 export function fetchScript(id: string, signal?: AbortSignal): Promise<ScriptDetailResponse> {

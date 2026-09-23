@@ -85,18 +85,20 @@ def test_pretty_name() -> None:
 #  Kütüphane taraması
 # ----------------------------------------------------------------------
 def test_library_scan_finds_scripts() -> None:
-    scripts, categories = script_service.list_scripts()
+    scripts, categories, kinds = script_service.list_scripts()
     assert len(scripts) > 0, "Kütüphane boş — scripts_library/ kontrol edin"
     assert len(categories) > 0
+    assert len(kinds) > 0
     assert all(item.id for item in scripts)
     assert all(item.size_bytes > 0 for item in scripts)
 
 
 def test_library_scripts_have_categories() -> None:
-    scripts, _ = script_service.list_scripts()
+    scripts, _, _ = script_service.list_scripts()
     for script in scripts:
         assert script.category, f"{script.id} kategorisiz"
         assert script.platform in {"windows", "linux"}
+        assert script.type in {"powershell", "cmd", "bash", "python"}
 
 
 # ----------------------------------------------------------------------
@@ -120,13 +122,85 @@ def test_read_unknown_script_returns_none() -> None:
 
 
 def test_read_known_script_returns_content() -> None:
-    scripts, _ = script_service.list_scripts()
+    scripts, _, _ = script_service.list_scripts()
     target = scripts[0]
     result = script_service.read_script(target.id)
     assert result is not None
     info, content = result
     assert info.id == target.id
     assert len(content) > 0
+
+
+# ----------------------------------------------------------------------
+#  Oluşturma / güncelleme / silme (CRUD)
+# ----------------------------------------------------------------------
+def test_create_update_delete_script() -> None:
+    before = script_service.library_stats()["count"]
+
+    # --- Oluştur (CMD tipi) ---
+    info = script_service.create_script(
+        name="Pytest Deneme Betigi",
+        kind="cmd",
+        category="Pytest",
+        description="otomatik test",
+        content="",
+    )
+    try:
+        assert info.id.endswith(".cmd"), f"CMD uzantısı bekleniyordu: {info.id}"
+        assert info.type == "cmd"
+        assert info.category == "Pytest"
+        assert info.platform == "windows"
+        assert info.customized is True
+        assert script_service.library_stats()["count"] == before + 1
+
+        # --- Güncelle: kategori + ad (yeniden adlandırma) ---
+        updated = script_service.update_script(
+            info.id, category="Pytest Guncel", name="Pytest Deneme Betigi 2"
+        )
+        assert updated is not None
+        assert updated.category == "Pytest Guncel"
+        assert updated.name == "Pytest Deneme Betigi 2"
+        assert updated.type == "cmd", "Tip korunmalı"
+
+        # --- Tip değiştir: CMD → Bash (uzantı da değişmeli) ---
+        converted = script_service.update_script(updated.id, kind="bash")
+        assert converted is not None
+        assert converted.type == "bash"
+        assert converted.extension == ".sh"
+        assert converted.platform == "linux"
+    finally:
+        for candidate in (
+            "Pytest_Deneme_Betigi.cmd",
+            "Pytest_Deneme_Betigi_2.cmd",
+            "Pytest_Deneme_Betigi_2.sh",
+        ):
+            script_service.delete_script(candidate)
+
+    assert script_service.library_stats()["count"] == before, "Test artığı kaldı"
+    assert not script_service.load_meta(), "Üst veri artığı kaldı"
+
+
+def test_create_unknown_type_rejected() -> None:
+    """Geçersiz tip reddedilmeli (pydantic doğrulaması)."""
+    from pydantic import ValidationError
+
+    from app.models.scripts import ScriptCreateRequest
+
+    with pytest.raises(ValidationError):
+        ScriptCreateRequest(name="x", type="perl")  # type: ignore[arg-type]
+
+
+def test_slugify_turkish() -> None:
+    assert script_service.slugify("Ağ Yöneticisi ÇĞİÖŞÜ") == "Ag_Yoneticisi_CGIOSU"
+    assert script_service.slugify("   ") == "script"
+
+
+def test_delete_unknown_script_returns_false() -> None:
+    assert script_service.delete_script("kesinlikle-yok.cmd") is False
+
+
+def test_update_unknown_script_returns_none() -> None:
+    assert script_service.update_script("kesinlikle-yok.ps1", category="X") is None
 
 
 # ----------------------------------------------------------------------

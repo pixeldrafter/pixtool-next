@@ -1,0 +1,159 @@
+/**
+ * Script Kütüphanesi — pencereye özel stiller.
+ *
+ * Genel `.app-*` sınıfları `apps.css` içinde; burada yalnızca script
+ * yönetimine özgü parçalar var (form, tip rozeti, silme onayı).
+ */
+
+/* ------------------------------------------------------------------ */
+/*  Script tipi rozeti                                                 */
+/* ------------------------------------------------------------------ */
+.sw-kind {
+  display: inline-block;
+  padding: 1px 5px;
+  margin-right: 6px;
+  border-radius: 3px;
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1.5;
+  vertical-align: middle;
+  border: 1px solid currentColor;
+  color: var(--text-muted);
+}
+
+/* Tip → renk (evrensel olarak anlaşılır eşleme) */
+.sw-kind--powershell {
+  color: #4aa3ff;
+  background: color-mix(in srgb, #4aa3ff 14%, transparent);
+}
+
+.sw-kind--cmd {
+  color: #b8b8b8;
+  background: color-mix(in srgb, #b8b8b8 14%, transparent);
+}
+
+.sw-kind--bash {
+  color: #4ed17a;
+  background: color-mix(in srgb, #4ed17a 14%, transparent);
+}
+
+.sw-kind--python {
+  color: #ffd24a;
+  background: color-mix(in srgb, #ffd24a 14%, transparent);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Form                                                               */
+/* ------------------------------------------------------------------ */
+.sw-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  min-height: 0;
+  flex: 1;
+  overflow: auto;
+}
+
+.sw-form__row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.sw-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.sw-field > span {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.sw-field--grow {
+  flex: 1;
+  min-height: 0;
+}
+
+.sw-hint {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  opacity: 0.7;
+}
+
+.sw-textarea {
+  resize: vertical;
+  font-family: inherit;
+  min-height: 44px;
+}
+
+/* Kod düzenleyici — `.app-code` temeli üzerine */
+.sw-editor {
+  flex: 1;
+  min-height: 220px;
+  width: 100%;
+  resize: none;
+  border: 1px solid var(--border-weak);
+  border-radius: 6px;
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.55;
+  tab-size: 4;
+}
+
+.sw-editor:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Silme onayı                                                        */
+/* ------------------------------------------------------------------ */
+.sw-confirm {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  display: grid;
+  place-items: center;
+  background: hsl(0 0% 0% / 0.55);
+  backdrop-filter: blur(2px);
+}
+
+.sw-confirm__box {
+  width: min(400px, 90vw);
+  padding: 18px 20px;
+  border-radius: 10px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-weak);
+  box-shadow: 0 18px 50px hsl(0 0% 0% / 0.5);
+}
+
+.sw-confirm__box h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.sw-confirm__box p {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  word-break: break-all;
+}
+
+.sw-confirm__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
+}
