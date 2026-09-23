@@ -19,15 +19,25 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 def _find_project_root() -> Path:
     """
-    Proje kökünü bulur (içinde `pnpm-workspace.yaml` veya `.env` olan dizin).
+    Proje kökünü bulur.
 
-    Böylece backend farklı bir çalışma dizininden başlatılsa bile `.env`
-    doğru yerden okunur.
+    İki farklı yerleşim desteklenir:
+      • Yerel geliştirme : `<kök>/services/api/app/core/config.py`
+      • Sunucu kurulumu  : `/opt/pixtool/api/app/core/config.py`
+
+    Bu yüzden önce **`.env` dosyası** yukarı doğru aranır (her iki düzende de
+    api klasörünün içinde ya da kökte bulunur), sonra `pnpm-workspace.yaml`.
     """
     here = Path(__file__).resolve()
+
+    for parent in here.parents:
+        if (parent / ".env").exists():
+            return parent
+
     for parent in here.parents:
         if (parent / "pnpm-workspace.yaml").exists():
             return parent
+
     return here.parents[4]
 
 

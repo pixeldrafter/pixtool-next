@@ -17,12 +17,24 @@ from app.models.scripts import ScriptInfo
 
 logger = logging.getLogger("pixtool.scripts")
 
-#: Kütüphane kökü (proje kökündeki `scripts_library/`)
-#  __file__ = <kök>/services/api/app/services/script_service.py
-#  parents: [0]=services [1]=app [2]=api [3]=services(dir) [4]=<kök>
-LIBRARY_ROOT = Path(__file__).resolve().parents[4] / "scripts_library"
 
 SUPPORTED_EXTENSIONS = {".ps1", ".py", ".sh", ".bash"}
+
+
+def _find_library_root() -> Path:
+    """`scripts_library/` klasörünü yukarı doğru arar."""
+    here = Path(__file__).resolve()
+    for parent in here.parents:
+        candidate = parent / "scripts_library"
+        if candidate.is_dir():
+            return candidate
+    return here.parents[4] / "scripts_library"
+
+
+#: Kütüphane kökü — iki yerleşim desteklenir:
+#:   yerel  : <kök>/scripts_library
+#:   sunucu : /opt/pixtool/scripts_library
+LIBRARY_ROOT = _find_library_root()
 
 #: Dosya adı önekine göre kategori eşlemesi.
 CATEGORY_PREFIXES: list[tuple[str, str]] = [

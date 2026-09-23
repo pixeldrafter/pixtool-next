@@ -27,6 +27,13 @@ const argOf = (name, fallback) => {
 };
 const BASE = argOf("--url", "http://localhost:5173");
 
+/**
+ * Giriş bilgileri ortam değişkeninden okunur (sunucu kurulumunda farklıdır).
+ *   PX_DEMO_USER / PX_DEMO_PASSWORD
+ */
+const LOGIN_USER = process.env.PX_DEMO_USER || "admin";
+const LOGIN_PASS = process.env.PX_DEMO_PASSWORD || "pixtool";
+
 const CHROME_CANDIDATES = [
   "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
   "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
@@ -304,9 +311,9 @@ async function main() {
     await sleep(400);
 
     await cdp.eval(FOCUS("#lamp-username"));
-    await type("admin");
+    await type(LOGIN_USER);
     await cdp.eval(FOCUS("#lamp-password"));
-    await type("pixtool");
+    await type(LOGIN_PASS);
     await sleep(200);
 
     s = await snap();
