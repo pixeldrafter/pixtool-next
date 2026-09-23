@@ -48,6 +48,10 @@ class Challenge:
     code: str
     attempts_left: int
     created_at: float = field(default_factory=time.time)
+    #: Gönderim başarılı mı (demo kipinde her zaman True)
+    send_ok: bool = True
+    #: Gönderim sonucu açıklaması
+    send_message: str = ""
 
     @property
     def expired(self) -> bool:
@@ -235,27 +239,120 @@ class AuthService:
         return True, "Giriş başarılı."
 
     # ------------------------------------------------------------------
+    #  OTP gönderimi (n8n → Telegram)
+    # ------------------------------------------------------------------
+    def _request_otp(self, username: str) -> tuple[str | None, str]:
+        """
+        n8n'den OTP ister (n8n → Telegram).
+
+        **Önemli:** n8n iş akışı OTP'yi **kendisi üretir**, Telegram'a gönderir
+        ve yanıtta `{"otp": "123456"}` döndürür. API bu kodu saklayıp
+        kullanıcının girdiği kodla karşılaştırır — böylece gönderilen kod ile
+        doğrulanan kod **aynı** olur.
+
+        Returns:
+            (kod, mesaj). Kod `None` ise gönderim başarısız.
+        """
+        webhook = settings.n8n_login_webhook
+        if not webhook:
+            return None, "OTP kanalı yapılandırılmamış."
+
+        chat_id = self.user_chat_id(username) or settings.telegram_chat_id
+
+        payload: dict[str, Any] = {
+            "username": username,
+            "chat_id": chat_id or "",
+            "channel": self.otp_channel,
+            "ttl": CHALLENGE_TTL_SECONDS,
+            "app": "Pixtool Next",
+        }
+
+        headers: dict[str, str] = {"Content-Type": "application/json"}
+        if settings.n8n_webhook_secret:
+            headers["X-Pixtool-Secret"] = settings.n8n_webhook_secret
+
+        try:
+            with httpx.Client(timeout=25.0, follow_redirects=True) as client:
+                response = client.post(webhook, json=payload, headers=headers)
+        except httpx.HTTPError as exc:
+            logger.warning("n8n webhook'a ulaşılamadı: %s", exc)
+            return None, "Doğrulama servisine ulaşılamadı."
+
+        if response.status_code >= 400:
+            logger.warning(
+                "n8n webhook hatası (HTTP %s): %s",
+                response.status_code,
+                response.text[:200],
+            )
+            return None, "Doğrulama kodu gönderilemedi."
+
+        # n8n ürettiği kodu döndürür
+        code: str | None = None
+        try:
+            body = response.json()
+            if isinstance(body, dict):
+                raw = body.get("otp") or body.get("code")
+                if raw is not None:
+                    code = str(raw).strip()
+        except ValueError:
+            logger.warning("n8n yanıtı JSON değil: %s", response.text[:120])
+
+        if code and code.isdigit():
+            logger.info(
+                "OTP n8n üzerinden gönderildi — kullanıcı=%s kanal=%s",
+                username,
+                self.otp_channel,
+            )
+            return code, "Doğrulama kodu gönderildi."
+
+        logger.warning("n8n kod döndürmedi — yerel kod kullanılacak")
+        return None, "Doğrulama kodu gönderildi."
+
+    # ------------------------------------------------------------------
     #  OTP meydan okuması
     # ------------------------------------------------------------------
     def create_challenge(self, username: str) -> Challenge:
-        """Yeni OTP meydan okuması üretir ve kaydeder."""
+        """
+        Yeni OTP meydan okuması üretir, kaydeder ve gönderir.
+
+        Meydan okuma **her durumda** kaydedilir; gönderim başarısız olursa
+        çağıran taraf `send_ok=False` görür ve kullanıcıya bildirir.
+        """
         self._purge_expired()
 
         challenge_id = generate_id(18)  # rastgele, tahmin edilemez kimlik
-        code = generate_otp(settings.auth_otp_length)
+        local_code = generate_otp(settings.auth_otp_length)
+
+        send_ok = True
+        send_message = ""
+        code = local_code
+
+        if self.demo_mode:
+            logger.info("OTP üretildi (demo) — kullanıcı=%s kod=%s", username, local_code)
+            send_message = "Demo kipi — kod ekranda gösteriliyor."
+        else:
+            # n8n kodu üretip Telegram'a gönderir ve kodu döndürür
+            remote_code, send_message = self._request_otp(username)
+            if remote_code:
+                code = remote_code
+            else:
+                # n8n erişilemezse yerel kodu kullan (yine de doğrulanabilir)
+                send_ok = False
+                logger.error(
+                    "OTP gönderilemedi — kullanıcı=%s: %s (yerel kod kullanılıyor)",
+                    username,
+                    send_message,
+                )
 
         challenge = Challenge(
             challenge_id=challenge_id,
             username=username,
             code=code,
             attempts_left=settings.auth_otp_max_attempts,
+            send_ok=send_ok,
+            send_message=send_message,
         )
         self._challenges[challenge_id] = challenge
-
-        if self.demo_mode:
-            logger.info("OTP üretildi (demo) — kullanıcı=%s kod=%s", username, code)
-        else:
-            logger.info("OTP üretildi — kullanıcı=%s kanal=%s", username, self.otp_channel)
 
         return challenge
 

@@ -50,7 +50,7 @@ async def login(payload: LoginRequest) -> LoginResponse:
         code_length=len(challenge.code),
         attempts_left=challenge.attempts_left,
         channel=auth_service.otp_channel,
-        message="Doğrulama kodu gönderildi.",
+        message=challenge.send_message or "Doğrulama kodu gönderildi.",
         dev_otp=challenge.code if auth_service.demo_mode else None,
     )
 
