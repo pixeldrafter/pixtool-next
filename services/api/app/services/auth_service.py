@@ -19,8 +19,13 @@ from __future__ import annotations
 import logging
 import time
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
+from typing import Any
+
+import httpx
 
 from app.core.config import settings
+from app.core.passwords import hash_password, needs_rehash, verify_password
 from app.core.security import (
     constant_time_equals,
     create_token,
@@ -56,6 +61,99 @@ class AuthService:
         self._challenges: dict[str, Challenge] = {}
 
     # ------------------------------------------------------------------
+    #  NocoDB kullanıcı sorgusu
+    # ------------------------------------------------------------------
+    def _nocodb_find_user(self, username: str) -> tuple[dict[str, Any] | None, str]:
+        """
+        NocoDB `Users` tablosundan kullanıcıyı bulur.
+
+        Returns:
+            (kayıt, mesaj). Kayıt `None` ise mesaj hata nedenini açıklar.
+        """
+        table = settings.nocodb_table_users
+        if not settings.nocodb_configured or not table:
+            return None, "Kimlik doğrulama kaynağı yapılandırılmamış."
+
+        # NocoDB `where` söz dizimi: (Alan,eq,değer)
+        escaped = username.replace("(", "").replace(")", "").replace(",", "")
+        where = f"(Username,eq,{escaped})"
+
+        try:
+            with httpx.Client(
+                base_url=settings.nocodb_base_url.rstrip("/"),
+                headers={"xc-token": settings.nocodb_api_token},
+                timeout=12.0,
+                follow_redirects=True,
+            ) as client:
+                response = client.get(
+                    f"/api/v2/tables/{table}/records",
+                    params={"limit": 1, "where": where},
+                )
+                response.raise_for_status()
+                records = response.json().get("list") or []
+        except (httpx.HTTPError, ValueError) as exc:
+            logger.warning("NocoDB kullanıcı sorgusu başarısız: %s", exc)
+            return None, "Kimlik doğrulama servisine ulaşılamadı."
+
+        if not records:
+            return None, "Kullanıcı adı veya parola hatalı."
+
+        return records[0], ""
+
+    @staticmethod
+    def _is_expired(record: dict[str, Any]) -> bool:
+        """`ExpirationDate` alanı geçmişte mi?"""
+        raw = record.get("ExpirationDate")
+        if not raw:
+            return False
+        try:
+            text = str(raw).replace("Z", "+00:00")
+            moment = datetime.fromisoformat(text)
+            if moment.tzinfo is None:
+                moment = moment.replace(tzinfo=UTC)
+            return moment < datetime.now(UTC)
+        except (ValueError, TypeError):
+            return False
+
+    def _upgrade_hash(self, record: dict[str, Any], password: str) -> None:
+        """
+        Düz metin/eski hash'i PBKDF2'ye yükseltir (sessizce, hata yutulur).
+
+        NocoDB kaydındaki `PasswordHash` alanı güncellenir.
+        """
+        table = settings.nocodb_table_users
+        record_id = record.get("Id")
+        if not table or record_id is None:
+            return
+        try:
+            with httpx.Client(
+                base_url=settings.nocodb_base_url.rstrip("/"),
+                headers={
+                    "xc-token": settings.nocodb_api_token,
+                    "Content-Type": "application/json",
+                },
+                timeout=12.0,
+                follow_redirects=True,
+            ) as client:
+                client.patch(
+                    f"/api/v2/tables/{table}/records",
+                    json={"Id": record_id, "PasswordHash": hash_password(password)},
+                )
+            logger.info(
+                "Parola hash'i PBKDF2'ye yükseltildi (kullanıcı=%s)", record.get("Username")
+            )
+        except (httpx.HTTPError, ValueError) as exc:
+            logger.warning("Hash yükseltilemedi: %s", exc)
+
+    def user_chat_id(self, username: str) -> str | None:
+        """Kullanıcının NocoDB'de kayıtlı Telegram sohbet kimliği."""
+        record, _ = self._nocodb_find_user(username)
+        if not record:
+            return None
+        value = record.get("TelegramChatId")
+        return str(value).strip() if value else None
+
+    # ------------------------------------------------------------------
     #  Yapılandırma durumu
     # ------------------------------------------------------------------
     @property
@@ -63,12 +161,20 @@ class AuthService:
         """
         Demo kipi aktif mi?
 
-        Gerçek OTP kanalı (n8n webhook) yapılandırılmamışsa VE üretimde
-        değilsek demo kipi açıktır.
+        Gerçek bir kimlik kaynağı yoksa VE üretimde değilsek demo kipi açıktır.
+
+        Kimlik kaynağı sayılanlar:
+          • NocoDB `Users` tablosu (yapılandırılmışsa)
+          • n8n webhook (OTP kanalı)
+
+        İkisi de yoksa demo kullanıcısı devreye girer.
         """
         if settings.is_production:
             return False
-        return not bool(settings.n8n_login_webhook and settings.n8n_base_url)
+
+        has_nocodb = settings.nocodb_configured and bool(settings.nocodb_table_users)
+        has_n8n = bool(settings.n8n_login_webhook and settings.n8n_base_url)
+        return not (has_nocodb or has_n8n)
 
     @property
     def otp_channel(self) -> str:
@@ -100,13 +206,33 @@ class AuthService:
                 return True, "Demo girişi başarılı."
             return False, "Kullanıcı adı veya parola hatalı."
 
-        # NocoDB tabanlı doğrulama Faz 2'de eklenecek
-        logger.warning(
-            "Gerçek kimlik doğrulama henüz kurulmadı (NocoDB users tablosu yok). "
-            "Şimdilik reddediliyor: %s",
-            username,
-        )
-        return False, "Kimlik doğrulama kaynağı yapılandırılmamış."
+        # --- Gerçek doğrulama: NocoDB `Users` tablosu ---
+        record, message = self._nocodb_find_user(username)
+        if record is None:
+            return False, message
+
+        # Hesap etkin mi?
+        active = record.get("IsActive")
+        if active is not None and not active:
+            logger.info("Devre dışı hesap reddedildi: %s", username)
+            return False, "Hesap devre dışı bırakılmış."
+
+        # Süresi dolmuş mu?
+        if self._is_expired(record):
+            logger.info("Süresi dolmuş hesap reddedildi: %s", username)
+            return False, "Hesabın kullanım süresi dolmuş."
+
+        stored = record.get("PasswordHash")
+        if not verify_password(password, stored):
+            logger.warning("Hatalı parola denemesi: %s", username)
+            return False, "Kullanıcı adı veya parola hatalı."
+
+        # Düz metin/eski hash ise yükselt (arka planda, girişi etkilemez)
+        if needs_rehash(stored):
+            self._upgrade_hash(record, password)
+
+        logger.info("Giriş başarılı: %s (%s)", username, record.get("Role") or "-")
+        return True, "Giriş başarılı."
 
     # ------------------------------------------------------------------
     #  OTP meydan okuması
