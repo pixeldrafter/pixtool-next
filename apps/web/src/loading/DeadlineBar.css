@@ -1,255 +1,287 @@
-/* ==========================================================================
- *  Interactive Deadline — ilerleme çubuğu
+/**
+ * Interactive Deadline — animasyonlu ilerleme çubuğu.
  *
- *  Referans görsel dil: kırmızı (#BE002A) / beyaz kontrast, dolgu animasyonu,
- *  ilerleme başında yürüyen figür, son tarih sayacı.
- * ========================================================================== */
+ * ⚠️ BİREBİR PORT. SVG ve keyframe'ler referanstan
+ * (`Interactive Deadline/index.html` + `style.css`) **birebir** alınmıştır:
+ *   • Kırmızı ilerleme dolgusu (`#progress-time-fill`)
+ *   • Beyaz ilerleme izi (`#progress-trail`)
+ *   • Yürüyen Azrail (`#death-group` + `#death-arm` + `#death-tool`)
+ *   • Son tarihe yetişmeye çalışan tasarımcı (`#designer-*`)
+ *   • Alevler (`#red-flame` / `#yellow-flame` / `#white-flame`)
+ *   • "Deadline N days" metni (kırmızı/beyaz maskeli)
+ *
+ * Referans demosu sabit 20 sn'lik bir döngüydü. Burada **ilerlemeye** bağlandı:
+ * Azrail'in yürüyüşü ve dolgu, `--dl-ratio` (0→1) ile sürülür. Alev ve yazma
+ * döngüleri referanstaki keyframe'lerini korur.
+ */
 
-.deadline {
-  --dl-accent: #be002a;
-  --dl-track: color-mix(in srgb, var(--dl-accent) 14%, transparent);
-
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  width: 100%;
-  max-width: 620px;
-  font-family: var(--font-sans);
-  color: var(--text-primary);
-}
-
-.deadline--compact {
-  max-width: none;
-  gap: 5px;
-}
-
-/* ==================== Başlık ==================== */
-.deadline__header {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.deadline__label {
-  font-size: 12.5px;
-  color: var(--text-secondary);
-}
-
-.deadline__time {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--dl-accent);
-  letter-spacing: 0.04em;
-}
-
-/* ==================== Ray ==================== */
-.deadline__track {
+/* ------------------------------------------------------------------ */
+/* Orijinal referans: `body` (kapsamlandırıldı)                         */
+/* ------------------------------------------------------------------ */
+.dl {
+  --dl-ratio: 0; /* ilerleme 0→1 */
+  --dl-write-dur: 1.5s; /* tasarımcının yazma hızı (referans: 1.5s→0.2s) */
   position: relative;
-  height: 14px;
-  border-radius: 999px;
-  background: var(--dl-track);
-  border: 1px solid color-mix(in srgb, var(--dl-accent) 30%, transparent);
-  overflow: visible;
+  width: 581px;
+  max-width: 100%;
+  height: 158px;
+  margin: 0 auto;
 }
 
-.deadline--compact .deadline__track {
-  height: 8px;
+/* Referans: `#deadline` */
+.dl__deadline {
+  width: 581px;
+  max-width: 100%;
+  height: 158px;
+  position: relative;
+  z-index: 1;
 }
 
-/* ==================== Dolgu ==================== */
-.deadline__fill {
-  position: absolute;
-  inset: 0 auto 0 0;
-  border-radius: 999px;
-  background: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--dl-accent) 78%, #000),
-    var(--dl-accent)
-  );
-  transition: width 300ms var(--ease-out);
-  overflow: hidden;
-  box-shadow: 0 0 12px color-mix(in srgb, var(--dl-accent) 45%, transparent);
+/* Referans: `#deadline svg` */
+.dl__deadline svg {
+  width: 100%;
 }
 
-/* Kayan çizgiler — hareket hissi */
-.deadline__fill-stripe {
-  position: absolute;
-  inset: 0;
-  background: repeating-linear-gradient(
-    115deg,
-    rgba(255, 255, 255, 0.16) 0 6px,
-    transparent 6px 14px
-  );
-  animation: deadline-stripe 700ms linear infinite;
+/* Referans: `#progress-time-fill` — animasyon yerine ilerleme sürer */
+.dl__number {
+  color: #fff;
+  text-align: center;
+  width: 100px;
+  margin: 0 auto;
+  position: relative;
+  height: 20px;
+  font-family: "Oswald", "Inter", system-ui, sans-serif;
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
 }
 
-@keyframes deadline-stripe {
-  to {
-    transform: translateX(14px);
-  }
+/* Referans: `.deadline-days .inner` */
+.dl__number .inner {
+  width: 100px;
+  position: relative;
+  top: 0;
+  left: 0;
 }
 
-/* ==================== Yürüyen figür ==================== */
-.deadline__walker {
-  position: absolute;
-  top: 50%;
-  width: 20px;
-  height: 30px;
-  margin-left: -10px;
-  transform: translateY(-50%);
-  transition: left 300ms var(--ease-out);
-  pointer-events: none;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
-}
-
-.deadline--compact .deadline__walker {
-  width: 14px;
-  height: 22px;
-  margin-left: -7px;
-}
-
-/* Kafa */
-.walker__head {
+/* Referans: `.mask-red, .mask-white` */
+.mask-red,
+.mask-white {
   position: absolute;
   top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #fff;
-  border: 1.5px solid var(--dl-accent);
+  width: 100%;
+  overflow: hidden;
+  height: 100%;
 }
 
-/* Gövde */
-.walker__body {
-  position: absolute;
-  top: 8px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 9px;
-  height: 11px;
-  border-radius: 3px;
-  background: #fff;
-  border: 1.5px solid var(--dl-accent);
+/* Referans: `.mask-red` — kırmızı metin ilerlemeyle soldan dolar */
+.mask-red {
+  left: 0;
+  width: 0;
+  color: #be002a;
+  z-index: 2;
+  background: transparent;
 }
 
-/* Kollar — krank çevirir gibi döner */
-.walker__arm {
-  position: absolute;
-  top: 10px;
-  width: 2px;
-  height: 8px;
-  background: var(--dl-accent);
-  border-radius: 1px;
-  transform-origin: top center;
-  animation: walker-crank 900ms ease-in-out infinite;
+/* Referans: `.mask-white` */
+.mask-white {
+  right: 0;
 }
 
-.walker__arm--left {
-  left: 2px;
+/* --- Azrail --- */
+/* Referans: `#death-arm { animation: move-arm 3s ease infinite }` */
+#death-arm {
+  transform-origin: -60px 74px;
+  animation: dl-move-arm 3s ease infinite;
 }
 
-.walker__arm--right {
-  right: 2px;
-  animation-delay: 450ms;
+/* Referans: `#death-tool { animation: move-tool 3s ease infinite }` */
+#death-tool {
+  transform-origin: -48px center;
+  animation: dl-move-tool 3s ease infinite;
 }
 
-@keyframes walker-crank {
-  0%, 100% {
-    transform: rotate(-34deg);
+/* --- Tasarımcı --- */
+/* Referans: `#designer-arm-grop { animation: write 1.5s ease infinite }` */
+#designer-arm-grop {
+  transform: translate(0, 0) rotate(0deg) scale(1, 1);
+  transform-origin: 90% top;
+  animation: dl-write var(--dl-write-dur) ease infinite;
+}
+
+/* --- Alevler --- */
+/* Referans: `#red-flame` */
+#red-flame {
+  opacity: 0;
+  transform-origin: center bottom;
+  animation: dl-red-flame 120ms ease infinite;
+}
+
+/* Referans: `#yellow-flame` */
+#yellow-flame {
+  opacity: 0;
+  transform-origin: center bottom;
+  animation: dl-yellow-flame 120ms ease infinite;
+}
+
+/* Referans: `#white-flame` */
+#white-flame {
+  opacity: 0;
+  transform-origin: center bottom;
+  animation: dl-red-flame 100ms ease infinite;
+}
+
+/* Alevler yalnızca son tarihe yaklaşınca görünür (referans: %80 civarı) */
+.dl--burning #red-flame,
+.dl--burning #yellow-flame,
+.dl--burning #white-flame {
+  opacity: 1;
+}
+
+/* Azrail isteğe bağlı gizlenebilir */
+.dl--no-walker #death-group {
+  display: none;
+}
+
+/* ------------------------------------------------------------------ */
+/* Keyframe'ler — referanstan birebir                                   */
+/* ------------------------------------------------------------------ */
+
+/* Referans: `move-arm` */
+@keyframes dl-move-arm {
+  0% {
+    transform: rotate(0);
+  }
+  5% {
+    transform: rotate(0);
+  }
+  9% {
+    transform: rotate(40deg);
+  }
+  80% {
+    transform: rotate(0);
+  }
+}
+
+/* Referans: `move-tool` */
+@keyframes dl-move-tool {
+  0% {
+    transform: rotate(0);
+  }
+  5% {
+    transform: rotate(0);
+  }
+  9% {
+    transform: rotate(50deg);
+  }
+  80% {
+    transform: rotate(0);
+  }
+}
+
+/* Referans: `write` */
+@keyframes dl-write {
+  0% {
+    transform: translate(0, 0) rotate(0deg) scale(1, 1);
+  }
+  16% {
+    transform: translate(0px, 0px) rotate(5deg) scale(0.8, 1);
+  }
+  32% {
+    transform: translate(0px, 0px) rotate(0deg) scale(1, 1);
+  }
+  48% {
+    transform: translate(0px, 0px) rotate(6deg) scale(0.8, 1);
+  }
+  65% {
+    transform: translate(0px, 0px) rotate(0deg) scale(1, 1);
+  }
+  83% {
+    transform: translate(0px, 0px) rotate(4deg) scale(0.8, 1);
+  }
+}
+
+/* Referans: `text-red` */
+@keyframes dl-text-red {
+  0% {
+    width: 0%;
+  }
+  100% {
+    width: 98%;
+  }
+}
+
+/* Referans: `red-flame` */
+@keyframes dl-red-flame {
+  0% {
+    transform: translateY(-30px) scale(1, 1);
+  }
+  25% {
+    transform: translateY(-30px) scale(1.1, 1.1);
+  }
+  75% {
+    transform: translateY(-30px) scale(0.8, 0.7);
+  }
+  100% {
+    transform: translateY(-30px) scale(1, 1);
+  }
+}
+
+/* Referans: `yellow-flame` */
+@keyframes dl-yellow-flame {
+  0% {
+    transform: translateY(-30px) scale(0.8, 0.7);
   }
   50% {
-    transform: rotate(34deg);
+    transform: translateY(-30px) scale(1.1, 1.2);
+  }
+  100% {
+    transform: translateY(-30px) scale(1, 1);
   }
 }
 
-/* Bacaklar — yürüme */
-.walker__leg {
-  position: absolute;
-  top: 19px;
-  width: 2.5px;
-  height: 9px;
-  background: var(--dl-accent);
-  border-radius: 1px;
-  transform-origin: top center;
-  animation: walker-step 560ms ease-in-out infinite alternate;
-}
-
-.walker__leg--left {
-  left: 6px;
-}
-
-.walker__leg--right {
-  right: 6px;
-  animation-delay: 280ms;
-}
-
-@keyframes walker-step {
-  from {
-    transform: rotate(-22deg);
-  }
-  to {
-    transform: rotate(22deg);
-  }
-}
-
-/* ==================== Alt bilgi ==================== */
-.deadline__footer {
+/* ------------------------------------------------------------------ */
+/* PIXTOOL eklentisi: etiket ve durum çubuğu                           */
+/* Referansın ÜZERİNE bindirilmez — altında ayrı bir satırdır.          */
+/* ------------------------------------------------------------------ */
+.dl__caption {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  font-size: 11.5px;
-  color: var(--text-muted);
+  gap: 1rem;
+  width: 581px;
+  max-width: 100%;
+  margin: 0.35rem auto 0;
+  font: 500 0.72rem/1.4 ui-monospace, "Cascadia Mono", Consolas, monospace;
+  letter-spacing: 0.06em;
+  color: color-mix(in srgb, currentColor 72%, transparent);
+  text-transform: uppercase;
 }
 
-.deadline__percent {
+.dl__caption b {
+  color: #fff;
   font-weight: 700;
-  color: var(--text-secondary);
 }
 
-.deadline__remaining,
-.deadline__ok,
-.deadline__fail {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+.dl--failed .dl__caption b {
+  color: #be002a;
 }
 
-/* ==================== Durumlar ==================== */
-.deadline--done {
-  --dl-accent: #2fa84f;
-  --dl-track: color-mix(in srgb, #2fa84f 14%, transparent);
+.dl--compact {
+  width: 100%;
+  height: 92px;
 }
 
-.deadline--done .deadline__fill-stripe {
-  animation: none;
+.dl--compact .dl__deadline {
+  height: 92px;
 }
 
-.deadline--failed {
-  --dl-accent: #be002a;
-  --dl-track: color-mix(in srgb, #be002a 16%, transparent);
-}
-
-.deadline--failed .deadline__track {
-  animation: deadline-fail-shake 420ms ease;
-}
-
-@keyframes deadline-fail-shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-5px); }
-  50% { transform: translateX(4px); }
-  75% { transform: translateX(-2px); }
-}
-
-/* ==================== Erişilebilirlik ==================== */
 @media (prefers-reduced-motion: reduce) {
-  .deadline__fill-stripe,
-  .walker__arm,
-  .walker__leg,
-  .deadline--failed .deadline__track {
-    animation: none !important;
+  #death-arm,
+  #death-tool,
+  #designer-arm-grop,
+  #red-flame,
+  #yellow-flame,
+  #white-flame {
+    animation: none;
   }
 }

@@ -112,8 +112,16 @@ export const useSettingsStore = create<SettingsState>()(
       migrate: (persisted, version) => {
         const incoming = isPlainObject(persisted) ? persisted["settings"] : undefined;
         if (version !== SETTINGS_VERSION) {
+          const settings = mergeDeep(DEFAULT_SETTINGS, incoming) as PixSettings;
+
+          // v1 → v2: lamba girişi artık kapalı başlıyor. Eski kayıtta
+          // `lampStartLit: true` kalmışsa yeni varsayılana döndür.
+          if (version < 2) {
+            settings.login.lampStartLit = DEFAULT_SETTINGS.login.lampStartLit;
+          }
+
           return {
-            settings: mergeDeep(DEFAULT_SETTINGS, incoming),
+            settings,
             migrated: true,
           } as unknown as SettingsState;
         }

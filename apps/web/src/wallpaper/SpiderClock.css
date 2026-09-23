@@ -1,44 +1,84 @@
-/* Spider Clock duvar kağıdı */
+/**
+ * Spider Clock duvar kağıdı.
+ *
+ * ⚠️ BİREBİR PORT. Değerler referanstan
+ * (`Spider Clock Animation/style.css`) alınmıştır; yalnızca:
+ *   • `html, body` seçicileri `.spider-clock` köküne kapsamlandırıldı
+ *   • CSS iç içe yazım (nesting) düzleştirildi (tarayıcı uyumluluğu)
+ */
 
+/* Referans: `html, body { width:100%; height:100% }` */
 .spider-clock {
   position: absolute;
   inset: 0;
+  overflow: hidden;
+}
+
+/* Referans: `body` */
+.spider-clock {
   display: flex;
-  flex-direction: column;
-  align-items: center;
   justify-content: center;
-  gap: var(--space-5);
-  --accent: #00ff9c;
-}
-
-.spider-clock__svg {
-  width: min(46vmin, 420px);
-  height: min(46vmin, 420px);
-  overflow: visible;
-  filter: drop-shadow(0 0 24px color-mix(in srgb, var(--accent) 30%, transparent));
-}
-
-.spider-clock__digital {
-  font-size: clamp(18px, 2.4vmin, 30px);
-  letter-spacing: 0.18em;
-  color: var(--accent);
-  text-shadow: 0 0 14px color-mix(in srgb, var(--accent) 55%, transparent);
-  display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 4px;
+  background-color: #cadfe8;
+  background: -webkit-linear-gradient(135deg, #232526 0%, #414345 100%);
+  background: linear-gradient(135deg, #232526 0%, #414345 100%);
+  background-repeat: no-repeat;
+  color: #fff;
 }
 
-.spider-clock__date {
-  font-size: 11px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  opacity: 0.65;
+/* Referans: `.vline` */
+.spider-clock .vline {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  height: 50vh;
+  width: 2px;
+  background-color: #fff;
+  z-index: -1;
+  opacity: 0.5;
+  visibility: hidden;
 }
 
-@media (max-width: 640px) {
-  .spider-clock__svg {
-    width: 62vmin;
-    height: 62vmin;
+/* Referans: `.gsapWrapper { visibility: hidden }` — GSAP açar */
+.spider-clock .gsapWrapper {
+  visibility: hidden;
+}
+
+/* Referans: `#wBody` */
+.spider-clock .gsapWrapper #wBody {
+  position: relative;
+  aspect-ratio: 1 / 1;
+}
+
+/* Referans: `@media (orientation: landscape) { width: 65vh }` */
+@media (orientation: landscape) {
+  .spider-clock .gsapWrapper #wBody {
+    width: 65vh;
   }
+}
+
+/* Referans: `@media (orientation: portrait) { height: 65vw }` */
+@media (orientation: portrait) {
+  .spider-clock .gsapWrapper #wBody {
+    height: 65vw;
+  }
+}
+
+/* Referans: `#watch` */
+.spider-clock .gsapWrapper #wBody #watch {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 1 / 1;
+  overflow: visible;
+}
+
+/* Referans: `#watch svg` */
+.spider-clock .gsapWrapper #wBody #watch svg {
+  overflow: visible;
+  width: 100%;
+  height: 100%;
 }

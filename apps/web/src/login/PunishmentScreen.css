@@ -1,319 +1,452 @@
-/* Ceza ekranı — The Impossible Light Bulb */
+/**
+ * Ceza ekranı — "The Impossible Light Bulb".
+ *
+ * ⚠️ BİREBİR PORT. Değerler referanstan (`The impossible light bulb/style.css`)
+ * birebir alınmıştır — sadece `:root` / `body` seçicileri `.punishment`
+ * köküne kapsamlandırılmıştır ki sayfayı ele geçirmesin.
+ *
+ * Referans: https://codepen.io/jh3y/pen/...
+ */
 
+/* ------------------------------------------------------------------ */
+/* Orijinal referans: `* { box-sizing: border-box }`                    */
+/* ------------------------------------------------------------------ */
+.punishment *,
+.punishment *::before,
+.punishment *::after {
+  box-sizing: border-box;
+}
+
+/* ------------------------------------------------------------------ */
+/* Orijinal referans: `:root` — kapsamlandırıldı                        */
+/* ------------------------------------------------------------------ */
 .punishment {
-  --pun-accent: #ffc45c;
-  --pun-border: rgba(255, 196, 92, 0.28);
-  --pun-text: #fdf3e3;
-  --pun-muted: #b79b74;
-  --pun-error: #ff6b6b;
-  --pun-font: system-ui, sans-serif;
+  --depth: 5vmin;
+  --on: 0;
+  --size: 25vmin;
+  --bg: hsl(
+    calc(200 - (var(--on) * 160)),
+    calc((20 + (var(--on) * 50)) * 1%),
+    calc((20 + (var(--on) * 60)) * 1%)
+  );
+  --cord: hsl(0, 0%, calc((60 - (var(--on) * 50)) * 1%));
+  --stroke: hsl(0, 0%, calc((60 - (var(--on) * 50)) * 1%));
+  --shine: hsla(0, 0%, 100%, calc(0.75 - (var(--on) * 0.5)));
+  --cap: hsl(0, 0%, calc((40 + (var(--on) * 30)) * 1%));
+  --filament: hsl(
+    45,
+    calc(var(--on) * 80%),
+    calc((25 + (var(--on) * 75)) * 1%)
+  );
+}
 
-  position: relative;
-  display: grid;
-  grid-template-columns: 1fr minmax(320px, 400px);
+/* Orijinal referans: `body` — kapsamlandırıldı */
+.punishment {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  min-height: 100vh;
+  display: flex;
   align-items: center;
-  gap: clamp(20px, 5vw, 70px);
+  justify-content: center;
+  background: var(--bg);
+  overflow: hidden;
+  transition: background 0.4s ease;
+}
+
+.punishment label {
+  position: absolute;
+  opacity: 0.5;
+  height: 100%;
   width: 100%;
-  min-height: 70vh;
-  font-family: var(--pun-font);
-  color: var(--pun-text);
-  animation: punishment-in 500ms cubic-bezier(0.16, 1, 0.3, 1);
+  top: 0;
+  left: 0;
+  z-index: 2;
 }
 
-@keyframes punishment-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+.punishment input {
+  height: 0;
+  width: 0;
+  position: fixed;
+  left: 100%;
+  transform: scale(0);
 }
 
-@media (max-width: 860px) {
-  .punishment {
-    grid-template-columns: 1fr;
-    justify-items: center;
-    text-align: center;
+/* --- Anahtarlama sahnesi (lamba + ip) --- */
+.punishment .toggle {
+  height: var(--size);
+  width: var(--size);
+  z-index: 2;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate3d(-50%, -100%, calc(var(--depth) * 3));
+}
+
+.punishment .toggle-scene {
+  overflow: visible;
+  width: 100%;
+  position: absolute;
+}
+
+.punishment .toggle-scene__arm {
+  display: none;
+}
+
+.punishment .toggle-scene__cord {
+  stroke: var(--cord);
+  cursor: move;
+}
+
+.punishment .toggle-scene__cord:nth-of-type(1) {
+  display: none;
+}
+
+.punishment .toggle-scene__cord:nth-of-type(2),
+.punishment .toggle-scene__cord:nth-of-type(3),
+.punishment .toggle-scene__cord:nth-of-type(4),
+.punishment .toggle-scene__cord:nth-of-type(5) {
+  display: none;
+}
+
+.punishment .toggle-scene__cord-end {
+  stroke: var(--cord);
+  fill: var(--cord);
+}
+
+.punishment .toggle-scene__dummy-cord {
+  stroke-width: 6;
+  stroke: var(--cord);
+}
+
+.punishment .bulb__filament {
+  stroke: var(--filament);
+}
+
+.punishment .bulb__shine {
+  stroke: var(--shine);
+}
+
+.punishment .bulb__flash {
+  stroke: #f5e0a3;
+  display: none;
+}
+
+.punishment .bulb__bulb {
+  stroke: var(--stroke);
+  fill: hsla(
+    calc(180 - (95 * var(--on))),
+    80%,
+    80%,
+    calc(0.1 + (0.4 * var(--on)))
+  );
+}
+
+.punishment .bulb__cap {
+  fill: var(--cap);
+}
+
+.punishment .bulb__cap-shine {
+  fill: var(--shine);
+}
+
+.punishment .bulb__cap-outline {
+  stroke: var(--stroke);
+}
+
+/* --- Ayı --- */
+.punishment .bear {
+  display: none;
+}
+
+.punishment .bear__fur {
+  fill: #784421;
+}
+
+.punishment .bear__pad {
+  fill: #deaa87;
+}
+
+/* --- Kapı --- */
+.punishment .doorway {
+  position: absolute;
+  top: 50%;
+  height: calc(var(--size) * 4);
+  width: calc(var(--size) * 1.5);
+  transform: translate(0, calc(var(--size) * -0.75));
+  left: calc(50% + (var(--size) * 0.5));
+  -webkit-clip-path: inset(0 0 0 -200%);
+  clip-path: inset(0 0 0 -200%);
+}
+
+.punishment .doorway__opening {
+  height: 100%;
+  width: 100%;
+  position: absolute;
+  background: #1a1a1a;
+  transform: translate3d(0, 0, calc(var(--depth) * -1));
+}
+
+.punishment .doorway .bear {
+  position: absolute;
+  top: 10%;
+  width: var(--size);
+}
+
+.punishment .door {
+  --panel: hsl(30, 20%, calc(12% + (var(--on) * 40%)));
+  height: 100%;
+  position: absolute;
+  width: 100%;
+  transform-origin: 100% 50%;
+  transform-style: preserve-3d;
+  transform: rotateY(0deg);
+}
+
+.punishment .door__panel {
+  width: 30%;
+  height: 35%;
+  position: absolute;
+  border: 1vmin var(--panel) solid;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) translate(var(--x), var(--y));
+}
+
+.punishment .door__panel:nth-of-type(1) {
+  --x: -70%;
+  --y: -70%;
+}
+
+.punishment .door__panel:nth-of-type(2) {
+  --x: 70%;
+  --y: -70%;
+}
+
+.punishment .door__panel:nth-of-type(3) {
+  --x: -70%;
+  --y: 70%;
+}
+
+.punishment .door__panel:nth-of-type(4) {
+  --x: 70%;
+  --y: 70%;
+}
+
+.punishment .door__handle {
+  height: 4vmin;
+  width: 4vmin;
+  position: absolute;
+  left: 10%;
+  top: 50%;
+  transform: translate3d(0, -50%, 1vmin);
+}
+
+.punishment .door__handle > div {
+  position: absolute;
+  height: 100%;
+  width: 100%;
+  background-color: hsl(
+    45,
+    70%,
+    calc((var(--lightness, 20%)) + (var(--on) * 40%))
+  );
+}
+
+.punishment .door__handle > div:nth-of-type(1) {
+  --lightness: 25%;
+}
+
+.punishment .door__handle > div:nth-of-type(2) {
+  --lightness: 30%;
+  transform: translate3d(0, 0, calc(var(--depth) * 1));
+}
+
+.punishment .door__side {
+  position: absolute;
+}
+
+.punishment .door__side:nth-of-type(1) {
+  --lightness: 20%;
+  height: 100%;
+  width: 100%;
+  transform: translate3d(0, 0, 0);
+  z-index: 3;
+  background-color: hsl(
+    30,
+    20%,
+    calc((var(--lightness, 20%)) + (var(--on) * 40%))
+  );
+}
+
+.punishment .door__side:nth-of-type(2) {
+  --lightness: 10%;
+  height: 100%;
+  width: 100%;
+  transform: translate3d(0, 0, calc(var(--depth) * -1));
+}
+
+.punishment .door__side {
+  background-color: hsl(
+    30,
+    20%,
+    calc((var(--lightness, 20%)) + (var(--on) * 40%))
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* PIXTOOL EKLERİ                                                       */
+/* Referans tasarımın ÜZERİNE bindirilmez; sahnenin altında ince bir     */
+/* şerit olarak durur. Ana tasarımı kapatmaz.                           */
+/* ------------------------------------------------------------------ */
+
+/* Üstte ince bilgi şeridi */
+.punishment__topbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.6rem 1.2rem;
+  font: 500 0.78rem/1.4 ui-monospace, "Cascadia Mono", Consolas, monospace;
+  letter-spacing: 0.04em;
+  color: hsl(0 0% calc((78 - (var(--on) * 40)) * 1%));
+  background: linear-gradient(
+    to bottom,
+    hsl(0 0% 0% / calc(0.45 - (var(--on) * 0.4))),
+    transparent
+  );
+  pointer-events: none;
+  text-transform: uppercase;
+}
+
+.punishment__topbar b {
+  color: hsl(45 calc(var(--on) * 70%) calc((70 + (var(--on) * 25)) * 1%));
+  font-weight: 700;
+}
+
+/* Alt şerit — sayac + kayan yazı */
+.punishment__bottom {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  background: linear-gradient(
+    to top,
+    hsl(0 0% 0% / calc(0.62 - (var(--on) * 0.55))),
+    transparent
+  );
+  padding: 0.5rem 0 0.7rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  pointer-events: none;
+}
+
+/* Geri sayım satırı */
+.punishment__timer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem;
+  font: 700 1.5rem/1 ui-monospace, "Cascadia Mono", Consolas, monospace;
+  letter-spacing: 0.14em;
+  color: hsl(0 0% calc((82 - (var(--on) * 40)) * 1%));
+  text-shadow: 0 2px 12px hsl(0 0% 0% / 0.8);
+}
+
+.punishment__timer small {
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  opacity: 0.75;
+  text-transform: uppercase;
+}
+
+/* İlerleme çubuğu */
+.punishment__progress {
+  width: min(520px, 62vw);
+  height: 3px;
+  margin: 0 auto;
+  border-radius: 999px;
+  overflow: hidden;
+  background: hsl(0 0% 100% / 0.14);
+}
+
+.punishment__progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: hsl(45 85% 60%);
+  box-shadow: 0 0 10px hsl(45 90% 60% / 0.85);
+  transition: width 0.9s linear;
+}
+
+/* Kayan yazı — kullanıcının istediği "altta akan içerik" */
+.punishment__marquee {
+  overflow: hidden;
+  white-space: nowrap;
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 8%,
+    #000 92%,
+    transparent
+  );
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 8%,
+    #000 92%,
+    transparent
+  );
+}
+
+.punishment__marquee-track {
+  display: inline-flex;
+  gap: 3.2rem;
+  padding-left: 100%;
+  animation: punishment-marquee 42s linear infinite;
+  font: 500 0.82rem/1.5 ui-monospace, "Cascadia Mono", Consolas, monospace;
+  letter-spacing: 0.09em;
+  color: hsl(0 0% calc((72 - (var(--on) * 30)) * 1%));
+  text-transform: uppercase;
+}
+
+.punishment__marquee-track span {
+  opacity: 0.88;
+}
+
+.punishment__marquee-track b {
+  color: hsl(45 calc(var(--on) * 70%) calc((72 + (var(--on) * 22)) * 1%));
+}
+
+@keyframes punishment-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
   }
 }
 
-/* --- Oda --- */
-.punishment__room {
-  position: absolute;
-  inset: -10vh -10vw;
-  background:
-    radial-gradient(ellipse at 30% 60%, rgba(255, 196, 92, 0.05), transparent 60%),
-    linear-gradient(to bottom, #07090d, #03040700);
-  pointer-events: none;
-  transition: background 600ms ease;
+@media (prefers-reduced-motion: reduce) {
+  .punishment__marquee-track {
+    animation: none;
+    padding-left: 0;
+  }
 }
 
-.punishment.is-lit .punishment__room {
-  background:
-    radial-gradient(ellipse at 30% 55%, rgba(255, 196, 92, 0.18), transparent 62%),
-    linear-gradient(to bottom, #12100a, #05060a00);
-}
-
-.punishment__ceiling {
-  position: absolute;
-  top: -10vh;
-  left: 26%;
-  width: 1px;
-  height: 12vh;
-  background: rgba(120, 110, 90, 0.35);
-}
-
-/* ==================== Lamba sahnesi ==================== */
-.bulb-scene {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  height: 78vh;
-  min-height: 380px;
-  padding-top: 4vh;
-}
-
-/* --- İp --- */
-.cord {
-  position: relative;
-  width: 46px;
+/* Sahne tıklanabilir olsun ama şeritler engellemesin */
+.punishment .toggle-scene__hit-spot {
   cursor: grab;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  transition: height 480ms cubic-bezier(0.34, 1.56, 0.64, 1);
-  touch-action: none;
-  z-index: 3;
-  user-select: none;
 }
 
-.cord.is-pulling {
+.punishment .toggle-scene__hit-spot:active {
   cursor: grabbing;
-  transition: none;
-}
-
-.cord:focus-visible {
-  outline: 2px solid var(--pun-accent);
-  outline-offset: 6px;
-  border-radius: 8px;
-}
-
-.cord__line {
-  width: 2px;
-  flex: 1;
-  background: linear-gradient(to bottom, rgba(140, 125, 100, 0.7), rgba(90, 80, 62, 0.8));
-}
-
-.cord__tassel {
-  width: 15px;
-  height: 15px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 34% 30%, #e8d9a8, #a08b56);
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.5);
-  flex-shrink: 0;
-}
-
-.cord.is-pulling .cord__tassel {
-  box-shadow: 0 0 14px color-mix(in srgb, var(--pun-accent) 45%, transparent);
-}
-
-/* --- Abajur ve ampul --- */
-.lamp-assembly {
-  position: relative;
-  margin-top: -6px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.lamp-assembly__shade {
-  width: 92px;
-  height: 40px;
-  border-radius: 50% 50% 14% 14% / 72% 72% 28% 28%;
-  background: linear-gradient(to bottom, #2f2617, #17110a);
-  border: 1px solid rgba(255, 196, 92, 0.16);
-  transition: border-color 500ms ease;
-}
-
-.lamp-assembly__bulb {
-  width: 30px;
-  height: 30px;
-  margin-top: -4px;
-  border-radius: 50%;
-  background: #241d12;
-  transition: background 420ms ease, box-shadow 480ms ease;
-}
-
-.punishment.is-lit .lamp-assembly__shade {
-  border-color: var(--pun-accent);
-}
-
-.punishment.is-lit .lamp-assembly__bulb {
-  background: #fff4d0;
-  box-shadow:
-    0 0 22px 8px rgba(255, 232, 170, 0.85),
-    0 0 80px 30px rgba(255, 196, 92, 0.28);
-}
-
-/* --- Işık konisi --- */
-.lamp-assembly__light {
-  position: absolute;
-  top: 62px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 0;
-  height: 0;
-  border-left: 150px solid transparent;
-  border-right: 150px solid transparent;
-  border-top: 320px solid rgba(255, 210, 130, 0.16);
-  filter: blur(22px);
-  opacity: 0;
-  transition: opacity 560ms ease;
-  pointer-events: none;
-}
-
-.punishment.is-lit .lamp-assembly__light {
-  opacity: 1;
-  animation: bulb-flicker 3.2s ease-in-out infinite;
-}
-
-@keyframes bulb-flicker {
-  0%, 100% { opacity: 1; }
-  44% { opacity: 0.9; }
-  46% { opacity: 0.62; }
-  48% { opacity: 0.96; }
-  70% { opacity: 0.85; }
-}
-
-/* --- Ayı patisi --- */
-.bear-paw {
-  position: relative;
-  width: 74px;
-  height: 62px;
-  margin-top: 46px;
-  transition: transform 420ms cubic-bezier(0.16, 1, 0.3, 1);
-  transform-origin: bottom center;
-}
-
-.bear-paw.is-sad {
-  animation: paw-shake 800ms ease;
-}
-
-@keyframes paw-shake {
-  0%, 100% { transform: rotate(0); }
-  25% { transform: rotate(-7deg); }
-  50% { transform: rotate(6deg); }
-  75% { transform: rotate(-4deg); }
-}
-
-.bear-paw__pad {
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 58px;
-  height: 42px;
-  border-radius: 52% 52% 44% 44%;
-  background: linear-gradient(to bottom, #6b4a2f, #4a3220);
-  box-shadow: inset 0 -6px 14px rgba(0, 0, 0, 0.35);
-}
-
-.bear-paw__claw {
-  position: absolute;
-  top: 0;
-  width: 15px;
-  height: 20px;
-  border-radius: 50% 50% 40% 40%;
-  background: linear-gradient(to bottom, #7d5837, #5a3f28);
-}
-
-.bear-paw__claw--1 { left: 6px; }
-.bear-paw__claw--2 { left: 50%; transform: translateX(-50%); }
-.bear-paw__claw--3 { right: 6px; }
-
-/* ==================== Panel ==================== */
-.punishment__panel {
-  position: relative;
-  z-index: 2;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  padding: 28px;
-  background: rgba(10, 12, 16, 0.72);
-  border: 1px solid var(--pun-border);
-  border-radius: 18px;
-  backdrop-filter: blur(14px);
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
-}
-
-.punishment__badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  align-self: flex-start;
-  padding: 7px 12px;
-  font-size: 11.5px;
-  border-radius: 999px;
-  color: var(--pun-error);
-  background: color-mix(in srgb, var(--pun-error) 12%, transparent);
-  border: 1px solid color-mix(in srgb, var(--pun-error) 38%, transparent);
-}
-
-.punishment__title {
-  margin: 0;
-  font-size: 22px;
-  font-weight: 700;
-}
-
-.punishment__text {
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.6;
-  color: var(--pun-muted);
-}
-
-.punishment__countdown {
-  position: relative;
-  align-self: center;
-  width: 170px;
-  height: 170px;
-  display: grid;
-  place-items: center;
-  color: var(--pun-accent);
-}
-
-.punishment__ring {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-}
-
-.punishment__ring-progress {
-  transition: stroke-dashoffset 900ms linear;
-  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--pun-accent) 55%, transparent));
-}
-
-.punishment__time {
-  font-size: 38px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-}
-
-.punishment__stats {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  font-size: 12px;
-  color: var(--pun-muted);
-}
-
-.punishment__stats strong {
-  color: var(--pun-accent);
-}
-
-.punishment__footnote {
-  margin: 0;
-  font-size: 11.5px;
-  color: var(--pun-muted);
-  opacity: 0.75;
-  text-align: center;
 }

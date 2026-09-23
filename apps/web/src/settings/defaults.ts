@@ -7,7 +7,7 @@
 
 import type { PixSettings } from "./types";
 
-export const SETTINGS_VERSION = 1;
+export const SETTINGS_VERSION = 2;
 
 export const DEFAULT_SETTINGS: PixSettings = {
   version: SETTINGS_VERSION,
@@ -46,7 +46,8 @@ export const DEFAULT_SETTINGS: PixSettings = {
 
   login: {
     form: "lamp", // varsayılan: Login Form Lamp
-    lampStartLit: true, // form görünür başlasın (ipi çekmeye gerek kalmasın)
+    // Lamba KAPALI başlar — kullanıcı ipi çekince ışık yanar ve form görünür.
+    lampStartLit: false,
     usernameLabel: "Kullanıcı adı",
     passwordLabel: "Parola",
     jokes: {

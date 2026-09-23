@@ -21,6 +21,8 @@ import { Desktop } from "./desktop/Desktop";
 import { IdleScreen, useIdle } from "./idle";
 import { describeError, fetchStatus, type StatusResponse } from "./lib/api";
 import { LoginScreen, OtpDemo, type LoginSession } from "./login";
+import { PunishmentScreen } from "./login/PunishmentScreen";
+import { getLoginTheme } from "./login/themes";
 import { useSettings } from "./settings";
 import { LOGIN_FORM_OPTIONS, type FlowStep } from "./settings";
 import { ThemeBackdrop, useThemeSync } from "./theme";
@@ -44,6 +46,29 @@ export default function App() {
   }
 
   const { settings, update } = useSettings();
+
+  // ------------------------------------------------------------------
+  //  GELİŞTİRME ARACI: ?demo=punishment → ceza ekranı önizlemesi
+  //  ?demo=punishment&punishSeconds=15  ile süre kısaltılabilir.
+  // ------------------------------------------------------------------
+  if (demoMode === "punishment") {
+    const demoSeconds = Number(
+      new URLSearchParams(window.location.search).get("punishSeconds") ?? "120",
+    );
+    return (
+      <>
+        <ThemeBackdrop />
+        <PunishmentScreen
+          theme={getLoginTheme(settings.login.form)}
+          seconds={Number.isFinite(demoSeconds) && demoSeconds > 0 ? demoSeconds : 120}
+          wrongAttempts={settings.login.otp.maxAttempts}
+          onFinished={() => {
+            window.location.search = "";
+          }}
+        />
+      </>
+    );
+  }
 
   // ------------------------------------------------------------------
   //  URL ile geçici geçersiz kılma (geliştirme / test)

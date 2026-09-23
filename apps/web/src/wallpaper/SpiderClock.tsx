@@ -1,154 +1,326 @@
 /**
- * Spider Clock — sistem saatini gösteren örümcek temalı duvar kağıdı.
+ * Spider Clock — sistem saatini gösteren mekanik duvar kağıdı.
  *
- * Referans: "Spider Clock Animation" (gsap + 42 KB SVG). Burada bağımlılıksız,
- * React + SVG ile yeniden yazıldı ve **gerçek sistem saatine** bağlandı.
+ * ⚠️ BİREBİR PORT. İşaretleme referanstan olduğu gibi alınır
+ * (`spiderClockMarkup.ts`) ve `script.js` mantığı GSAP ile birebir uygulanır.
  *
- * Bileşenler:
- *   • Neon kadran, tik işaretleri ve Romen yerine sade çizgiler
- *   • Üç akrep (saat / dakika / saniye) — yumuşak hareket
- *   • Kadranın çevresinde yürüyen örümcek (saniyeyi takip eder)
- *   • Altında dijital okuma
+ * Referans: "Spider Clock Animation | @coding.pixel"
+ *   • Dişliler `bounce` yumuşatmasıyla döner
+ *   • Akrepler morph ederek "tik" atar (MorphSVGPlugin)
+ *   • Kadran nefes alır gibi şekil değiştirir (`#face01` ⇄ `#face02`)
+ *   • Akrepler 180°'yi geçince yatay aynalanır (scaleX: -1)
+ *
+ * Saat **gerçek sistem saatinden** okunur (`new Date()`).
  */
 
-import { useEffect, useState } from "react";
+import { gsap } from "gsap";
+import { MorphSVGPlugin } from "gsap/MorphSVGPlugin";
+import { useEffect, useRef } from "react";
+
+import { SPIDER_CLOCK_MARKUP } from "./spiderClockMarkup";
 import "./SpiderClock.css";
 
+gsap.registerPlugin(MorphSVGPlugin);
+
 interface SpiderClockProps {
-  /** Arkaplan animasyon hızı çarpanı (ayarlardan) */
+  /**
+   * Animasyon hız çarpanı (1 = referans hızı).
+   * `gsap.timeScale` ile tüm zaman çizelgelerine uygulanır.
+   */
   speed?: number;
-  /** Kesme çizik efekti (CRT hissi) */
-  accent?: string;
 }
 
-export function SpiderClock({ speed = 1, accent = "#00ff9c" }: SpiderClockProps) {
-  const [now, setNow] = useState(() => new Date());
+export function SpiderClock({ speed = 1 }: SpiderClockProps) {
+  const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    let raf = 0;
-    const tick = () => {
-      setNow(new Date());
-      raf = window.requestAnimationFrame(tick);
-    };
-    raf = window.requestAnimationFrame(tick);
-    return () => window.cancelAnimationFrame(raf);
+    const root = rootRef.current;
+    if (!root) return undefined;
+
+    const ctx = gsap.context(() => {
+      /** Hız çarpanını verilen animasyona uygular (1 ise dokunmaz). */
+      const paced = <T extends gsap.core.Animation>(animation: T): T => {
+        if (speed !== 1) animation.timeScale(speed);
+        return animation;
+      };
+
+      // --- Referans: eleman referansları ---
+      const pick = <T extends Element>(selector: string): T | null =>
+        root.querySelector<T>(selector);
+      const attr = (selector: string): string =>
+        pick(selector)?.getAttribute("d") ?? "";
+
+      const face01 = attr("#face01");
+      const handSec01 = attr("#handSec01");
+      const handMin01 = attr("#handMin01");
+      const handHr01 = attr("#handHr01");
+
+      const sec = pick("#sec");
+      const min = pick("#min");
+      const hr = pick("#hr");
+
+      if (!sec || !min || !hr) return;
+
+      // --- Referans: başlangıç şekilleri ---
+      gsap.set("#face", { attr: { d: face01 } });
+      gsap.set("#hand-sec", { attr: { d: handSec01 } });
+      gsap.set("#hand-min", { attr: { d: handMin01 } });
+      gsap.set("#hand-hr", { attr: { d: handHr01 } });
+
+      // ------------------------------------------------------------------
+      //  Referans: `geSecRotation` / `getMinRotation` / `getHrRotation`
+      // ------------------------------------------------------------------
+      const geSecRotation = (): number => {
+        const rotation = new Date().getSeconds() * 6;
+        const scaleX = Number(gsap.getProperty(sec, "scaleX"));
+
+        if (Math.abs(Number(gsap.getProperty(sec, "rotation")) - rotation) >= 12) {
+          gsap.set(sec, { rotation, transformOrigin: "50% 50%" });
+        }
+        if (rotation >= 180 && rotation < 360 && scaleX === 1) {
+          gsap.to(sec, { scaleX: -1, duration: 0.25 });
+        } else if ((rotation < 180 || rotation >= 360) && scaleX === -1) {
+          gsap.to(sec, { scaleX: 1, duration: 0.25 });
+        }
+        return rotation;
+      };
+
+      const getMinRotation = (): number => {
+        const now = new Date();
+        const rotation = now.getMinutes() * 6 + (now.getSeconds() * 6) / 59;
+        const scaleX = Number(gsap.getProperty(min, "scaleX"));
+
+        if (Math.abs(Number(gsap.getProperty(min, "rotation")) - rotation) >= 5) {
+          gsap.set(min, { rotation, transformOrigin: "50% 50%" });
+        }
+        if (rotation >= 180 && rotation < 360 && scaleX === 1) {
+          gsap.to(min, { scaleX: -1, duration: 0.25 });
+        } else if ((rotation < 180 || rotation >= 360) && scaleX === -1) {
+          gsap.to(min, { scaleX: 1, duration: 0.25 });
+        }
+        return rotation;
+      };
+
+      const getHrRotation = (): number => {
+        const now = new Date();
+        const rotation = (now.getHours() % 12) * 30 + now.getMinutes() * 0.5;
+        const scaleX = Number(gsap.getProperty(hr, "scaleX"));
+
+        if (Math.abs(Number(gsap.getProperty(hr, "rotation")) - rotation) >= 5) {
+          gsap.set(hr, { rotation, transformOrigin: "50% 50%" });
+        }
+        if (rotation >= 180 && rotation < 360 && scaleX === 1) {
+          gsap.to(hr, { scaleX: -1, duration: 0.25 });
+        } else if ((rotation < 180 || rotation >= 360) && scaleX === -1) {
+          gsap.to(hr, { scaleX: 1, duration: 0.25 });
+        }
+        return rotation;
+      };
+
+      const setTimeSec = (): void => {
+        gsap.set(sec, { rotation: geSecRotation(), transformOrigin: "50% 50%" });
+      };
+      const setTimeMinHr = (): void => {
+        gsap.set(min, { rotation: getMinRotation(), transformOrigin: "50% 50%" });
+        gsap.set(hr, { rotation: getHrRotation(), transformOrigin: "50% 50%" });
+      };
+
+      // ------------------------------------------------------------------
+      //  Referans: `startAnimation`
+      // ------------------------------------------------------------------
+      setTimeSec();
+      setTimeMinHr();
+      gsap.set([".gsapWrapper", ".vline"], { autoAlpha: 1 });
+
+      const anims: gsap.core.Animation[] = [];
+
+      // --- Dişliler (referans değerleri: -15° / -18° / +30°) ---
+      anims.push(paced(gsap.to(".cw.t24", {
+        rotation: "-=15",
+        duration: 1,
+        transformOrigin: "50% 50%",
+        ease: "bounce",
+        onComplete() {
+          this.invalidate().delay(1).restart(true);
+        },
+      })));
+      anims.push(paced(gsap.to(".cw.t20", {
+        rotation: "-=18",
+        duration: 1,
+        transformOrigin: "50% 50%",
+        ease: "bounce",
+        onComplete() {
+          this.invalidate().delay(1).restart(true);
+        },
+      })));
+      anims.push(paced(gsap.to(".ccw.t12", {
+        rotation: "+=30",
+        duration: 1,
+        transformOrigin: "50% 50%",
+        ease: "bounce",
+        onComplete() {
+          this.invalidate().delay(1).restart(true);
+        },
+      })));
+
+      // --- Akrepler ---
+      anims.push(paced(gsap.to(min, {
+        rotation: getMinRotation,
+        duration: 0.5,
+        transformOrigin: "50% 50%",
+        ease: "none",
+        onComplete() {
+          if (Number(gsap.getProperty(min, "rotation")) >= 360) {
+            gsap.set(min, { rotation: 0, transformOrigin: "50% 50%" });
+          }
+          this.invalidate().delay(5).restart(true);
+        },
+      })));
+
+      anims.push(paced(gsap.to(hr, {
+        rotation: getHrRotation,
+        duration: 0.5,
+        transformOrigin: "50% 50%",
+        ease: "none",
+        onComplete() {
+          if (Number(gsap.getProperty(hr, "rotation")) >= 360) {
+            gsap.set(hr, { rotation: 0, transformOrigin: "50% 50%" });
+          }
+          this.invalidate().delay(5).restart(true);
+        },
+      })));
+
+      anims.push(paced(gsap.to(sec, {
+        rotation: geSecRotation,
+        duration: 0.5,
+        transformOrigin: "50% 50%",
+        ease: "bounce",
+        onComplete() {
+          setTimeSec();
+          if (Number(gsap.getProperty(sec, "rotation")) >= 360) {
+            gsap.set(sec, { rotation: 0, transformOrigin: "50% 50%" });
+          }
+          this.invalidate().delay(0).restart(true);
+        },
+      })));
+
+      void anims;
+
+      // --- Kadran "nefes alma" morph'u (tg0) ---
+      const tg0 = paced(gsap.timeline({
+        repeat: -1,
+        repeatDelay: 5,
+        defaults: { duration: 0.5, ease: "power1.out" },
+      }));
+      tg0.to("#face", {
+        morphSVG: "#face02",
+        repeat: 4,
+        yoyo: true,
+        onComplete() {
+          tg0.repeatDelay(gsap.utils.random(4, 8, 0.25));
+        },
+      });
+
+      // --- Saniye akrebinin "tik" morph'u (tg1) ---
+      const tg1 = paced(gsap.timeline({
+        repeat: -1,
+        repeatDelay: 5,
+        defaults: { duration: 1.5, ease: "bounce" },
+        delay: 1,
+      }));
+      tg1
+        .call(() => {
+          const rotation = parseFloat(
+            Number(gsap.getProperty(sec, "rotation")).toFixed(1),
+          );
+          if (
+            (rotation > 30 && rotation < 150) ||
+            (rotation > 210 && rotation < 330)
+          ) {
+            paced(gsap
+              .timeline({ repeat: 0, defaults: { duration: 0.25, ease: "bounce.in" } })
+              .to("#hand-sec", { morphSVG: "#handSec02" })
+              .to("#hand-sec", { morphSVG: "#handSec01" }));
+          }
+        })
+        .set(sec, {
+          onComplete() {
+            tg1.repeatDelay(gsap.utils.random(6, 10, 0.25));
+            tg1.delay(0);
+          },
+        });
+
+      // --- Dakika akrebinin "tik" morph'u (tg2) ---
+      const tg2 = paced(gsap.timeline({
+        repeat: -1,
+        repeatDelay: 5,
+        defaults: { duration: 1.5, ease: "bounce" },
+        delay: 5,
+      }));
+      tg2
+        .call(() => {
+          const rotation = parseFloat(
+            Number(gsap.getProperty(min, "rotation")).toFixed(1),
+          );
+          if (
+            (rotation > 5 && rotation < 175) ||
+            (rotation > 185 && rotation < 355)
+          ) {
+            paced(gsap
+              .timeline({ repeat: 0, defaults: { duration: 0.25, ease: "bounce.in" } })
+              .to("#hand-min", { morphSVG: "#handMin02" })
+              .to("#hand-min", { morphSVG: "#handMin01" }));
+          }
+        })
+        .set(min, {
+          onComplete() {
+            tg2.repeatDelay(gsap.utils.random(6, 10, 0.25));
+            tg2.delay(0);
+          },
+        });
+
+      // --- Saat akrebinin "tik" morph'u (tg3) ---
+      const tg3 = paced(gsap.timeline({
+        repeat: -1,
+        repeatDelay: 5,
+        defaults: { duration: 1.5, ease: "bounce" },
+        delay: 7,
+      }));
+      tg3
+        .call(() => {
+          const rotation = parseFloat(
+            Number(gsap.getProperty(hr, "rotation")).toFixed(1),
+          );
+          if (
+            (rotation > 2 && rotation < 178) ||
+            (rotation > 182 && rotation < 358)
+          ) {
+            paced(gsap
+              .timeline({ repeat: 0, defaults: { duration: 0.25, ease: "bounce.in" } })
+              .to("#hand-hr", { morphSVG: "#handHr02" })
+              .to("#hand-hr", { morphSVG: "#handHr01" }));
+          }
+        })
+        .set(hr, {
+          onComplete() {
+            tg3.repeatDelay(gsap.utils.random(6, 10, 0.25));
+            tg3.delay(0);
+          },
+        });
+    }, root);
+
+    return () => ctx.revert();
   }, []);
 
-  // Milisaniyeli saniye → akrep sürekli akar
-  const ms = now.getMilliseconds();
-  const seconds = now.getSeconds() + ms / 1000;
-  const minutes = now.getMinutes() + seconds / 60;
-  const hours = (now.getHours() % 12) + minutes / 60;
-
-  const secondAngle = seconds * 6 * speed;
-  const minuteAngle = minutes * 6;
-  const hourAngle = hours * 30;
-
-  // Örümcek kadranın çevresinde
-  const spiderAngle = secondAngle - 90;
-  const radius = 42;
-  const spiderX = 50 + Math.cos((spiderAngle * Math.PI) / 180) * radius;
-  const spiderY = 50 + Math.sin((spiderAngle * Math.PI) / 180) * radius;
-
   return (
-    <div className="spider-clock" style={{ ["--accent" as string]: accent }}>
-      <svg viewBox="0 0 100 100" className="spider-clock__svg" role="img" aria-label="Saat">
-        <defs>
-          <radialGradient id="clockGlow" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor={accent} stopOpacity="0.14" />
-            <stop offset="70%" stopColor={accent} stopOpacity="0.03" />
-            <stop offset="100%" stopColor={accent} stopOpacity="0" />
-          </radialGradient>
-          <filter id="clockSoft">
-            <feGaussianBlur stdDeviation="0.5" />
-          </filter>
-        </defs>
-
-        {/* Dış parıltı */}
-        <circle cx="50" cy="50" r="48" fill="url(#clockGlow)" />
-
-        {/* Kadran çerçevesi */}
-        <circle cx="50" cy="50" r="44" fill="none" stroke={accent} strokeOpacity="0.35" strokeWidth="0.5" />
-        <circle cx="50" cy="50" r="41" fill="none" stroke={accent} strokeOpacity="0.12" strokeWidth="0.25" />
-
-        {/* Tik işaretleri */}
-        {Array.from({ length: 60 }, (_, index) => {
-          const angle = (index * 6 - 90) * (Math.PI / 180);
-          const isHour = index % 5 === 0;
-          const outer = 41;
-          const inner = isHour ? 35.5 : 38.5;
-          return (
-            <line
-              key={index}
-              x1={50 + Math.cos(angle) * inner}
-              y1={50 + Math.sin(angle) * inner}
-              x2={50 + Math.cos(angle) * outer}
-              y2={50 + Math.sin(angle) * outer}
-              stroke={accent}
-              strokeOpacity={isHour ? 0.75 : 0.22}
-              strokeWidth={isHour ? 0.9 : 0.4}
-              strokeLinecap="round"
-            />
-          );
-        })}
-
-        {/* Saat akrebi */}
-        <g transform={`rotate(${hourAngle} 50 50)`}>
-          <line x1="50" y1="50" x2="50" y2="27" stroke={accent} strokeWidth="2.1" strokeLinecap="round" />
-        </g>
-
-        {/* Dakika akrebi */}
-        <g transform={`rotate(${minuteAngle} 50 50)`}>
-          <line x1="50" y1="50" x2="50" y2="18" stroke={accent} strokeWidth="1.3" strokeLinecap="round" opacity="0.85" />
-        </g>
-
-        {/* Saniye akrebi — ince, uzun */}
-        <g transform={`rotate(${secondAngle} 50 50)`}>
-          <line x1="50" y1="58" x2="50" y2="12" stroke="#ff2d95" strokeWidth="0.5" strokeLinecap="round" />
-        </g>
-
-        {/* Merkez */}
-        <circle cx="50" cy="50" r="1.7" fill={accent} />
-        <circle cx="50" cy="50" r="3.4" fill="none" stroke={accent} strokeOpacity="0.4" strokeWidth="0.4" />
-
-        {/* --- Örümcek: kadranın çevresinde yürür --- */}
-        <g transform={`translate(${spiderX} ${spiderY}) rotate(${secondAngle + 90})`} filter="url(#clockSoft)">
-          {/* Bacaklar */}
-          {[-1, 1].flatMap((side) =>
-            [0, 1, 2, 3].map((index) => {
-              const spread = 0.7 + index * 0.3;
-              const angle = side * spread;
-              const hipX = Math.cos(angle) * 1.6;
-              const hipY = Math.sin(angle) * 1.6;
-              const kneeX = hipX + Math.cos(angle) * 2.6;
-              const kneeY = hipY + Math.sin(angle) * 2.6;
-              const footX = kneeX + Math.cos(angle * 0.75) * 2.2;
-              const footY = kneeY + Math.sin(angle * 0.75) * 2.2;
-              return (
-                <polyline
-                  key={`${side}-${index}`}
-                  points={`${hipX},${hipY} ${kneeX},${kneeY} ${footX},${footY}`}
-                  fill="none"
-                  stroke={accent}
-                  strokeWidth="0.42"
-                  strokeLinecap="round"
-                  opacity="0.9"
-                />
-              );
-            }),
-          )}
-          {/* Gövde */}
-          <ellipse cx="0" cy="0" rx="2.6" ry="2" fill="#05070a" stroke={accent} strokeWidth="0.42" />
-          <ellipse cx="2.5" cy="0" rx="1.3" ry="1.1" fill="#05070a" stroke={accent} strokeWidth="0.38" />
-          <circle cx="3" cy="-0.5" r="0.32" fill={accent} />
-          <circle cx="3" cy="0.5" r="0.32" fill={accent} />
-        </g>
-      </svg>
-
-      <div className="spider-clock__digital mono">
-        {now.toLocaleTimeString("tr-TR")}
-        <span className="spider-clock__date">{now.toLocaleDateString("tr-TR", { dateStyle: "full" })}</span>
-      </div>
-    </div>
+    <div
+      className="spider-clock"
+      ref={rootRef}
+      role="img"
+      aria-label="Mekanik duvar saati"
+      // Referans işaretlemesi olduğu gibi basılır (43 KB SVG).
+      // Salt-okunur statik içerik olduğu için güvenli.
+      dangerouslySetInnerHTML={{ __html: SPIDER_CLOCK_MARKUP }}
+    />
   );
 }
