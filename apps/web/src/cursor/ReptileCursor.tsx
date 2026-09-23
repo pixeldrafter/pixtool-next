@@ -77,6 +77,23 @@ export function ReptileCursor({ trail, color = "#b6ff3d" }: ReptileCursorProps) 
     function frame() {
       ctx!.clearRect(0, 0, width, height);
 
+      // --- KESİN KONUM GÖSTERGESİ ---
+      // Kertenkele geriden sürüklendiği için gerçek tıklama noktasını
+      // işaretler. `cursor: none` iken nişan almayı mümkün kılar.
+      ctx!.save();
+      ctx!.strokeStyle = color;
+      ctx!.lineWidth = 1;
+      ctx!.globalAlpha = 0.9;
+      ctx!.beginPath();
+      ctx!.arc(mouse.x, mouse.y, 5.5, 0, Math.PI * 2);
+      ctx!.stroke();
+      ctx!.beginPath();
+      ctx!.arc(mouse.x, mouse.y, 1.6, 0, Math.PI * 2);
+      ctx!.fillStyle = color;
+      ctx!.fill();
+      ctx!.globalAlpha = 1;
+      ctx!.restore();
+
       // --- Gövde zinciri: her halka bir öncekini takip eder ---
       const head = segments[0];
       if (head) {

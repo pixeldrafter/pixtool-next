@@ -103,6 +103,23 @@ export function SpiderCursor({ trail, color = "#00ff9c" }: SpiderCursorProps) {
     function frame() {
       ctx!.clearRect(0, 0, width, height);
 
+      // --- KESİN KONUM GÖSTERGESİ ---
+      // Örümcek geriden takip ettiği için, tıklanacak gerçek noktayı
+      // işaretler. `cursor: none` iken nişan almayı mümkün kılar.
+      ctx!.save();
+      ctx!.strokeStyle = color;
+      ctx!.lineWidth = 1;
+      ctx!.globalAlpha = 0.9;
+      ctx!.beginPath();
+      ctx!.arc(mouse.x, mouse.y, 5.5, 0, Math.PI * 2);
+      ctx!.stroke();
+      ctx!.beginPath();
+      ctx!.arc(mouse.x, mouse.y, 1.6, 0, Math.PI * 2);
+      ctx!.fillStyle = color;
+      ctx!.fill();
+      ctx!.globalAlpha = 1;
+      ctx!.restore();
+
       // Gövde fareyi yumuşak takip eder
       const dx = mouse.x - spider.x;
       const dy = mouse.y - spider.y;
