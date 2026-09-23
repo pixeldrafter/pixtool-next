@@ -44,6 +44,7 @@ export const LOGIN_FORM_OPTIONS: Option<LoginFormId>[] = [
 // ----------------------------------------------------------------------
 export const WALLPAPER_OPTIONS: Option<WallpaperKind>[] = [
   { value: "spider-clock", label: "🕷️ Spider Clock", hint: "Sistem saatini gösterir — varsayılan" },
+  { value: "video", label: "🎬 Canlı duvar kağıdı", hint: "Kendi mp4 / webm videonuzu oynatın" },
   { value: "pixel-bat", label: "🦇 Pixel Bat", hint: "Yarasa animasyonu" },
   { value: "gradient", label: "Gradyan", hint: "Tema renklerinden üretilen yumuşak geçiş" },
   { value: "solid", label: "Düz renk", hint: "Tema arkaplan rengi" },

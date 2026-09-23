@@ -1,0 +1,53 @@
+/* Canlı duvar kağıdı — video katmanı */
+
+.vwall {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #000;
+  /* Tıklamayı engelleme — masaüstü kullanılabilir kalsın */
+  pointer-events: none;
+}
+
+.vwall__video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+  /* Video kontrolleri/sürükleme olmasın */
+  pointer-events: none;
+}
+
+.vwall__dim {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  pointer-events: none;
+}
+
+.vwall--empty {
+  display: grid;
+  place-items: center;
+  background: repeating-linear-gradient(
+    45deg,
+    #0b0d10,
+    #0b0d10 12px,
+    #111418 12px,
+    #111418 24px
+  );
+}
+
+.vwall__hint {
+  font: 500 0.82rem/1.5 ui-monospace, "Cascadia Mono", Consolas, monospace;
+  letter-spacing: 0.06em;
+  color: var(--text-muted, #8a9099);
+  text-transform: uppercase;
+}
+
+/* Hareketi azalt tercihi — videoyu durdur */
+@media (prefers-reduced-motion: reduce) {
+  .vwall__video {
+    display: none;
+  }
+}

@@ -26,6 +26,7 @@ import {
   type SettingsSection,
 } from "../settings";
 import type { FlowStep } from "../settings/types";
+import { VideoWallpaperPicker } from "./VideoWallpaperPicker";
 import "./SettingsWindow.css";
 
 const SECTIONS: { id: SettingsSection; label: string; icon: string }[] = [
@@ -178,6 +179,33 @@ export function SettingsWindow() {
                     })
                   }
                 />
+              )}
+              {settings.appearance.wallpaper.kind === "video" && (
+                <>
+                  <VideoWallpaperPicker
+                    source={settings.appearance.wallpaper.source}
+                    onChange={(source) =>
+                      update("appearance", {
+                        wallpaper: { ...settings.appearance.wallpaper, source },
+                      })
+                    }
+                  />
+                  <Text
+                    label="veya video adresi"
+                    hint="Doğrudan mp4/webm bağlantısı (https://…)"
+                    value={
+                      settings.appearance.wallpaper.source === "indexeddb"
+                        ? ""
+                        : settings.appearance.wallpaper.source
+                    }
+                    placeholder="https://ornek.com/duvar.mp4"
+                    onChange={(source) =>
+                      update("appearance", {
+                        wallpaper: { ...settings.appearance.wallpaper, source },
+                      })
+                    }
+                  />
+                </>
               )}
               <Slider
                 label="Karartma"

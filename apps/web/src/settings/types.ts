@@ -42,7 +42,13 @@ export interface FlowSettings {
 /** Tema kimlikleri. Yeni tema eklemek için theme/themes.ts'e kayıt yeterlidir. */
 export type ThemeId = "windows" | "kde" | "neon";
 
-export type WallpaperKind = "solid" | "gradient" | "image" | "spider-clock" | "pixel-bat";
+export type WallpaperKind =
+  | "solid"
+  | "gradient"
+  | "image"
+  | "video"
+  | "spider-clock"
+  | "pixel-bat";
 
 export interface WallpaperSettings {
   kind: WallpaperKind;

@@ -1,0 +1,58 @@
+/* Canlı duvar kağıdı seçici */
+
+.vwpick {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 0 2px;
+  border-top: 1px solid var(--border-weak);
+  margin-top: 4px;
+}
+
+.vwpick__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.vwpick__label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  min-width: 120px;
+}
+
+/* Gerçek dosya girişi gizli — buton üzerinden açılır */
+.vwpick__file {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.vwpick__status {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.vwpick__status--ok {
+  color: #4ed17a;
+}
+
+.vwpick__status--warn {
+  color: #ffb454;
+}
+
+.vwpick__hint {
+  margin: 0;
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: var(--text-muted);
+  opacity: 0.8;
+}
