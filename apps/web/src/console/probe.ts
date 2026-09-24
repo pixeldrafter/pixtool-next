@@ -11,7 +11,13 @@
  *   navigator.hardwareConcurrency, navigator.deviceMemory, screen.*,
  *   WebGL (GPU), navigator.connection, getBattery, storage.estimate,
  *   navigator.mediaDevices, Intl, WebGPU, Performance API
+ *
+ * **Yerel köprü (Faz 3):** `probeMachine({ url, token })` verilirse
+ * `127.0.0.1:8765` üzerindeki köprüden kurulu programlar, servisler, işlemler,
+ * disk bölümleri, gerçek IP/MAC gibi **tarayıcının göremediği** bilgiler alınır.
  */
+
+import { fetchBridgeInfo, probeBridge, type BridgeInfo } from "./bridge";
 
 // ----------------------------------------------------------------------
 //  Tarayıcıda tanımlı olmayan API'ler için minimal tipler
@@ -98,6 +104,17 @@ export interface MachineInfo {
     domInteractiveMs: number | null;
     jsHeapMb: number | null;
   };
+  /**
+   * Yerel köprü verisi (Faz 3).
+   *
+   * Köprü çalışmıyorsa `null` — konsol "köprü bekleniyor" satırlarını
+   * gösterir. **Sahte veri üretilmez.**
+   */
+  bridge?: BridgeInfo | null;
+  /** Köprü sağlık durumu (çalışıyor mu) */
+  bridgeHealth?: import("./bridge").BridgeHealth | null;
+  /** Köprü hatası (varsa) — teşhis için */
+  bridgeError?: string | null;
 }
 
 /** GPU bilgisini WebGL üzerinden okur. */
@@ -214,7 +231,9 @@ async function countMediaDevices(): Promise<MachineInfo["media"]> {
 }
 
 /** Tarayıcının erişebildiği tüm gerçek bilgileri toplar. */
-export async function probeMachine(): Promise<MachineInfo> {
+export async function probeMachine(
+  bridgeOptions?: import("./bridge").BridgeOptions & { skipBridge?: boolean },
+): Promise<MachineInfo> {
   const nav = navigator as NavigatorWithExtras;
   const connection = nav.connection;
 
@@ -233,7 +252,7 @@ export async function probeMachine(): Promise<MachineInfo> {
 
   const gpu = readGpu();
 
-  return {
+  const result: MachineInfo = {
     browser: {
       userAgent: navigator.userAgent,
       platform: navigator.platform || "bilinmiyor",
@@ -275,7 +294,34 @@ export async function probeMachine(): Promise<MachineInfo> {
         : null,
       jsHeapMb: memory ? Math.round((memory.usedJSHeapSize / 1048576) * 10) / 10 : null,
     },
+    bridge: null,
+    bridgeHealth: null,
+    bridgeError: null,
   };
+
+  // --- Yerel köprü (Faz 3) ---
+  // Konsolun "her şeyi" göstermesi için gereken veriyi buradan alırız.
+  if (!bridgeOptions?.skipBridge) {
+    try {
+      const health = await probeBridge(bridgeOptions);
+      if (health) {
+        result.bridgeHealth = health;
+        const info = await fetchBridgeInfo(bridgeOptions);
+        if (info) {
+          result.bridge = info;
+        } else {
+          result.bridgeError =
+            "Köprü yanıt verdi ama bilgi alınamadı (token kontrol edin).";
+        }
+      } else {
+        result.bridgeError = "Köprü çalışmıyor (127.0.0.1 üzerinde servis yok).";
+      }
+    } catch (caught) {
+      result.bridgeError = caught instanceof Error ? caught.message : "Köprü hatası";
+    }
+  }
+
+  return result;
 }
 
 // ----------------------------------------------------------------------

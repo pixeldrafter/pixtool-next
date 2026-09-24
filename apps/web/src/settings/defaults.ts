@@ -89,4 +89,13 @@ export const DEFAULT_SETTINGS: PixSettings = {
     waitingCurtain: true,
     curtainDim: 0.7,
   },
+
+  // Yerel köprü (Faz 3) — konsol gerçek makine bilgisini buradan alır.
+  bridge: {
+    enabled: true,
+    url: "http://127.0.0.1:8765",
+    token: "",
+    autoProbe: true,
+    allowRun: false,
+  },
 };

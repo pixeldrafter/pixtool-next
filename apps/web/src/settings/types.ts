@@ -205,7 +205,35 @@ export interface PixSettings {
   idle: IdleSettings;
   power: PowerSettings;
   loading: LoadingSettings;
+  bridge: BridgeSettings;
+}
+
+/**
+ * Yerel köprü ayarları (Faz 3).
+ *
+ * Konsol, `127.0.0.1:8765` üzerindeki küçük servisten **gerçek** makine
+ * bilgisini alır. Servis kapalıysa konsol "köprü bekleniyor" gösterir.
+ */
+export interface BridgeSettings {
+  /** Köprü kullanılsın mı */
+  enabled: boolean;
+  /** Köprü adresi (örn. `http://127.0.0.1:8765`) */
+  url: string;
+  /** Erişim tokenı (köprü başlarken konsola yazdırır) */
+  token: string;
+  /** Konsol açılışta köprüyü otomatik sorgulasın mı */
+  autoProbe: boolean;
+  /** Köprü üzerinden script çalıştırma izni (komut politikasına ek) */
+  allowRun: boolean;
 }
 
 /** Ayar gruplarının kimlikleri (Settings ekranı sekmeleri için). */
-export type SettingsSection = "general" | "flow" | "appearance" | "login" | "idle" | "power" | "loading";
+export type SettingsSection =
+  | "general"
+  | "flow"
+  | "appearance"
+  | "login"
+  | "idle"
+  | "power"
+  | "loading"
+  | "bridge";

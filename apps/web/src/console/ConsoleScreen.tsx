@@ -32,6 +32,7 @@ const SECTION_DELAY_MS = 150;
 export function ConsoleScreen({ onFinished, token }: ConsoleScreenProps) {
   const verbosity = useSettingsStore((state) => state.settings.flow.consoleVerbosity);
   const askSaveReport = useSettingsStore((state) => state.settings.flow.askSaveReport);
+  const bridgeSettings = useSettingsStore((state) => state.settings.bridge);
 
   const [info, setInfo] = useState<MachineInfo | null>(null);
   const [revealed, setRevealed] = useState(0);
@@ -41,15 +42,22 @@ export function ConsoleScreen({ onFinished, token }: ConsoleScreenProps) {
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Makine bilgisi topla
+  // Makine bilgisi topla (yerel köprü dahil — Faz 3)
   useEffect(() => {
     let cancelled = false;
-    void probeMachine().then((result) => {
+    const useBridge = bridgeSettings.enabled && bridgeSettings.autoProbe;
+    void probeMachine({
+      skipBridge: !useBridge,
+      url: bridgeSettings.url,
+      token: bridgeSettings.token || undefined,
+    }).then((result) => {
       if (!cancelled) setInfo(result);
     });
     return () => {
       cancelled = true;
     };
+    // Köprü ayarları yalnızca açılışta okunur (konsol tek seferlik bir akıştır)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Düz satır listesi (bölüm başlıkları dahil)

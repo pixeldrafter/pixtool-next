@@ -27,6 +27,7 @@ import {
 } from "../settings";
 import type { FlowStep } from "../settings/types";
 import { VideoWallpaperPicker } from "./VideoWallpaperPicker";
+import { fetchBridgeInfo, probeBridge } from "../console";
 import "./SettingsWindow.css";
 
 const SECTIONS: { id: SettingsSection; label: string; icon: string }[] = [
@@ -37,6 +38,7 @@ const SECTIONS: { id: SettingsSection; label: string; icon: string }[] = [
   { id: "idle", label: "Boşta", icon: "🦇" },
   { id: "power", label: "Güç", icon: "⏻" },
   { id: "loading", label: "Yükleme", icon: "⏳" },
+  { id: "bridge", label: "Köprü", icon: "🌉" },
 ];
 
 export function SettingsWindow() {
@@ -561,7 +563,95 @@ export function SettingsWindow() {
 
           {importMessage && <span className="settings__message">{importMessage}</span>}
         </div>
+        {section === "bridge" && (
+          <Group title="Yerel köprü (Faz 3)">
+            <p className="settings__note">
+              Tarayıcı donanımın tamamına erişemez. Yerel köprü, konsolda
+              <strong> kurulu programları, servisleri, işlemleri, disk bölümlerini
+              ve gerçek IP/MAC adreslerini</strong> gösterebilmek için gerekir.
+              Kurulum: <code>services/bridge/start-bridge.bat</code>
+            </p>
+
+            <Toggle
+              label="Köprüyü kullan"
+              hint="Kapalıysa konsol yalnızca tarayıcı verisini gösterir"
+              checked={settings.bridge.enabled}
+              onChange={(enabled) => update("bridge", { enabled })}
+            />
+
+            <Text
+              label="Köprü adresi"
+              hint="Varsayılan: http://127.0.0.1:8765"
+              value={settings.bridge.url}
+              placeholder="http://127.0.0.1:8765"
+              onChange={(url) => update("bridge", { url })}
+            />
+
+            <Text
+              label="Erişim tokenı"
+              hint="Köprü başlarken konsola yazdırır — gizli tutun"
+              value={settings.bridge.token}
+              placeholder="UzunRastgeleToken…"
+              onChange={(token) => update("bridge", { token })}
+            />
+
+            <Toggle
+              label="Açılışta otomatik sorgula"
+              hint="Konsol açılırken köprüye bağlanmayı dene"
+              checked={settings.bridge.autoProbe}
+              onChange={(autoProbe) => update("bridge", { autoProbe })}
+            />
+
+            <BridgeStatus url={settings.bridge.url} token={settings.bridge.token} />
+          </Group>
+        )}
       </div>
+    </div>
+  );
+}
+
+// ----------------------------------------------------------------------
+//  Köprü durum göstergesi (canlı test)
+// ----------------------------------------------------------------------
+function BridgeStatus({ url, token }: { url: string; token: string }) {
+  const [state, setState] = useState<
+    | { kind: "idle" }
+    | { kind: "checking" }
+    | { kind: "ok"; detail: string }
+    | { kind: "fail"; detail: string }
+  >({ kind: "idle" });
+
+  async function check(): Promise<void> {
+    setState({ kind: "checking" });
+    const health = await probeBridge({ url, token: token || undefined });
+    if (!health) {
+      setState({
+        kind: "fail",
+        detail: `Köprü yanıt vermedi (${url || "http://127.0.0.1:8765"}).`,
+      });
+      return;
+    }
+    const info = await fetchBridgeInfo({ url, token: token || undefined });
+    setState({
+      kind: "ok",
+      detail: `v${health.version} · ${health.platform} · psutil ${health.psutil ? "var" : "yok"}${
+        info ? ` · ${Object.keys(info.report).length} bölüm, ${info.duration_ms} ms` : ""
+      }`,
+    });
+  }
+
+  return (
+    <div className="bridge-status">
+      <button type="button" className="app-btn" onClick={() => void check()}>
+        {state.kind === "checking" ? "…" : "Bağlantıyı test et"}
+      </button>
+      {state.kind === "ok" && <span className="bridge-status__ok">✔ {state.detail}</span>}
+      {state.kind === "fail" && <span className="bridge-status__fail">✘ {state.detail}</span>}
+      {state.kind === "fail" && (
+        <span className="bridge-status__hint">
+          Köprüyü başlatın: <code>services/bridge/start-bridge.bat</code>
+        </span>
+      )}
     </div>
   );
 }

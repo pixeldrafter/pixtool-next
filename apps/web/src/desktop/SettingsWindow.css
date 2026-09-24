@@ -326,3 +326,60 @@
     border-bottom: 1px solid var(--border-weak);
   }
 }
+
+/* ------------------------------------------------------------------ */
+/*  Köprü ayarları                                                     */
+/* ------------------------------------------------------------------ */
+.settings__note {
+  margin: 0 0 10px;
+  padding: 9px 11px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  border-left: 3px solid var(--accent);
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.settings__note strong {
+  color: var(--text-primary);
+}
+
+.settings__note code,
+.bridge-status code {
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 10.5px;
+}
+
+.bridge-status {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-weak);
+  margin-top: 4px;
+}
+
+.bridge-status .app-btn {
+  align-self: flex-start;
+}
+
+.bridge-status__ok {
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: #4ed17a;
+}
+
+.bridge-status__fail {
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: #ff5f56;
+}
+
+.bridge-status__hint {
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
