@@ -15,6 +15,11 @@ export const DEFAULT_SETTINGS: PixSettings = {
   general: {
     lang: "tr",
     devMode: false,
+    // Sahip bilgileri — görev çubuğu ve altbilgide görünür
+    ownerName: "omercataloglu",
+    productName: "Pixtool Global",
+    siteUrl: "https://omercataloglu.com",
+    copyright: "Ömer Çataloğlu © 2026 — All right reserved!",
   },
 
   flow: {

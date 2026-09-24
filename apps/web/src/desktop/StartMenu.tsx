@@ -10,6 +10,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useI18n } from "../i18n";
+import { openExternal } from "../lib/openExternal";
+import { useSettings } from "../settings";
 import { APP_DEFINITIONS, useWindowManager, type WindowApp } from "./window/windowStore";
 import "./StartMenu.css";
 
@@ -41,6 +43,7 @@ const START_ITEMS: StartItem[] = [
 
 export function StartMenu({ onClose }: StartMenuProps) {
   const { t } = useI18n();
+  const { settings } = useSettings();
   const open = useWindowManager((state) => state.open);
   const [query, setQuery] = useState("");
   const [cursor, setCursor] = useState(0);
@@ -185,6 +188,19 @@ export function StartMenu({ onClose }: StartMenuProps) {
 
       <div className="start__footer">
         <span className="start__hint mono">{t("start.hint")}</span>
+
+        {/* Sahip / telif bilgisi — siteye tıklanınca HEDEF makinede açılır */}
+        <div className="start__signature">
+          <span className="start__copyright">{settings.general.copyright}</span>
+          <button
+            type="button"
+            className="start__site mono"
+            title={`${settings.general.siteUrl} — varsayılan tarayıcıda aç`}
+            onClick={() => void openExternal(settings.general.siteUrl)}
+          >
+            {settings.general.siteUrl.replace(/^https?:\/\//, "")}
+          </button>
+        </div>
       </div>
     </div>
   );

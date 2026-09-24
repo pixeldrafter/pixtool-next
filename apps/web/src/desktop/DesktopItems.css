@@ -1,0 +1,214 @@
+/**
+ * Masaüstü öğeleri — serbest konumlu, sürüklenebilir.
+ *
+ * Windows tarzı: yarı saydam mavi seçim kutusu, etiket gölgesi, çerçeve
+ * seçimi (rubber-band).
+ */
+
+.ditems {
+  position: absolute;
+  inset: 0;
+  /* Katman tıklamayı yakalar (çerçeve seçimi + sağ tık için) */
+  pointer-events: auto;
+  overflow: hidden;
+
+  /* --- Boyut değişkenleri --- */
+  --ditem-glyph: 40px;
+  --ditem-box: 84px;
+  --ditem-font: 11.5px;
+}
+
+.ditems--small {
+  --ditem-glyph: 30px;
+  --ditem-box: 68px;
+  --ditem-font: 10.5px;
+}
+
+.ditems--medium {
+  --ditem-glyph: 40px;
+  --ditem-box: 84px;
+  --ditem-font: 11.5px;
+}
+
+.ditems--large {
+  --ditem-glyph: 60px;
+  --ditem-box: 104px;
+  --ditem-font: 12.5px;
+}
+
+/* --- Tek öğe (serbest konum) --- */
+.ditem {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 4px;
+  width: var(--ditem-box);
+  height: var(--ditem-box);
+  padding: 6px 4px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: #ffffff;
+  font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  font-size: var(--ditem-font);
+  line-height: 1.25;
+  text-align: center;
+  cursor: default;
+  user-select: none;
+  /* Sürükleme sırasında geçiş olmasın */
+  transition: background 0.1s ease, border-color 0.1s ease;
+}
+
+.ditem:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.ditem.is-selected {
+  background: rgba(0, 120, 215, 0.42);
+  border-color: rgba(120, 190, 255, 0.75);
+}
+
+.ditem:focus-visible {
+  outline: 2px solid rgba(120, 190, 255, 0.9);
+  outline-offset: -2px;
+}
+
+.ditem__glyph {
+  display: grid;
+  place-items: center;
+  width: var(--ditem-glyph);
+  height: var(--ditem-glyph);
+  flex: 0 0 auto;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+  pointer-events: none;
+}
+
+.ditem__glyph svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Kullanıcının yüklediği / URL ikon */
+.ditem__img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: -webkit-optimize-contrast;
+  pointer-events: none;
+}
+
+.ditem__label {
+  display: -webkit-box;
+  max-width: 100%;
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.85),
+    0 0 3px rgba(0, 0, 0, 0.6);
+  word-break: break-word;
+  pointer-events: none;
+}
+
+/* Yeniden adlandırma alanı */
+.ditem__rename {
+  width: 100%;
+  padding: 1px 3px;
+  border: 1px solid var(--accent, #60cdff);
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+  font: inherit;
+  font-size: var(--ditem-font);
+  text-align: center;
+  outline: none;
+}
+
+/* --- Çerçeve seçimi --- */
+.ditems__marquee {
+  position: fixed;
+  z-index: 10;
+  border: 1px solid rgba(96, 205, 255, 0.9);
+  background: rgba(96, 205, 255, 0.16);
+  pointer-events: none;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Metin düzenleyici                                                  */
+/* ------------------------------------------------------------------ */
+.txtedit {
+  position: fixed;
+  inset: 0;
+  z-index: 6500;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(3px);
+}
+
+.txtedit__box {
+  display: flex;
+  flex-direction: column;
+  width: min(680px, 94vw);
+  height: min(560px, 88vh);
+  border-radius: 10px;
+  background: var(--bg-elevated, #272727);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+}
+
+.txtedit__head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--border-weak);
+  background: rgba(255, 255, 255, 0.035);
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.txtedit__icon {
+  font-size: 15px;
+}
+
+.txtedit__saved {
+  font-size: 11px;
+  color: #4ed17a;
+}
+
+.txtedit__area {
+  flex: 1;
+  width: 100%;
+  padding: 14px;
+  border: 0;
+  background: rgba(0, 0, 0, 0.28);
+  color: var(--text-primary);
+  font-size: 13px;
+  line-height: 1.6;
+  resize: none;
+  outline: none;
+  tab-size: 4;
+}
+
+.txtedit__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--border-weak);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.txtedit__count {
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
+
+.app__spacer {
+  flex: 1;
+}

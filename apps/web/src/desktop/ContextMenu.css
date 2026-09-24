@@ -1,0 +1,126 @@
+/* Sağ tık menüsü — Windows 11 tarzı */
+
+.ctxmenu {
+  position: fixed;
+  z-index: 6000;
+  min-width: 208px;
+  max-width: 300px;
+  padding: 5px;
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0) 40%),
+    var(--bg-frost, rgba(32, 32, 32, 0.92));
+  backdrop-filter: blur(30px) saturate(160%);
+  -webkit-backdrop-filter: blur(30px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.35),
+    0 18px 44px rgba(0, 0, 0, 0.55);
+  animation: ctxmenu-in 120ms cubic-bezier(0.16, 1, 0.3, 1);
+  font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+}
+
+@keyframes ctxmenu-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.ctxmenu--sub {
+  position: absolute;
+  top: -5px;
+  left: 100%;
+  margin-left: 2px;
+}
+
+.ctxmenu__title {
+  padding: 7px 10px 6px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-weak);
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ctxmenu__item-wrap {
+  position: relative;
+}
+
+.ctxmenu__item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 12.5px;
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.1s ease;
+}
+
+.ctxmenu__item:hover:not(.is-disabled) {
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.ctxmenu__item.is-disabled {
+  opacity: 0.38;
+  cursor: default;
+}
+
+.ctxmenu__item.is-danger {
+  color: #ff8b82;
+}
+
+.ctxmenu__item.is-danger:hover {
+  background: rgba(196, 43, 28, 0.28);
+  color: #ffb0a8;
+}
+
+.ctxmenu__icon {
+  width: 18px;
+  flex: 0 0 18px;
+  text-align: center;
+  font-size: 13px;
+  line-height: 1;
+  opacity: 0.92;
+}
+
+.ctxmenu__label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ctxmenu__shortcut {
+  font-size: 10.5px;
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  color: var(--text-muted);
+  letter-spacing: 0.03em;
+}
+
+.ctxmenu__arrow {
+  font-size: 10px;
+  opacity: 0.6;
+}
+
+.ctxmenu__sep {
+  height: 1px;
+  margin: 4px 8px;
+  background: var(--border-weak);
+}

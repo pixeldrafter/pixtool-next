@@ -3,7 +3,7 @@
  *
  * Yapı:
  *   ThemeBackdrop (App içinde)
- *   ├─ DesktopIcons      → masaüstü kısayolları
+ *   ├─ DesktopItems      → masaüstü kısayolları (sürüklenebilir)
  *   ├─ ManagedWindow[]   → sürüklenebilir pencereler
  *   ├─ Taskbar           → açık pencereler, kullanıcı, saat, kapat
  *   └─ StartMenu         → başlat menüsü
@@ -24,12 +24,13 @@ import {
   TerminalWindow,
   UsersWindow,
 } from "../apps";
-import { DesktopIcons } from "./DesktopIcons";
+import { DesktopItems } from "./DesktopItems";
 import { SettingsWindow } from "./SettingsWindow";
 import { ShutdownButton } from "./ShutdownButton";
 import { StartMenu } from "./StartMenu";
 import { StatusWindow } from "./StatusWindow";
 import { StickyLayer, useStickyStore } from "../sticky";
+import { configureBridge } from "../lib/openExternal";
 import { ManagedWindow } from "./window/ManagedWindow";
 import { useWindowManager, type WindowApp } from "./window/windowStore";
 import "./Desktop.css";
@@ -64,6 +65,11 @@ export function Desktop({
 
   // Yapışkan notlar — görev çubuğundaki düğme yeni not açar
   const addNote = useStickyStore((state) => state.add);
+
+  // Harici bağlantılar için köprü adresini ayarlardan bildir
+  useEffect(() => {
+    configureBridge(settings.bridge.url, settings.bridge.token);
+  }, [settings.bridge.url, settings.bridge.token]);
 
   // Açılışta Genel Bakış penceresi (veya ?window=<ad> ile belirtilen)
   useEffect(() => {
@@ -139,7 +145,8 @@ export function Desktop({
 
   return (
     <div className="desktop">
-      <DesktopIcons />
+      {/* Masaüstü öğeleri — sürüklenebilir, sağ tık menülü */}
+      <DesktopItems />
 
       {/* Masaüstü yapışkan notları — boş alana çift tıkla → yeni not */}
       <StickyLayer />
@@ -163,6 +170,8 @@ export function Desktop({
         startOpen={startOpen}
         onToggleWindow={(id) => focus(id)}
         onNewNote={() => addNote()}
+        ownerName={settings.general.ownerName}
+        productName={settings.general.productName}
       />
     </div>
   );
@@ -180,6 +189,8 @@ function Taskbar({
   startOpen,
   onToggleWindow,
   onNewNote,
+  ownerName,
+  productName,
 }: {
   theme: string;
   session: LoginSession | null;
@@ -189,6 +200,10 @@ function Taskbar({
   startOpen: boolean;
   onToggleWindow: (id: string) => void;
   onNewNote: () => void;
+  /** Görev çubuğunda görünen sahip adı */
+  ownerName: string;
+  /** Ürün/şirket rozeti */
+  productName: string;
 }) {
   const [now, setNow] = useState(() => new Date());
   const windows = useWindowManager((state) => state.windows);
@@ -245,8 +260,8 @@ function Taskbar({
       <span className="taskbar__spacer" />
 
       {session && (
-        <span className="taskbar__user mono" title="Oturum sahibi">
-          👤 {session.username}
+        <span className="taskbar__user mono" title="Makine sahibi">
+          👤 {ownerName}
         </span>
       )}
 
@@ -263,7 +278,9 @@ function Taskbar({
         🗒️
       </button>
 
-      <span className="taskbar__badge mono">{theme}</span>
+      <span className="taskbar__badge mono" title={`Tema: ${theme}`}>
+        {productName}
+      </span>
 
       <span className="taskbar__clock">
         {now.toLocaleDateString("tr-TR")} · {now.toLocaleTimeString("tr-TR")}

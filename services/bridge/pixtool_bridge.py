@@ -223,6 +223,28 @@ def collect_system() -> dict[str, Any]:
 
 
 # ======================================================================
+#  Varsayılan tarayıcıda açma
+# ======================================================================
+def _open_in_browser(url: str) -> bool:
+    """
+    Adresi işletim sisteminin varsayılan tarayıcısında açar.
+
+    Kabuk enjeksiyonuna karşı komut **listesi** kullanılır (dizge değil).
+    """
+    try:
+        if IS_WINDOWS:
+            os.startfile(url)  # type: ignore[attr-defined]  # noqa: S606
+            return True
+        if sys.platform == "darwin":
+            subprocess.Popen(["open", url])  # noqa: S603,S607
+            return True
+        subprocess.Popen(["xdg-open", url])  # noqa: S603,S607
+        return True
+    except (OSError, ValueError):
+        return False
+
+
+# ======================================================================
 #  Ebeveyn bekçisi
 # ======================================================================
 def _process_alive(pid: int) -> bool:
@@ -1094,6 +1116,41 @@ class BridgeHandler(BaseHTTPRequestHandler):
         if os.environ.get("PIXTOOL_BRIDGE_VERBOSE"):
             sys.stderr.write(f"[bridge] {fmt % args}\n")
 
+    # ---------------- Bağlantı açma ----------------
+    def _handle_open(self) -> None:
+        """
+        Varsayılan tarayıcıda bir adres açar.
+
+        Sitedeki bağlantıya tıklanınca sayfa **çalıştırılan makinede** açılsın
+        (uygulamanın penceresinde değil).
+
+        ⚠️ Güvenlik: yalnızca `http`/`https` kabul edilir; token zorunludur.
+        """
+        if not self._authorized():
+            self._send(401, {"ok": False, "error": "Yetkisiz — X-Pixtool-Token gerekli."})
+            return
+
+        length = int(self.headers.get("Content-Length", "0") or 0)
+        if length <= 0 or length > 8000:
+            self._send(400, {"ok": False, "error": "Geçersiz istek gövdesi."})
+            return
+
+        try:
+            payload = json.loads(self.rfile.read(length).decode("utf-8"))
+        except (ValueError, UnicodeDecodeError):
+            self._send(400, {"ok": False, "error": "JSON çözümlenemedi."})
+            return
+
+        url = str(payload.get("url") or "").strip()
+        if not url.lower().startswith(("http://", "https://")):
+            self._send(400, {"ok": False, "error": "Yalnızca http/https açılabilir."})
+            return
+
+        if _open_in_browser(url):
+            self._send(200, {"ok": True, "opened": url})
+        else:
+            self._send(200, {"ok": False, "error": "Tarayıcı açılamadı."})
+
     # ---------------- HTTP metotları ----------------
     def do_OPTIONS(self) -> None:  # noqa: N802
         """CORS + PNA ön kontrolü."""
@@ -1153,6 +1210,10 @@ class BridgeHandler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:  # noqa: N802
         path = self.path.split("?", 1)[0].rstrip("/")
+
+        if path == "/open":
+            self._handle_open()
+            return
 
         if path != "/run":
             self._send(404, {"ok": False, "error": f"Bilinmeyen uç: {path}"})

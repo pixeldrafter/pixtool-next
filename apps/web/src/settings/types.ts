@@ -197,6 +197,14 @@ export interface PixSettings {
     lang: "tr" | "en";
     /** Geliştirici modu — ekstra günlük ve hata ayrıntısı */
     devMode: boolean;
+    /** Görev çubuğunda görünen sahip adı */
+    ownerName: string;
+    /** Ürün/şirket adı (görev çubuğu rozeti) */
+    productName: string;
+    /** Altbilgide görünen web adresi */
+    siteUrl: string;
+    /** Telif metni */
+    copyright: string;
   };
 
   flow: FlowSettings;
