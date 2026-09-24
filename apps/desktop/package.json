@@ -1,0 +1,21 @@
+{
+  "name": "@pixtool/desktop",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Pixtool Next — masaüstü kabuğu (Tauri 2)",
+  "type": "module",
+  "scripts": {
+    "dev": "tauri dev",
+    "build": "tauri build",
+    "build:debug": "tauri build --debug",
+    "tauri": "tauri",
+    "icons": "tauri icon"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.1.0"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.1.1",
+    "@tauri-apps/plugin-shell": "^2.0.2"
+  }
+}

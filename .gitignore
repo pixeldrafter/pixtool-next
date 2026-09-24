@@ -102,3 +102,17 @@ screenshots/
 
 # Referans islemleri icin gecici dosyalar
 apps/web/src/login/forms/_*.txt
+
+# --- Tauri (masaustu kabugu) ---
+apps/desktop/src-tauri/target/
+apps/desktop/src-tauri/gen/
+apps/desktop/src-tauri/binaries/*.exe
+# --- Kopru derleme ciktilari ---
+services/bridge/build/
+services/bridge/dist/
+services/bridge/*.spec
+services/bridge/__pycache__/
+
+# --- Gecici ---
+_*.zip
+_*.tar.gz

@@ -37,24 +37,36 @@
 - [x] **Kullanıcılar** — uzak sistem hesapları (`getent passwd`)
 - [x] **Veritabanı** — NocoDB durumu + tablo eşlemeleri
 - [x] **Kaynaklar** — bu makine + uzak sunucu kapasitesi
-- [x] Backend: script/SSH/SFTP uç noktaları (60 test)
-- [ ] NocoDB tablo şeması kurulumu — *token bekleniyor*
-- [ ] Script çalıştırma (yerel) — *Faz 3 köprüsü gerekli*
+- [x] Backend: script/SSH/SFTP uç noktaları (65 test)
+- [x] **Script kütüphanesi tam yönetim** — ekle/düzenle/sil, PS·CMD·BASH·PY tipi, `.meta.json`
+- [x] **NocoDB tablo şeması** — `Pixtool` projesi, 8 tablo eşlendi
+- [x] **Gerçek kimlik doğrulama** — NocoDB `Users` + PBKDF2 (260k, stdlib)
 
-## Faz 3 — Yerel köprü
+## Faz 3 — Yerel köprü ✅
 
-- [ ] Köprü servisi (psutil), token doğrulaması
-- [ ] Yerel sistem bilgisi + kurulu programlar
-- [ ] Yerel script çalıştırma + çıktı akışı
-- [ ] Boot taraması → NocoDB `devices`
-- [ ] Zaafiyet taraması
+- [x] **Köprü servisi** — `127.0.0.1:8765`, stdlib, token doğrulaması
+- [x] **12 toplayıcı** — system, cpu, memory, disks, network, gpu, processes,
+      services, users, programs, security, environment
+- [x] **Bağımlılıksız çalışır** — psutil yoksa PowerShell yedekleri (Windows) / df·procfs (Linux)
+- [x] **Konsol entegrasyonu** — "köprü bekleniyor" satırları gerçek veriyle doluyor
+- [x] **Cihaz kimliği** — hostname + MAC + platform → SHA256 parmak izi
+- [x] **PyInstaller** ile bağımsız `.exe` (Python gerektirmez)
+- [x] **Ebeveyn bekçisi** — uygulama kapanınca köprü de kapanır
+- [x] Yerel script çalıştırma (`POST /run`) + çıktı akışı
+- [x] Boot taraması → NocoDB `devices` (rapor kaydetme çalışıyor)
+- [ ] Zaafiyet taraması (nmap/OpenVAS)
 
-## Faz 4 — Platform
+## Faz 4 — Platform ✅
 
-- [ ] Tauri masaüstü kabuğu (Rust + VS Build Tools gerekli)
-- [ ] Paketleme (msi/nsis, deb/AppImage)
+- [x] **Tauri masaüstü kabuğu** — Rust 1.98, Tauri 2.11, çerçevesiz pencere
+- [x] **Paketleme** — NSIS kurulum dosyası (12 MB, TR/EN)
+- [x] Pencere kontrolleri (küçült/büyüt/kapat/tam ekran)
+- [x] Köprü sidecar + otomatik başlatma
+- [x] Çalışma-zamanı API adresi algılama (tek derleme, iki ortam)
+- [x] **Sunucu dağıtımı** (systemd + nginx + Let's Encrypt) — `pixtool.omercataloglu.com`
+- [ ] Deb/AppImage (Linux paketi)
 - [ ] Mobil uyarlama (PWA)
-- [ ] Sunucu dağıtımı (systemd + nginx + HTTPS)
+- [ ] Tauri updater
 
 ## Faz 5 — İleride
 

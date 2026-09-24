@@ -58,6 +58,32 @@ DEFAULT_HOST = "127.0.0.1"
 
 IS_WINDOWS = sys.platform.startswith("win")
 
+
+# ----------------------------------------------------------------------
+#  Çıktı kodlaması
+# ----------------------------------------------------------------------
+def _force_utf8_output() -> None:
+    """
+    stdout/stderr'ı UTF-8'e zorlar.
+
+    Windows konsolu (ve PyInstaller ile derlenmiş exe) varsayılan olarak
+    cp1254/cp437 kullanır; kutucuk çizim karakterleri ve Türkçe harfler
+    `UnicodeEncodeError` verir. Bu, köprüyü **başlatılamaz** hâle getirir.
+
+    `errors="replace"` sayesinde desteklenmeyen bir konsolda bile çöküvermez.
+    """
+    for stream in (sys.stdout, sys.stderr):
+        if stream is None:
+            continue
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[union-attr]
+        except (AttributeError, ValueError, OSError):
+            # Kanal yeniden yapılandırılamıyorsa (ör. boru) sessizce geç
+            pass
+
+
+_force_utf8_output()
+
 # psutil varsa kullan (zorunlu değil)
 try:
     import psutil  # type: ignore[import-not-found]
@@ -194,6 +220,65 @@ def collect_system() -> dict[str, Any]:
         info["kernel"] = platform.uname().release
 
     return info
+
+
+# ======================================================================
+#  Ebeveyn bekçisi
+# ======================================================================
+def _process_alive(pid: int) -> bool:
+    """Süreç hâlâ çalışıyor mu?"""
+    if pid <= 0:
+        return False
+
+    if HAS_PSUTIL:
+        return psutil.pid_exists(pid)  # type: ignore[union-attr]
+
+    if IS_WINDOWS:
+        # ctypes ile — harici komut çalıştırmadan hızlı kontrol
+        try:
+            import ctypes  # noqa: PLC0415
+
+            PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+            STILL_ACTIVE = 259
+            kernel32 = ctypes.windll.kernel32  # type: ignore[attr-defined]
+            handle = kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
+            if not handle:
+                return False
+            code = ctypes.c_ulong()
+            ok = kernel32.GetExitCodeProcess(handle, ctypes.byref(code))
+            kernel32.CloseHandle(handle)
+            return bool(ok) and code.value == STILL_ACTIVE
+        except (OSError, AttributeError):
+            return True
+
+    try:
+        os.kill(pid, 0)
+    except OSError:
+        return False
+    return True
+
+
+def _watch_parent(parent_pid: int, interval: float = 2.0) -> None:
+    """
+    Ebeveyn süreç kapanınca köprüyü de kapatır.
+
+    Neden gerekli? Tauri `child.kill()` çağırdığında **yalnızca doğrudan
+    çocuğu** öldürür. PyInstaller `--onefile` ile derlenmiş exe bir
+    bootloader + gerçek süreç olarak **iki işlem** oluşturur; biri kalır.
+    Ayrıca uygulama çöker veya zorla kapatılırsa da köprü arkada kalırdı.
+
+    Bu bekçi ebeveynin PID'ini izler ve kaybolduğunda `os._exit(0)` ile
+    **tüm** işlem zincirini sonlandırır.
+    """
+
+    def _loop() -> None:
+        while True:
+            time.sleep(interval)
+            if not _process_alive(parent_pid):
+                # Ateş et ve çık — daemon thread olduğu için bekleme yok
+                os._exit(0)
+
+    threading.Thread(target=_loop, name="parent-watchdog", daemon=True).start()
 
 
 def _human_duration(seconds: float) -> str:
@@ -1160,7 +1245,17 @@ def main() -> int:
         default=[],
         help="İzinli kaynak (birden fazla verilebilir). Boşsa hepsi.",
     )
+    parser.add_argument(
+        "--parent-pid",
+        type=int,
+        default=0,
+        help="Bu süreç kapanınca köprü de kapansın (Tauri tarafından verilir)",
+    )
     args = parser.parse_args()
+
+    # Ebeveyn bekçisi: uygulama kapanınca köprü de kapansın
+    if args.parent_pid > 0:
+        _watch_parent(args.parent_pid)
 
     token = args.token or secrets.token_urlsafe(24)
     BridgeHandler.token = token

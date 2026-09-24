@@ -5,7 +5,40 @@
  * yönlendirir; üretimde aynı origin'den servis edilir.
  */
 
-const API_BASE: string = import.meta.env["VITE_API_BASE"] ?? "";
+/**
+ * API taban adresi.
+ *
+ * Üç durum:
+ *   1. `VITE_API_BASE` tanımlıysa  → o kullanılır (açık geçersiz kılma)
+ *   2. Tauri kabuğu                → uzak sunucuya bağlanır
+ *      (Tauri'de sayfa `tauri://localhost` veya `http://tauri.localhost`
+ *      kökeninden gelir; `/api/` aynı kökende bulunmaz)
+ *   3. Tarayıcı                    → boş (aynı köken; nginx `/api/` yönlendirir)
+ *
+ * Böylece **tek derleme** hem canlı sitede hem masaüstü kabuğunda çalışır.
+ */
+function detectApiBase(): string {
+  const configured = import.meta.env["VITE_API_BASE"];
+  if (configured) return configured;
+
+  if (typeof window !== "undefined") {
+    const { protocol, hostname } = window.location;
+    const isTauri =
+      protocol === "tauri:" ||
+      hostname === "tauri.localhost" ||
+      hostname.endsWith(".tauri.localhost") ||
+      "__TAURI_INTERNALS__" in window;
+    if (isTauri) return "https://pixtool.omercataloglu.com";
+  }
+
+  return "";
+}
+
+const API_BASE: string = detectApiBase();
+
+/** Masaüstü kabuğunda mı çalışıyoruz? */
+export const IS_TAURI: boolean =
+  typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 
 // ----------------------------------------------------------------------
 //  Tipler — backend `/api/v1/status` şemasıyla eşleşir

@@ -23,6 +23,11 @@
     "typecheck": "pnpm --filter @pixtool/web typecheck",
     "setup:api": "cd services/api && python -m venv .venv && .venv\\Scripts\\python.exe -m pip install -r requirements.txt",
     "setup:api:unix": "cd services/api && python3 -m venv .venv && .venv/bin/python -m pip install -r requirements.txt",
-    "health": "curl -s http://127.0.0.1:8000/health"
+    "health": "curl -s http://127.0.0.1:8000/health",
+    "dev:desktop": "pnpm --filter @pixtool/desktop dev",
+    "build:desktop": "pnpm --filter @pixtool/desktop build",
+    "build:desktop:debug": "pnpm --filter @pixtool/desktop build:debug",
+    "icons:desktop": "pnpm --filter @pixtool/desktop icons",
+    "build:bridge": "cd services/bridge && ..\\..\\services\\api\\.venv\\Scripts\\python.exe -m PyInstaller --onefile --name pixtool-bridge --console --noconfirm pixtool_bridge.py"
   }
 }

@@ -81,6 +81,62 @@ function normaliseUrl(url: string | undefined): string {
   return /^https?:\/\//.test(value) ? value : `http://${value}`;
 }
 
+// ----------------------------------------------------------------------
+//  Tauri kabuğu entegrasyonu
+// ----------------------------------------------------------------------
+/** Tauri global API'si ( `withGlobalTauri: true` ). */
+interface TauriGlobal {
+  core?: { invoke?: <T>(cmd: string, args?: unknown) => Promise<T> };
+  invoke?: <T>(cmd: string, args?: unknown) => Promise<T>;
+}
+
+/** Masaüstü kabuğunda mıyız? */
+export function isTauriShell(): boolean {
+  return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+}
+
+/** Tauri'den köprü durumunu okur (kabuk köprüyü kendi başlatır). */
+export async function bridgeFromTauri(): Promise<{
+  running: boolean;
+  url: string;
+  token: string | null;
+} | null> {
+  if (!isTauriShell()) return null;
+  try {
+    const tauri = (window as unknown as { __TAURI__?: TauriGlobal }).__TAURI__;
+    const invoke = tauri?.core?.invoke ?? tauri?.invoke;
+    if (!invoke) return null;
+    const status = await invoke<{ running: boolean; url: string; token: string | null }>(
+      "bridge_status",
+    );
+    return status ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Köprü bağlantı bilgisini çözer.
+ *
+ * Öncelik:
+ *   1. Tauri kabuğu (kabuk köprüyü başlatır, port+token oradan gelir)
+ *   2. Ayarlardaki elle girilen adres + token
+ */
+export async function resolveBridgeOptions(
+  fallback: BridgeOptions = {},
+): Promise<BridgeOptions> {
+  const fromShell = await bridgeFromTauri();
+  if (fromShell?.running && fromShell.token) {
+    return {
+      url: fromShell.url,
+      token: fromShell.token,
+      timeoutMs: fallback.timeoutMs,
+      parts: fallback.parts,
+    };
+  }
+  return fallback;
+}
+
 /** Zaman aşımlı fetch (AbortController). */
 async function fetchWithTimeout(
   input: string,

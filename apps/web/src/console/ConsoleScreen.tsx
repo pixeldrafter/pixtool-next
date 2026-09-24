@@ -16,6 +16,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useSettingsStore } from "../settings/store";
 import { buildConsoleSections, filterSections, type ConsoleLine } from "./consoleLines";
 import { probeMachine, type MachineInfo } from "./probe";
+import { resolveBridgeOptions } from "./bridge";
 import { saveDeviceReport } from "./api";
 import "./ConsoleScreen.css";
 
@@ -46,13 +47,23 @@ export function ConsoleScreen({ onFinished, token }: ConsoleScreenProps) {
   useEffect(() => {
     let cancelled = false;
     const useBridge = bridgeSettings.enabled && bridgeSettings.autoProbe;
-    void probeMachine({
-      skipBridge: !useBridge,
-      url: bridgeSettings.url,
-      token: bridgeSettings.token || undefined,
-    }).then((result) => {
+
+    void (async () => {
+      // Masaüstü kabuğunda köprüyü kabuk başlatır; adres+token oradan gelir
+      const bridgeOptions = useBridge
+        ? await resolveBridgeOptions({
+            url: bridgeSettings.url,
+            token: bridgeSettings.token || undefined,
+          })
+        : undefined;
+
+      const result = await probeMachine({
+        skipBridge: !useBridge,
+        ...(bridgeOptions ?? {}),
+      });
       if (!cancelled) setInfo(result);
-    });
+    })();
+
     return () => {
       cancelled = true;
     };
