@@ -1,0 +1,212 @@
+/* Terminal penceresi */
+
+.term {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* --- Hedef seçici --- */
+.term__targets {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid var(--border-weak);
+}
+
+.term__target {
+  padding: 4px 11px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.term__target:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.term__target.is-active {
+  background: color-mix(in srgb, var(--accent) 24%, transparent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* --- Kısayol komutlar --- */
+.term__quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-weak);
+  background: rgba(255, 255, 255, 0.015);
+}
+
+.term__chip {
+  padding: 3px 9px;
+  border: 1px solid var(--border-weak);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 10.5px;
+  cursor: pointer;
+  transition: border-color 0.12s ease, color 0.12s ease;
+}
+
+.term__chip:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.term__chip:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* --- Çıktı --- */
+.term__out {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 12px 14px;
+  background: rgba(0, 0, 0, 0.34);
+  font-size: 12px;
+  line-height: 1.55;
+  cursor: text;
+}
+
+.term__welcome {
+  color: var(--text-secondary);
+  font-size: 12.5px;
+}
+
+.term__welcome p {
+  margin: 0 0 6px;
+}
+
+.term__dim {
+  color: var(--text-muted);
+  font-size: 11.5px;
+}
+
+.term__entry {
+  margin-bottom: 12px;
+}
+
+.term__cmd {
+  display: flex;
+  gap: 7px;
+  color: var(--text-primary);
+  font-weight: 600;
+  word-break: break-all;
+}
+
+.term__prompt,
+.term__prompt-label {
+  color: var(--accent);
+  flex: 0 0 auto;
+}
+
+.term__stdout {
+  margin: 5px 0 0;
+  padding: 7px 9px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--text-secondary);
+  font: inherit;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 320px;
+  overflow: auto;
+}
+
+.term__stderr {
+  margin: 5px 0 0;
+  padding: 7px 9px;
+  border-radius: 5px;
+  background: rgba(196, 43, 28, 0.14);
+  border-left: 3px solid #c42b1c;
+  color: #ffb0a8;
+  font: inherit;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.term__meta {
+  margin-top: 4px;
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
+
+.term__meta.is-bad {
+  color: #ff8b82;
+}
+
+/* --- Onay --- */
+.term__confirm {
+  margin: 8px 0;
+  padding: 12px;
+  border-radius: 7px;
+  background: rgba(255, 180, 84, 0.1);
+  border: 1px solid rgba(255, 180, 84, 0.35);
+}
+
+.term__confirm-text {
+  margin: 0 0 7px;
+  font-size: 12px;
+  color: #ffb454;
+}
+
+.term__confirm-cmd {
+  margin: 0 0 7px;
+  padding: 7px 9px;
+  border-radius: 5px;
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--text-primary);
+  font: inherit;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.term__confirm-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 9px;
+}
+
+.term__running {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+/* --- Girdi satırı --- */
+.term__inputrow {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 12px;
+  border-top: 1px solid var(--border-weak);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.term__prompt-label {
+  font-size: 11.5px;
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+
+.term__input {
+  flex: 1;
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 12.5px;
+}

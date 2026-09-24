@@ -20,7 +20,6 @@ import {
   describeError,
   fetchScript,
   fetchScripts,
-  runScript,
   updateScript,
   SCRIPT_KIND_LABELS,
   SCRIPT_KIND_SHORT,
@@ -28,7 +27,9 @@ import {
   type ScriptKind,
 } from "../../lib/api";
 import { useBackendConfig } from "../../lib/useBackendConfig";
+import { runCommand, type RunTarget } from "../../lib/runTarget";
 import { toast } from "../../notifications";
+import { useSettings } from "../../settings";
 import "../apps.css";
 import "./scripts-window.css";
 
@@ -57,6 +58,7 @@ const EMPTY_FORM: FormState = {
 
 export function ScriptsWindow() {
   const backend = useBackendConfig();
+  const { settings } = useSettings();
 
   const [scripts, setScripts] = useState<ScriptInfo[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
@@ -78,6 +80,10 @@ export function ScriptsWindow() {
   const [formError, setFormError] = useState<string | null>(null);
   /** Silme onayı bekleyen script kimliği. */
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  /** Script nerede çalışsın: bu makine (köprü) veya uzak sunucu (SSH). */
+  const [runTarget, setRunTarget] = useState<RunTarget>("local");
+  /** Onay bekleyen script (komut politikası) */
+  const [pendingRun, setPendingRun] = useState<{ id: string; content: string } | null>(null);
 
   // --- Kütüphaneyi yükle ---
   const load = useCallback(async (keepSelection = true) => {
@@ -237,23 +243,54 @@ export function ScriptsWindow() {
     }
   }
 
-  async function handleRun(): Promise<void> {
+  async function handleRun(confirmed = false): Promise<void> {
     if (!current) return;
     setRunning(true);
     setRunResult(null);
-    try {
-      const result = await runScript(current.id, {
-        target: "local",
-        policy: backend.commandPolicy,
-      });
-      setRunResult(
-        `[${result.status}] ${result.message ?? ""}\n\nKomut:\n${result.command}`,
-      );
-    } catch (caught) {
-      setRunResult(`Hata: ${describeError(caught)}`);
-    } finally {
+    setPendingRun(null);
+
+    // Scriptin **içeriğini** hedefte çalıştır
+    const result = await runCommand(content || current.id, {
+      target: runTarget,
+      confirmed,
+      executor: "auto",
+      bridgeUrl: settings.bridge.url,
+      bridgeToken: settings.bridge.token || undefined,
+      timeoutSeconds: 300,
+    });
+
+    if (result.needsConfirmation) {
+      setPendingRun({ id: current.id, content });
+      setRunResult(`⏸ ${result.message}`);
       setRunning(false);
+      return;
     }
+
+    const header = [
+      `hedef   : ${runTarget === "local" ? "bu makine (köprü)" : "uzak sunucu (SSH)"}`,
+      `durum   : ${result.ok ? "başarılı" : "başarısız"}`,
+      `çıkış   : ${result.exitCode ?? "—"}`,
+      `süre    : ${result.durationMs} ms`,
+    ].join("\n");
+
+    const body = [result.stdout, result.stderr].filter(Boolean).join("\n");
+    setRunResult(`${header}\n\n${body || result.message}`);
+
+    if (result.ok) {
+      toast.ok(
+        `"${current.name}" çalıştı`,
+        `${result.durationMs} ms · çıkış ${result.exitCode ?? "—"}`,
+        "Script Kütüphanesi",
+      );
+    } else {
+      toast.error(
+        `"${current.name}" başarısız`,
+        result.message.slice(0, 120),
+        "Script Kütüphanesi",
+      );
+    }
+
+    setRunning(false);
   }
 
   // ------------------------------------------------------------------
@@ -539,11 +576,32 @@ export function ScriptsWindow() {
                 >
                   🗑 Sil
                 </button>
+
+                {/* Çalıştırma hedefi */}
+                <div className="sw-targets" role="group" aria-label="Çalıştırma hedefi">
+                  <button
+                    type="button"
+                    className={`sw-target${runTarget === "local" ? " is-active" : ""}`}
+                    onClick={() => setRunTarget("local")}
+                    title="Bu bilgisayarda çalıştır (yerel köprü)"
+                  >
+                    🖥 Yerel
+                  </button>
+                  <button
+                    type="button"
+                    className={`sw-target${runTarget === "remote" ? " is-active" : ""}`}
+                    onClick={() => setRunTarget("remote")}
+                    title="Uzak sunucuda çalıştır (SSH)"
+                  >
+                    🌐 Uzak
+                  </button>
+                </div>
+
                 <button
                   className="app-btn app-btn--primary"
                   onClick={() => void handleRun()}
                   disabled={running}
-                  title={`Komut politikası: ${backend.commandPolicy}`}
+                  title={`Çalıştırma hedefi: ${runTarget === "local" ? "bu makine" : "uzak sunucu"}`}
                 >
                   {running ? "…" : "▶ Çalıştır"}
                 </button>
@@ -589,8 +647,29 @@ export function ScriptsWindow() {
                 )}
               </dl>
 
+              {pendingRun && (
+                <div className="sw-confirm-run">
+                  <p>
+                    ⚠ Komut politikası <strong>onay</strong> gerektiriyor —
+                    uzak sunucuda çalıştırmak için onaylayın.
+                  </p>
+                  <div className="sw-confirm-run__actions">
+                    <button className="app-btn" onClick={() => setPendingRun(null)} disabled={running}>
+                      Vazgeç
+                    </button>
+                    <button
+                      className="app-btn app-btn--primary"
+                      onClick={() => void handleRun(true)}
+                      disabled={running}
+                    >
+                      {running ? "…" : "✔ Onayla ve çalıştır"}
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {runResult && (
-                <pre className="app-code" style={{ maxHeight: 140 }}>
+                <pre className="app-code" style={{ maxHeight: 220 }}>
                   {runResult}
                 </pre>
               )}

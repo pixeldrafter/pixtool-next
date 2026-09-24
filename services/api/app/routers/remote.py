@@ -56,11 +56,12 @@ async def exec_command(payload: SshExecRequest) -> SshExecResponse:
     """
     Uzak sunucuda komut çalıştırır.
 
-    Politika `confirm` ise **403** döner; arayüz kullanıcıdan onay ister ve
-    onaydan sonra `X-Confirm: true` başlığıyla tekrar gönderir.
+    Politika `confirm` ise **ilk istek 403** döner; arayüz kullanıcıdan onay
+    ister ve onaydan sonra `confirmed: true` ile tekrar gönderir.
+
+    Politika `allow_all` ise doğrudan çalışır.
     """
-    if settings.command_policy == "confirm":
-        # Onay başlığı olmadan çalıştırma yok
+    if settings.command_policy == "confirm" and not payload.confirmed:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=(

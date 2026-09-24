@@ -28,6 +28,12 @@ class SshExecRequest(BaseModel):
     target: SshTarget = Field(default_factory=SshTarget)
     command: str = Field(min_length=1, max_length=4000)
     timeout_seconds: int = Field(default=30, ge=1, le=600)
+    #: Kullanıcı arayüzden onay verdi mi?
+    #:
+    #: Politika `confirm` iken ilk istek **403** döner; arayüz kullanıcıya
+    #: sorar ve onaydan sonra `confirmed: true` ile tekrar gönderir.
+    #: Bu alan olmadan `confirm` politikası hiçbir komutu çalıştırmaz.
+    confirmed: bool = False
 
 
 class SshExecResponse(BaseModel):

@@ -1,143 +1,140 @@
 /**
- * Terminal — uzak komut çalıştırma (SSH).
+ * Terminal.
  *
- * Komutlar backend üzerinden çalışır (`/api/v1/remote/exec`).
- * `confirm` politikasında backend 403 döner ve onay istenir.
+ * Komutları **iki hedefte** çalıştırır:
+ *   • **Yerel** — arayüzün açık olduğu makine (yerel köprü üzerinden)
+ *   • **Uzak** — yapılandırılmış sunucu (API → SSH)
  *
- * Geçmiş: ok tuşlarıyla gezinme, komut geçmişi oturum içinde tutulur.
+ * Geçmiş, kısayol komutlar, çıkış kodu ve süre gösterilir. Komut politikası
+ * `confirm` ise kullanıcıdan onay istenir.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import {
-  describeError,
-  fetchRemoteStatus,
-  sshExec,
-  type RemoteStatus,
-} from "../../lib/api";
-import { useBackendConfig } from "../../lib/useBackendConfig";
+import { useSettings } from "../../settings";
+import { runCommand, type RunTarget } from "../../lib/runTarget";
 import "../apps.css";
+import "./terminal-window.css";
 
 interface HistoryEntry {
+  id: number;
   command: string;
+  target: RunTarget;
   stdout: string;
   stderr: string;
   exitCode: number | null;
   durationMs: number;
+  ok: boolean;
 }
 
-export function TerminalWindow() {
-  const backend = useBackendConfig();
+/** Hedef başına hazır komutlar. */
+const QUICK: Record<RunTarget, { label: string; command: string }[]> = {
+  local: [
+    { label: "Makine adı", command: "hostname" },
+    { label: "IP adresleri", command: "ipconfig" },
+    { label: "Disk", command: "Get-PSDrive -PSProvider FileSystem | Select-Object Name,@{n='GB';e={[math]::Round($_.Used/1GB,1)}},@{n='Free';e={[math]::Round($_.Free/1GB,1)}}" },
+    { label: "İşlemler", command: "Get-Process | Sort-Object WorkingSet64 -Descending | Select-Object -First 12 Name,Id,@{n='MB';e={[math]::Round($_.WorkingSet64/1MB,1)}}" },
+    { label: "Kurulu program", command: "Get-ItemProperty 'HKLM:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*' | Where-Object DisplayName | Select-Object -First 12 -ExpandProperty DisplayName" },
+    { label: "Servisler", command: "Get-Service | Where-Object Status -eq 'Running' | Select-Object -First 12 Name" },
+    { label: "Sistem bilgisi", command: "systeminfo | Select-String 'OS Name','OS Version','System Model','Total Physical Memory'" },
+    { label: "Ağ bağlantıları", command: "netstat -ano | findstr LISTENING" },
+  ],
+  remote: [
+    { label: "Makine adı", command: "hostname" },
+    { label: "Disk", command: "df -h" },
+    { label: "Bellek", command: "free -h" },
+    { label: "İşlemler", command: "ps aux --sort=-%mem | head -12" },
+    { label: "Servisler", command: "systemctl list-units --type=service --state=running --no-legend --no-pager | head -12" },
+    { label: "Açık portlar", command: "ss -ltnp" },
+    { label: "Kullanıcılar", command: "who; echo '---'; getent passwd | tail -10" },
+    { label: "Günlük", command: "journalctl -n 20 --no-pager" },
+  ],
+};
 
-  const [status, setStatus] = useState<RemoteStatus | null>(null);
+export function TerminalWindow() {
+  const { settings } = useSettings();
+
+  const [target, setTarget] = useState<RunTarget>("local");
   const [command, setCommand] = useState("");
   const [history, setHistory] = useState<HistoryEntry[]>([]);
-  const [pending, setPending] = useState<string | null>(null);
-  const [running, setRunning] = useState(false);
   const [commands, setCommands] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
+  const [running, setRunning] = useState(false);
+  const [pending, setPending] = useState<{ command: string; message: string } | null>(null);
 
-  const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const counter = useRef(0);
 
+  // Çıktı geldikçe en alta kaydır
   useEffect(() => {
-    void fetchRemoteStatus()
-      .then(setStatus)
-      .catch(() => setStatus(null));
-  }, []);
-
-  useEffect(() => {
-    const element = scrollRef.current;
-    if (element) element.scrollTop = element.scrollHeight;
+    const node = scrollRef.current;
+    if (node) node.scrollTop = node.scrollHeight;
   }, [history, pending]);
 
   const execute = useCallback(
-    async (value: string) => {
-      const trimmed = value.trim();
+    async (raw: string, confirmed = false, targetOverride?: RunTarget) => {
+      const trimmed = raw.trim();
       if (!trimmed) return;
 
+      const useTarget = targetOverride ?? target;
       setRunning(true);
       setPending(null);
+      if (!commands.includes(trimmed)) setCommands((list) => [...list, trimmed]);
 
       try {
-        const result = await sshExec(trimmed, 30);
-        setHistory((entries) => [
-          ...entries,
+        const result = await runCommand(trimmed, {
+          target: useTarget,
+          confirmed,
+          executor: "auto",
+          bridgeUrl: settings.bridge.url,
+          bridgeToken: settings.bridge.token || undefined,
+          timeoutSeconds: 120,
+        });
+
+        // Komut politikası onay istiyor
+        if (result.needsConfirmation) {
+          setPending({ command: trimmed, message: result.message });
+          return;
+        }
+
+        counter.current += 1;
+        setHistory((list) => [
+          ...list,
           {
+            id: counter.current,
             command: trimmed,
+            target: useTarget,
             stdout: result.stdout,
             stderr: result.stderr,
-            exitCode: result.exit_code,
-            durationMs: result.duration_ms,
+            exitCode: result.exitCode,
+            durationMs: result.durationMs,
+            ok: result.ok,
           },
         ]);
-      } catch (caught) {
-        const message = describeError(caught);
-
-        // Politika onayı gerekiyorsa onay kutusu göster
-        if (message.includes("confirm") || message.includes("403")) {
-          setPending(trimmed);
-        } else {
-          setHistory((entries) => [
-            ...entries,
-            { command: trimmed, stdout: "", stderr: message, exitCode: null, durationMs: 0 },
-          ]);
-        }
       } finally {
         setRunning(false);
-        setCommands((list) => [...list, trimmed]);
-        setHistoryIndex(-1);
+        inputRef.current?.focus();
       }
     },
-    [],
+    [target, commands, settings.bridge.url, settings.bridge.token],
   );
 
-  /** Onaydan sonra çalıştır — politikayı geçici olarak allow_all yapar. */
-  async function confirmAndRun() {
-    if (!pending) return;
-    setRunning(true);
-    try {
-      const result = await sshExec(pending, 30);
-      setHistory((entries) => [
-        ...entries,
-        {
-          command: pending,
-          stdout: result.stdout,
-          stderr: result.stderr,
-          exitCode: result.exit_code,
-          durationMs: result.duration_ms,
-        },
-      ]);
-      setPending(null);
-    } catch (caught) {
-      setHistory((entries) => [
-        ...entries,
-        { command: pending, stdout: "", stderr: describeError(caught), exitCode: null, durationMs: 0 },
-      ]);
-      setPending(null);
-    } finally {
-      setRunning(false);
-    }
-  }
-
-  function onKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+  function onKeyDown(event: React.KeyboardEvent<HTMLInputElement>): void {
     if (event.key === "Enter") {
-      event.preventDefault();
       void execute(command);
       setCommand("");
+      setHistoryIndex(-1);
       return;
     }
-
-    // Geçmiş gezinme
+    // Geçmişte gezinme
     if (event.key === "ArrowUp") {
       event.preventDefault();
-      if (commands.length === 0) return;
+      if (!commands.length) return;
       const next = historyIndex < 0 ? commands.length - 1 : Math.max(0, historyIndex - 1);
       setHistoryIndex(next);
       setCommand(commands[next] ?? "");
-      return;
     }
-
     if (event.key === "ArrowDown") {
       event.preventDefault();
       if (historyIndex < 0) return;
@@ -150,107 +147,140 @@ export function TerminalWindow() {
         setCommand(commands[next] ?? "");
       }
     }
+    if (event.key === "l" && event.ctrlKey) {
+      event.preventDefault();
+      setHistory([]);
+    }
   }
 
-  const sshReady = Boolean(status?.default_host_set && status.paramiko_available);
-
   return (
-    <div className="app">
+    <div className="app term">
+      {/* --- Araç çubuğu --- */}
       <div className="app__toolbar">
         <h2 className="app__title">Terminal</h2>
-        <span className="app__subtitle">
-          {status?.default_host_set
-            ? `${status.default_user}@${status.default_host}`
-            : "SSH hedefi tanımlı değil"}
-        </span>
+
+        <div className="term__targets" role="group" aria-label="Çalıştırma hedefi">
+          <button
+            type="button"
+            className={`term__target${target === "local" ? " is-active" : ""}`}
+            onClick={() => setTarget("local")}
+            title="Bu bilgisayarda çalıştır (yerel köprü)"
+          >
+            🖥 Yerel
+          </button>
+          <button
+            type="button"
+            className={`term__target${target === "remote" ? " is-active" : ""}`}
+            onClick={() => setTarget("remote")}
+            title="Uzak sunucuda çalıştır (SSH)"
+          >
+            🌐 Uzak
+          </button>
+        </div>
+
         <span className="app__spacer" />
-        <span className={`app-tag${sshReady ? "" : " app-tag--muted"}`}>
-          {sshReady ? "bağlantı hazır" : "yapılandırma gerekli"}
-        </span>
-        <button className="app-btn" onClick={() => setHistory([])} disabled={history.length === 0}>
-          Temizle
+        <span className="app__subtitle mono">{history.length} komut</span>
+        <button className="app-btn" onClick={() => setHistory([])} disabled={!history.length}>
+          🗑 Temizle
         </button>
       </div>
 
-      {!sshReady && (
-        <div className="app-msg app-msg--warn">
-          Terminal için <code>.env</code> içinde <code>SSH_DEFAULT_HOST</code> /{" "}
-          <code>SSH_DEFAULT_USER</code> doldurulmalı ve <code>paramiko</code> kurulu olmalı.
-          {status?.hint && <div style={{ marginTop: 4 }}>{status.hint}</div>}
-        </div>
-      )}
+      {/* --- Kısayol komutlar --- */}
+      <div className="term__quick">
+        {QUICK[target].map((item) => (
+          <button
+            key={item.label}
+            type="button"
+            className="term__chip"
+            title={item.command}
+            onClick={() => void execute(item.command, false)}
+            disabled={running}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
 
       {/* --- Çıktı --- */}
       <div
+        className="term__out mono"
         ref={scrollRef}
-        className="app-code"
-        style={{ padding: "var(--space-4)", cursor: "text" }}
         onClick={() => inputRef.current?.focus()}
+        role="log"
+        aria-live="polite"
       >
         {history.length === 0 && !pending && (
-          <div style={{ color: "var(--text-muted)" }}>
-            {sshReady
-              ? "Komut yazıp Enter'a bas. Geçmiş için ↑ ↓ kullan."
-              : "Bağlantı yapılandırılmadı."}
+          <div className="term__welcome">
+            <p>
+              <strong>Pixtool Terminal</strong> — {target === "local" ? "yerel makine" : "uzak sunucu"}
+            </p>
+            <p className="term__dim">
+              {target === "local"
+                ? "Komutlar bu bilgisayarda çalışır (yerel köprü gerekir)."
+                : "Komutlar yapılandırılmış uzak sunucuda SSH ile çalışır."}
+            </p>
+            <p className="term__dim">↑/↓ geçmiş · Ctrl+L temizle · Enter çalıştır</p>
           </div>
         )}
 
-        {history.map((entry, index) => (
-          <div key={index} style={{ marginBottom: 12 }}>
-            <div style={{ color: "var(--accent)" }}>
-              $ {entry.command}
-              <span style={{ color: "var(--text-muted)", marginLeft: 10, fontSize: 10.5 }}>
-                {entry.durationMs} ms · çıkış kodu {entry.exitCode ?? "?"}
-              </span>
+        {history.map((entry) => (
+          <div key={entry.id} className="term__entry">
+            <div className="term__cmd">
+              <span className="term__prompt">{entry.target === "local" ? "🖥" : "🌐"} $</span>
+              {entry.command}
             </div>
-            {entry.stdout && <div style={{ whiteSpace: "pre-wrap" }}>{entry.stdout}</div>}
-            {entry.stderr && (
-              <div style={{ color: "var(--error)", whiteSpace: "pre-wrap" }}>{entry.stderr}</div>
-            )}
+            {entry.stdout && <pre className="term__stdout">{entry.stdout}</pre>}
+            {entry.stderr && <pre className="term__stderr">{entry.stderr}</pre>}
+            <div className={`term__meta${entry.ok ? "" : " is-bad"}`}>
+              çıkış: {entry.exitCode ?? "—"} · {entry.durationMs} ms
+              {entry.ok ? "" : " · komut başarısız"}
+            </div>
           </div>
         ))}
 
+        {/* Onay bekleyen komut */}
         {pending && (
-          <div style={{ marginTop: 8, padding: 10, border: "1px solid var(--warn)", borderRadius: 6 }}>
-            <div style={{ color: "var(--warn)", marginBottom: 6 }}>
-              ⚠ Komut politikası <strong>{backend.commandPolicy}</strong> — onay gerekiyor:
-            </div>
-            <code style={{ color: "var(--text-primary)" }}>{pending}</code>
-            <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-              <button className="app-btn app-btn--primary" onClick={() => void confirmAndRun()}>
-                Onayla ve çalıştır
-              </button>
+          <div className="term__confirm">
+            <p className="term__confirm-text">
+              ⚠ Komut politikası <strong>onay</strong> gerektiriyor:
+            </p>
+            <pre className="term__confirm-cmd">{pending.command}</pre>
+            <p className="term__dim">{pending.message}</p>
+            <div className="term__confirm-actions">
               <button className="app-btn" onClick={() => setPending(null)}>
-                İptal
+                Vazgeç
+              </button>
+              <button
+                className="app-btn app-btn--primary"
+                onClick={() => void execute(pending.command, true)}
+                disabled={running}
+              >
+                {running ? "…" : "✔ Onayla ve çalıştır"}
               </button>
             </div>
           </div>
         )}
 
         {running && (
-          <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--text-muted)" }}>
+          <div className="term__running">
             <span className="app-spinner" /> çalışıyor…
           </div>
         )}
       </div>
 
       {/* --- Girdi --- */}
-      <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-        <span style={{ color: "var(--accent)", fontFamily: "var(--font-mono)", alignSelf: "center" }}>
-          $
-        </span>
+      <div className="term__inputrow">
+        <span className="term__prompt-label mono">{target === "local" ? "yerel" : "uzak"} $</span>
         <input
           ref={inputRef}
-          className="app-input"
-          style={{ flex: 1, fontFamily: "var(--font-mono)" }}
-          type="text"
-          placeholder={sshReady ? "komut girin…" : "SSH yapılandırılmadı"}
+          className="app-input term__input"
           value={command}
-          disabled={running || !sshReady}
+          autoFocus
+          spellCheck={false}
+          placeholder={target === "local" ? "hostname" : "uptime -p"}
           onChange={(event) => setCommand(event.target.value)}
           onKeyDown={onKeyDown}
-          spellCheck={false}
-          autoComplete="off"
+          disabled={running}
         />
         <button
           className="app-btn app-btn--primary"
@@ -258,9 +288,9 @@ export function TerminalWindow() {
             void execute(command);
             setCommand("");
           }}
-          disabled={running || !sshReady || !command.trim()}
+          disabled={running || !command.trim()}
         >
-          Çalıştır
+          ▶ Çalıştır
         </button>
       </div>
     </div>
