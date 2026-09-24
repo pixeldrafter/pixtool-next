@@ -13,8 +13,7 @@
  */
 
 import type { LoginCredentials } from "./types";
-
-const API_BASE: string = import.meta.env["VITE_API_BASE"] ?? "";
+import { API_BASE } from "../lib/apiBase";
 
 // ----------------------------------------------------------------------
 //  Tipler

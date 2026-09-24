@@ -3,8 +3,7 @@
  */
 
 import type { MachineInfo } from "./probe";
-
-const API_BASE: string = import.meta.env["VITE_API_BASE"] ?? "";
+import { API_BASE } from "../lib/apiBase";
 
 export interface DeviceReportResponse {
   ok: boolean;

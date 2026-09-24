@@ -1,44 +1,14 @@
 /**
  * Backend API istemcisi.
  *
- * Geliştirmede Vite proxy'si `/api` isteklerini http://127.0.0.1:8000'e
- * yönlendirir; üretimde aynı origin'den servis edilir.
+ * Taban adres **tek kaynaktan** gelir: `lib/apiBase.ts`
+ * (tarayıcı → aynı köken · Tauri kabuğu → uzak sunucu).
  */
 
-/**
- * API taban adresi.
- *
- * Üç durum:
- *   1. `VITE_API_BASE` tanımlıysa  → o kullanılır (açık geçersiz kılma)
- *   2. Tauri kabuğu                → uzak sunucuya bağlanır
- *      (Tauri'de sayfa `tauri://localhost` veya `http://tauri.localhost`
- *      kökeninden gelir; `/api/` aynı kökende bulunmaz)
- *   3. Tarayıcı                    → boş (aynı köken; nginx `/api/` yönlendirir)
- *
- * Böylece **tek derleme** hem canlı sitede hem masaüstü kabuğunda çalışır.
- */
-function detectApiBase(): string {
-  const configured = import.meta.env["VITE_API_BASE"];
-  if (configured) return configured;
+import { API_BASE, IS_TAURI } from "./apiBase";
 
-  if (typeof window !== "undefined") {
-    const { protocol, hostname } = window.location;
-    const isTauri =
-      protocol === "tauri:" ||
-      hostname === "tauri.localhost" ||
-      hostname.endsWith(".tauri.localhost") ||
-      "__TAURI_INTERNALS__" in window;
-    if (isTauri) return "https://pixtool.omercataloglu.com";
-  }
-
-  return "";
-}
-
-const API_BASE: string = detectApiBase();
-
-/** Masaüstü kabuğunda mı çalışıyoruz? */
-export const IS_TAURI: boolean =
-  typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+// Geriye dönük dışa aktarım (bazı bileşenler buradan import ediyor)
+export { API_BASE, IS_TAURI };
 
 // ----------------------------------------------------------------------
 //  Tipler — backend `/api/v1/status` şemasıyla eşleşir
