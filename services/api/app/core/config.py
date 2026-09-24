@@ -66,7 +66,20 @@ class Settings(BaseSettings):
     api_base_url: str = "http://127.0.0.1:8000"
     api_port: int = 8000
     api_secret_key: str = ""
-    api_allowed_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
+    #: CORS — izinli kökenler (virgülle ayrılır).
+    #:
+    #: ⚠️ Masaüstü kabuğu (Tauri) `tauri.localhost` kökeninden istek atar;
+    #: bu köken listede yoksa **tüm API çağrıları CORS ile reddedilir** ve
+    #: arayüz "Sunucuya ulaşılamadı" der. `allow_credentials=True` olduğu
+    #: için joker (`*`) kullanılamaz — kökenler açıkça yazılmalıdır.
+    api_allowed_origins: str = (
+        # Geliştirme (Vite)
+        "http://localhost:5173,http://127.0.0.1:5173,"
+        # Tauri masaüstü kabuğu
+        "http://tauri.localhost,https://tauri.localhost,tauri://localhost,"
+        # Tauri dev sunucusu (varsayılan port)
+        "http://localhost:1420,http://127.0.0.1:1420"
+    )
 
     # --- 3) Web arayüz ---
     web_base_url: str = "http://127.0.0.1:5173"
