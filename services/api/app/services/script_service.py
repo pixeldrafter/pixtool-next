@@ -70,6 +70,7 @@ LIBRARY_ROOT = _find_library_root()
 CATEGORY_PREFIXES: list[tuple[str, str]] = [
     ("PixNet", "Ağ"),
     ("PixSecure", "Güvenlik"),
+    ("PixVuln", "Güvenlik"),
     ("PixDriver", "Sürücü"),
     ("PixSoft", "Yazılım"),
     ("PixFile", "Dosya"),
