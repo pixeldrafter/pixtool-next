@@ -1,20 +1,27 @@
 /**
  * Önyükleme ekranı.
  *
- * Konsol boot dizisini satır satır canlandırır. Dizi bittiğinde (veya
- * kullanıcı atlarsa) `onFinished` çağrılır.
+ * Açılış akışını satır satır canlandırır. Dizi bittiğinde (veya kullanıcı
+ * atlarsa) `onFinished` çağrılır.
  *
- * Kaynak referansı: v5 `core/console_ui.py` — harfiyen korunacak (karar #10).
+ * Gerçek veri kaynakları: backend durumu (`status`) + makine envanteri
+ * (`machine`, köprüden). Sahte veri gösterilmez.
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { buildBootPhases, buildClosingLines } from "./bootSequence";
 import type { StatusResponse } from "../lib/api";
+import type { MachineInfo } from "../console/probe";
+import { probeMachine } from "../console/probe";
+import { resolveBridgeOptions } from "../console/bridge";
+import { useSettingsStore } from "../settings/store";
 import "./BootScreen.css";
 
 interface BootScreenProps {
   status: StatusResponse | null;
   error: string | null;
+  /** Makine envanteri (köprü dahil) — donanım satırları bundan beslenir */
+  machine?: MachineInfo | null;
   onFinished: () => void;
 }
 
@@ -31,10 +38,79 @@ const LOGO = String.raw`
 const LINE_DELAY_MS = 55;
 /** Faz başlıkları arasında ek bekleme (ms). */
 const PHASE_DELAY_MS = 180;
+/** Envanter taraması sürerken ilk satırların görünmesi için bekleme (ms). */
+const SCAN_GRACE_MS = 5200;
 
-export function BootScreen({ status, error, onFinished }: BootScreenProps) {
-  const phases = useMemo(() => buildBootPhases(status, error), [status, error]);
-  const closing = useMemo(() => buildClosingLines(status), [status]);
+/** Tarama sürerken gösterilen güvenlik ağı (kilitlenme önleyici). */
+void SCAN_GRACE_MS;
+
+export function BootScreen({ status, error, machine = null, onFinished }: BootScreenProps) {
+  const bridgeSettings = useSettingsStore((state) => state.settings.bridge);
+
+  /**
+   * Envanter.
+   *
+   * Normal akışta konsol tarafından taranır ve `machine` olarak gelir.
+   * Ekran doğrudan açılırsa (`?step=boot` gibi) ya da konsol atlanmışsa
+   * burada kendimiz tararız — böylece donanım satırları **her zaman** dolar.
+   */
+  const [fetched, setFetched] = useState<MachineInfo | null>(null);
+  const [scanning, setScanning] = useState(false);
+  /** Tarama bitti mi (başarılı ya da başarısız) — akış buna göre başlar */
+  const [scanDone, setScanDone] = useState(Boolean(machine));
+  const inventory = machine ?? fetched;
+
+  useEffect(() => {
+    // Envanter zaten verildiyse tarama yok
+    if (machine) {
+      setScanDone(true);
+      return undefined;
+    }
+    if (fetched || scanning) return undefined;
+    if (!bridgeSettings.enabled) {
+      setScanDone(true);
+      return undefined;
+    }
+
+    let cancelled = false;
+    setScanning(true);
+
+    void (async () => {
+      try {
+        const bridgeOptions = bridgeSettings.autoProbe
+          ? await resolveBridgeOptions({
+              url: bridgeSettings.url,
+              token: bridgeSettings.token || undefined,
+            })
+          : undefined;
+
+        const result = await probeMachine({
+          skipBridge: !bridgeSettings.autoProbe,
+          ...(bridgeOptions ?? {}),
+        });
+
+        if (!cancelled) setFetched(result);
+      } catch {
+        // Tarama başarısız olsa bile akış devam etmeli
+      } finally {
+        if (!cancelled) setScanDone(true);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [machine, bridgeSettings.enabled, bridgeSettings.autoProbe]);
+
+  const phases = useMemo(
+    () => buildBootPhases(status, error, inventory),
+    [status, error, inventory],
+  );
+  const closing = useMemo(
+    () => buildClosingLines(status, inventory),
+    [status, inventory],
+  );
 
   /** Kaç faz tamamen gösterildi. */
   const [revealedPhases, setRevealedPhases] = useState(0);
@@ -56,6 +132,9 @@ export function BootScreen({ status, error, onFinished }: BootScreenProps) {
 
   // Satır satır ilerleme
   useEffect(() => {
+    // Envanter taraması bitmeden akış başlamasın (donanım satırları boş kalmasın)
+    if (!scanDone) return undefined;
+
     const phase = phases[revealedPhases];
 
     if (!phase) {
@@ -80,7 +159,7 @@ export function BootScreen({ status, error, onFinished }: BootScreenProps) {
       setRevealedLines(0);
     }, PHASE_DELAY_MS);
     return () => window.clearTimeout(timer);
-  }, [phases, revealedPhases, revealedLines, showClosing, closing, closingLines]);
+  }, [phases, revealedPhases, revealedLines, showClosing, closing, closingLines, scanDone]);
 
   // Klavye ile atlama + Enter ile devam
   const finished = !phases[revealedPhases] && showClosing && closingLines >= closing.length;
@@ -99,6 +178,15 @@ export function BootScreen({ status, error, onFinished }: BootScreenProps) {
   return (
     <div className="boot" ref={scrollerRef} onClick={finished ? onFinished : undefined}>
       <pre className="boot__logo">{LOGO}</pre>
+
+      {!scanDone && (
+        <div className="boot__phase">
+          <div className="boot__phase-title">DONANIM</div>
+          <div className="boot__line boot__line--info">
+            Envanter taranıyor…<span className="boot__cursor" />
+          </div>
+        </div>
+      )}
 
       {phases.slice(0, revealedPhases + 1).map((phase, phaseIndex) => {
         const isCurrent = phaseIndex === revealedPhases;
@@ -139,11 +227,10 @@ export function BootScreen({ status, error, onFinished }: BootScreenProps) {
 
       {finished ? (
         <div className="boot__ready">
-          All systems operational. &gt; exec /desktop/main
+          Sistem hazır &gt; exec /desktop/main
           <span className="boot__cursor" />
           <div className="boot__hint">
-            Giriş yapmak için <strong>Tıkla</strong> veya <strong>Enter</strong> · (Faz 1: login + OTP
-            eklenecek)
+            Devam etmek için <strong>Tıkla</strong> veya <strong>Enter</strong>
           </div>
         </div>
       ) : (

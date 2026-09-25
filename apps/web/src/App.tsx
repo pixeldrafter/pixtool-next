@@ -16,6 +16,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { BootScreen } from "./boot/BootScreen";
 import { ConsoleScreen } from "./console";
+import { probeMachine, type MachineInfo } from "./console/probe";
+import { resolveBridgeOptions } from "./console/bridge";
 import { CursorLayer } from "./cursor";
 import { Desktop } from "./desktop/Desktop";
 import { IdleScreen, useIdle } from "./idle";
@@ -101,6 +103,15 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [session, setSession] = useState<LoginSession | null>(null);
   const [reportSaved, setReportSaved] = useState<boolean | null>(null);
+  /**
+   * Makine envanteri — **bir kez** taranır, konsol ve boot ekranı paylaşır.
+   *
+   * Neden App'te? Köprü toplaması ~5 sn sürer; iki ekranda ayrı ayrı
+   * taramak hem gecikmeyi ikiye katlar hem de sayfa yenilendiğinde
+   * (derin bağlantı) donanım satırlarını boş bırakırdı.
+   */
+  const [machine, setMachine] = useState<MachineInfo | null>(null);
+  const machineRequested = useRef(false);
 
   const abortRef = useRef<AbortController | null>(null);
 
@@ -126,6 +137,36 @@ export default function App() {
   useEffect(() => {
     setStepIndex((index) => Math.min(index, Math.max(activeSteps.length - 1, 0)));
   }, [activeSteps.length]);
+
+  // ------------------------------------------------------------------
+  //  Makine envanteri — konsol/boot adımına gelindiğinde bir kez tara
+  // ------------------------------------------------------------------
+  useEffect(() => {
+    const needsInventory = currentStep === "console" || currentStep === "boot";
+    if (!needsInventory || machine || machineRequested.current) return;
+    if (!settings.bridge.enabled) return;
+
+    machineRequested.current = true;
+
+    void (async () => {
+      try {
+        const bridgeOptions = settings.bridge.autoProbe
+          ? await resolveBridgeOptions({
+              url: settings.bridge.url,
+              token: settings.bridge.token || undefined,
+            })
+          : undefined;
+
+        const result = await probeMachine({
+          skipBridge: !settings.bridge.autoProbe,
+          ...(bridgeOptions ?? {}),
+        });
+        setMachine(result);
+      } catch {
+        // Tarama başarısız olsa bile akış devam etmeli
+      }
+    })();
+  }, [currentStep, machine, settings.bridge]);
 
   // ------------------------------------------------------------------
   //  GELİŞTİRME ARACI: ?step=desktop → doğrudan o adıma atla
@@ -222,6 +263,8 @@ export default function App() {
         return (
           <ConsoleScreen
             token={session?.token}
+            machine={machine}
+            onMachine={setMachine}
             onFinished={({ saved }) => {
               setReportSaved(saved);
               goNext();
@@ -230,7 +273,14 @@ export default function App() {
         );
 
       case "boot":
-        return <BootScreen status={status} error={error} onFinished={goNext} />;
+        return (
+          <BootScreen
+            status={status}
+            error={error}
+            machine={machine}
+            onFinished={goNext}
+          />
+        );
 
       case "desktop":
       default:

@@ -230,17 +230,29 @@ const EXPECTED = [
       (() => {
         const KEY = 'pixtool.settings';
         const raw = localStorage.getItem(KEY);
-        const state = raw ? JSON.parse(raw) : { state: { settings: {}, migrated: false }, version: 1 };
-        if (!state.state) state.state = {};
-        if (!state.state.settings) state.state.settings = {};
-        state.state.settings.bridge = {
+        const bridge = {
           enabled: true,
           url: ${JSON.stringify(BRIDGE_URL)},
           token: ${JSON.stringify(TOKEN)},
           autoProbe: true,
           allowRun: false
         };
-        localStorage.setItem(KEY, JSON.stringify(state));
+
+        if (!raw) {
+          // Depo ilk yuklemede yazmamis olabilir — sifirdan olustur.
+          // Zustand persist bicimi: { state: {...}, version: N }
+          localStorage.setItem(KEY, JSON.stringify({
+            state: { settings: { bridge }, migrated: true },
+            version: 2
+          }));
+        } else {
+          const state = JSON.parse(raw);
+          if (!state.state) state.state = {};
+          if (!state.state.settings) state.state.settings = {};
+          state.state.settings.bridge = bridge;
+          localStorage.setItem(KEY, JSON.stringify(state));
+        }
+
         const check = JSON.parse(localStorage.getItem(KEY));
         return check.state.settings.bridge.url;
       })()

@@ -27,17 +27,26 @@ interface ConsoleScreenProps {
   onFinished: (result: { saved: boolean }) => void;
   /** Oturum tokenı — rapor kaydında kullanılır */
   token?: string;
+  /** Dışarıdan verilen envanter (varsa yeniden taranmaz) */
+  machine?: MachineInfo | null;
+  /** Tarama tamamlanınca üst bileşene bildir (boot ekranı paylaşır) */
+  onMachine?: (info: MachineInfo) => void;
 }
 
 const LINE_DELAY_MS = 42;
 const SECTION_DELAY_MS = 150;
 
-export function ConsoleScreen({ onFinished, token }: ConsoleScreenProps) {
+export function ConsoleScreen({
+  onFinished,
+  token,
+  machine: provided = null,
+  onMachine,
+}: ConsoleScreenProps) {
   const verbosity = useSettingsStore((state) => state.settings.flow.consoleVerbosity);
   const askSaveReport = useSettingsStore((state) => state.settings.flow.askSaveReport);
   const bridgeSettings = useSettingsStore((state) => state.settings.bridge);
 
-  const [info, setInfo] = useState<MachineInfo | null>(null);
+  const [info, setInfo] = useState<MachineInfo | null>(provided);
   const [revealed, setRevealed] = useState(0);
   const [asking, setAsking] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -59,6 +68,13 @@ export function ConsoleScreen({ onFinished, token }: ConsoleScreenProps) {
 
   // Makine bilgisi topla (yerel köprü dahil)
   useEffect(() => {
+    // Üst bileşen zaten taradıysa yeniden tarama
+    if (provided) {
+      setInfo(provided);
+      setStage("envanter hazır");
+      return undefined;
+    }
+
     let cancelled = false;
     const useBridge = bridgeSettings.enabled && bridgeSettings.autoProbe;
 
@@ -96,6 +112,7 @@ export function ConsoleScreen({ onFinished, token }: ConsoleScreenProps) {
       if (!cancelled) {
         setStage("envanter hazır");
         setInfo(result);
+        onMachine?.(result);
       }
     })();
 
