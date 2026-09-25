@@ -128,7 +128,7 @@ scripts_library/
 .tauri-keys/
 icons/
 revize.md
-"güncel hal.png"
+güncel hal.png
 services/n8n/check-executions.sh
 services/n8n/e2e-test.sh
 services/n8n/find-webhook-secret.sh
