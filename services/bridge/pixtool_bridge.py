@@ -50,6 +50,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 from urllib.error import URLError
+from urllib.parse import parse_qs, quote
 from urllib.request import Request, urlopen
 
 VERSION = "1.0.0"
@@ -1063,6 +1064,469 @@ def device_fingerprint() -> str:
 # ======================================================================
 #  HTTP sunucusu
 # ======================================================================
+# ---------------- Dosya sistemi ----------------
+
+#: Onay olmadan silinemeyecek kritik yollar (kök, sürücü kökleri, sistem dizinleri).
+_FS_PROTECTED = {
+    "/",
+    "c:\\",
+    "c:\\windows",
+    "c:\\program files",
+    "c:\\program files (x86)",
+    "c:\\programdata",
+    "/etc",
+    "/usr",
+    "/bin",
+    "/sbin",
+    "/var",
+    "/boot",
+    "/dev",
+    "/proc",
+    "/sys",
+}
+
+#: Metin okuma üst sınırı (bayt).
+_FS_READ_LIMIT = 512 * 1024
+
+#: Yükleme üst sınırı (bayt).
+_FS_UPLOAD_LIMIT = 32 * 1024 * 1024
+
+
+class FsError(Exception):
+    """Dosya sistemi işlemi hatası (kullanıcıya gösterilebilir mesaj taşır)."""
+
+    def __init__(self, message: str, code: int = 400) -> None:
+        super().__init__(message)
+        self.message = message
+        self.code = code
+
+
+def _fs_norm(raw: str) -> Path:
+    """Ham yolu mutlaklaştırır, `~` ve ortam değişkenlerini genişletir."""
+    text = (raw or "").strip()
+    if not text:
+        text = str(Path.home())
+    text = os.path.expandvars(os.path.expanduser(text))
+    try:
+        return Path(text).expanduser().resolve()
+    except (OSError, RuntimeError, ValueError) as exc:
+        raise FsError(f"Geçersiz yol: {exc}") from exc
+
+
+def _fs_is_protected(path: Path) -> bool:
+    """Kritik bir yol mu?"""
+    text = str(path).rstrip("\\/").lower()
+    return text in _FS_PROTECTED
+
+
+def _fs_locations() -> list[dict[str, Any]]:
+    """Hızlı erişim konumları: ev, masaüstü, belgeler, indirilenler ve sürücüler."""
+    home = Path.home()
+    candidates = [
+        ("Ev dizini", home),
+        ("Masaüstü", home / "Desktop"),
+        ("Belgeler", home / "Documents"),
+        ("İndirilenler", home / "Downloads"),
+        ("Resimler", home / "Pictures"),
+        ("Müzik", home / "Music"),
+        ("Videolar", home / "Videos"),
+    ]
+
+    locations: list[dict[str, Any]] = []
+    for label, path in candidates:
+        if path.is_dir():
+            locations.append({"label": label, "path": str(path)})
+
+    # Sürücüler / bağlama noktaları
+    if IS_WINDOWS:
+        for letter in "ABCDEFGHIJKLMNOPQRSTUVWXYZ":
+            root = Path(f"{letter}:\\")
+            if root.exists():
+                locations.append({"label": f"{letter}:", "path": f"{letter}:\\"})
+    else:
+        for base in ("/", str(home)):
+            try:
+                for entry in sorted(Path(base).iterdir()):
+                    if entry.is_dir() and entry.parent == Path(base) and base == "/":
+                        if entry.name in {"proc", "sys", "dev", "run"}:
+                            continue
+                        locations.append({"label": entry.name, "path": str(entry)})
+            except OSError:
+                continue
+
+    # Tekrarları kaldır
+    seen: set[str] = set()
+    unique: list[dict[str, Any]] = []
+    for item in locations:
+        key = item["path"].lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(item)
+    return unique
+
+
+def _fs_entry(path: Path, *, full: bool = True) -> dict[str, Any]:
+    """Bir dosya/dizin için liste öğesi üretir."""
+    try:
+        stat = path.stat()
+    except OSError as exc:
+        raise FsError(f"Erişilemedi: {path.name} ({exc.strerror or exc})", 403) from exc
+
+    is_dir = path.is_dir()
+    entry: dict[str, Any] = {
+        "name": path.name or str(path),
+        "path": str(path) if full else path.name,
+        "is_dir": is_dir,
+        "size_bytes": 0 if is_dir else stat.st_size,
+        "size": "—" if is_dir else _human_bytes(stat.st_size),
+        "modified": datetime.fromtimestamp(stat.st_mtime, UTC).isoformat(),
+        "modified_ts": stat.st_mtime,
+        "extension": "" if is_dir else path.suffix.lower().lstrip("."),
+        "readonly": not os.access(path, os.W_OK),
+    }
+    return entry
+
+
+def _fs_list(raw: str) -> dict[str, Any]:
+    """Dizin içeriğini listeler (dizinler önce, sonra ada göre)."""
+    target = _fs_norm(raw)
+    if not target.exists():
+        raise FsError(f"Yol bulunamadı: {target}", 404)
+    if not target.is_dir():
+        raise FsError(f"Dizin değil: {target}")
+
+    try:
+        children = list(target.iterdir())
+    except PermissionError as exc:
+        raise FsError(f"Bu dizine erişim reddedildi: {target}", 403) from exc
+    except OSError as exc:
+        raise FsError(f"Dizin okunamadı: {exc}") from exc
+
+    entries: list[dict[str, Any]] = []
+    for child in children:
+        try:
+            entries.append(_fs_entry(child))
+        except FsError:
+            continue  # erişilemeyen girdiyi atla, listeyi bozmayalım
+
+    entries.sort(key=lambda item: (not item["is_dir"], str(item["name"]).lower()))
+
+    parent = None
+    if target.parent != target:
+        parent = str(target.parent)
+
+    return {
+        "ok": True,
+        "path": str(target),
+        "parent": parent,
+        "name": target.name or str(target),
+        "count": len(entries),
+        "entries": entries,
+        "writable": os.access(target, os.W_OK),
+    }
+
+
+def _fs_read_text(raw: str, limit: int = _FS_READ_LIMIT) -> dict[str, Any]:
+    """Metin dosyası içeriğini okur (boyut sınırlı, ikili algılanırsa reddeder)."""
+    target = _fs_norm(raw)
+    if not target.exists():
+        raise FsError(f"Dosya bulunamadı: {target}", 404)
+    if target.is_dir():
+        raise FsError("Bu bir dizin — dosya değil.")
+
+    size = target.stat().st_size
+    if size > limit:
+        raise FsError(
+            f"Dosya çok büyük ({_human_bytes(size)}) — düzenleyici sınırı {_human_bytes(limit)}.",
+            413,
+        )
+
+    data = target.read_bytes()
+    if b"\x00" in data[:4096]:
+        raise FsError("İkili dosya — metin düzenleyici ile açılamaz.", 415)
+
+    for encoding in ("utf-8", "utf-8-sig", "cp1254", "latin-1"):
+        try:
+            content = data.decode(encoding)
+            break
+        except UnicodeDecodeError:
+            continue
+    else:
+        raise FsError("Kodlama çözümlenemedi.")
+
+    return {
+        "ok": True,
+        "path": str(target),
+        "name": target.name,
+        "size_bytes": size,
+        "size": _human_bytes(size),
+        "encoding": encoding,
+        "content": content,
+        "readonly": not os.access(target, os.W_OK),
+    }
+
+
+def _fs_write_text(raw: str, content: str) -> dict[str, Any]:
+    """Metni dosyaya yazar (yoksa oluşturur)."""
+    target = _fs_norm(raw)
+    if target.is_dir():
+        raise FsError("Hedef bir dizin — dosya adı verin.")
+    if _fs_is_protected(target):
+        raise FsError("Kritik yola yazılamaz.", 403)
+
+    try:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(content, encoding="utf-8", newline="")
+    except PermissionError as exc:
+        raise FsError(f"Yazma izni yok: {target}", 403) from exc
+    except OSError as exc:
+        raise FsError(f"Yazılamadı: {exc}") from exc
+
+    return {
+        "ok": True,
+        "path": str(target),
+        "size": _human_bytes(target.stat().st_size),
+        "message": "Kaydedildi.",
+    }
+
+
+def _fs_mkdir(raw: str, name: str = "Yeni klasör") -> dict[str, Any]:
+    """Dizin içinde yeni klasör oluşturur (ad çakışırsa numaralandırır)."""
+    base = _fs_norm(raw)
+    if base.exists() and not base.is_dir():
+        raise FsError("Ana dizin geçersiz.")
+
+    clean = (name or "Yeni klasör").strip().strip("\\/") or "Yeni klasör"
+    target = base / clean
+    counter = 1
+    while target.exists():
+        target = base / f"{clean} ({counter})"
+        counter += 1
+
+    try:
+        target.mkdir(parents=True)
+    except OSError as exc:
+        raise FsError(f"Klasör oluşturulamadı: {exc}") from exc
+
+    return {"ok": True, "path": str(target), "entry": _fs_entry(target), "message": "Klasör oluşturuldu."}
+
+
+def _fs_rename(raw: str, name: str) -> dict[str, Any]:
+    """Dosya/dizini yeniden adlandırır (taşımaz)."""
+    source = _fs_norm(raw)
+    if not source.exists():
+        raise FsError(f"Bulunamadı: {source}", 404)
+
+    clean = (name or "").strip().strip("\\/")
+    if not clean:
+        raise FsError("Yeni ad boş olamaz.")
+    if any(ch in clean for ch in '<>:"|?*' if IS_WINDOWS and ch != ":"):
+        raise FsError("Ad geçersiz karakter içeriyor.")
+
+    target = source.parent / clean
+    if target == source:
+        return {"ok": True, "path": str(source), "message": "Ad değişmedi."}
+    if target.exists():
+        raise FsError("Bu adda bir öğe zaten var.", 409)
+
+    try:
+        source.rename(target)
+    except OSError as exc:
+        raise FsError(f"Yeniden adlandırılamadı: {exc}") from exc
+
+    return {"ok": True, "path": str(target), "entry": _fs_entry(target), "message": "Yeniden adlandırıldı."}
+
+
+def _fs_move(sources: list[str], destination: str) -> dict[str, Any]:
+    """Öğeleri hedef dizine taşır (sürükle-bırak)."""
+    dest = _fs_norm(destination)
+    if not dest.is_dir():
+        raise FsError("Hedef dizin değil.")
+
+    moved: list[str] = []
+    errors: list[str] = []
+
+    for raw in sources or []:
+        try:
+            source = _fs_norm(raw)
+            if not source.exists():
+                errors.append(f"{source.name}: bulunamadı")
+                continue
+            if source == dest:
+                errors.append(f"{source.name}: kaynak ve hedef aynı")
+                continue
+            if source.is_dir() and source in dest.parents:
+                errors.append(f"{source.name}: hedef kendi alt dizini")
+                continue
+            if _fs_is_protected(source):
+                errors.append(f"{source.name}: kritik yol")
+                continue
+
+            target = dest / source.name
+            counter = 1
+            while target.exists():
+                stem, suffix = source.stem, source.suffix
+                target = dest / f"{stem} ({counter}){suffix}"
+                counter += 1
+
+            shutil.move(str(source), str(target))
+            moved.append(str(target))
+        except (OSError, shutil.Error) as exc:
+            errors.append(f"{Path(raw).name}: {exc}")
+
+    return {
+        "ok": bool(moved),
+        "moved": moved,
+        "errors": errors,
+        "message": f"{len(moved)} öğe taşındı" + (f", {len(errors)} hata" if errors else ""),
+    }
+
+
+def _fs_trash(paths: list[str]) -> dict[str, Any]:
+    """Öğeleri geri dönüşüm kutusuna taşır (Windows: çöp kutusu, Linux: XDG Trash)."""
+    trashed: list[str] = []
+    errors: list[str] = []
+
+    for raw in paths or []:
+        try:
+            target = _fs_norm(raw)
+            if not target.exists():
+                errors.append(f"{target.name}: bulunamadı")
+                continue
+            if _fs_is_protected(target):
+                errors.append(f"{target.name}: kritik yol korunuyor")
+                continue
+
+            if IS_WINDOWS:
+                escaped = str(target).replace("'", "''")
+                script = (
+                    "Add-Type -AssemblyName Microsoft.VisualBasic; "
+                    "[Microsoft.VisualBasic.FileIO.FileSystem]::DeleteFile("
+                    f"'{escaped}','OnlyErrorDialogs','SendToRecycleBin')"
+                    if target.is_file()
+                    else "Add-Type -AssemblyName Microsoft.VisualBasic; "
+                    "[Microsoft.VisualBasic.FileIO.FileSystem]::DeleteDirectory("
+                    f"'{escaped}','OnlyErrorDialogs','SendToRecycleBin')"
+                )
+                _powershell(script, timeout=30)
+            else:
+                trash = Path.home() / ".local" / "share" / "Trash" / "files"
+                trash.mkdir(parents=True, exist_ok=True)
+                dest = trash / target.name
+                counter = 1
+                while dest.exists():
+                    dest = trash / f"{target.name}.{counter}"
+                    counter += 1
+                shutil.move(str(target), str(dest))
+
+            trashed.append(str(target))
+        except Exception as exc:  # noqa: BLE001 — PowerShell çeşitli hatalar atabilir
+            errors.append(f"{Path(raw).name}: {exc}")
+
+    return {
+        "ok": bool(trashed),
+        "trashed": trashed,
+        "errors": errors,
+        "message": f"{len(trashed)} öğe geri dönüşüm kutusuna taşındı"
+        + (f", {len(errors)} hata" if errors else ""),
+    }
+
+
+def _fs_delete(paths: list[str], confirm: bool = False) -> dict[str, Any]:
+    """Öğeleri kalıcı olarak siler. `confirm` olmadan reddedilir."""
+    if not confirm:
+        raise FsError("Kalıcı silme için onay gerekli (confirm: true).", 428)
+
+    deleted: list[str] = []
+    errors: list[str] = []
+
+    for raw in paths or []:
+        try:
+            target = _fs_norm(raw)
+            if not target.exists():
+                errors.append(f"{target.name}: bulunamadı")
+                continue
+            if _fs_is_protected(target):
+                errors.append(f"{target.name}: kritik yol silinemez")
+                continue
+
+            if target.is_dir():
+                shutil.rmtree(target)
+            else:
+                target.unlink()
+            deleted.append(str(target))
+        except OSError as exc:
+            errors.append(f"{Path(raw).name}: {exc}")
+
+    return {
+        "ok": bool(deleted),
+        "deleted": deleted,
+        "errors": errors,
+        "message": f"{len(deleted)} öğe silindi" + (f", {len(errors)} hata" if errors else ""),
+    }
+
+
+def _fs_upload(raw_dir: str, name: str, data_b64: str) -> dict[str, Any]:
+    """base64 gövdesini hedef dizine dosya olarak yazar."""
+    base = _fs_norm(raw_dir)
+    if not base.is_dir():
+        raise FsError("Hedef dizin geçersiz.")
+
+    clean = (name or "yuklenen.bin").strip().strip("\\/")
+    if not clean:
+        raise FsError("Dosya adı boş.")
+
+    try:
+        payload = base64.b64decode(data_b64 or "", validate=False)
+    except (ValueError, TypeError) as exc:
+        raise FsError(f"base64 çözümlenemedi: {exc}") from exc
+
+    if len(payload) > _FS_UPLOAD_LIMIT:
+        raise FsError(f"Dosya çok büyük (sınır {_human_bytes(_FS_UPLOAD_LIMIT)}).", 413)
+
+    target = base / clean
+    counter = 1
+    while target.exists():
+        target = base / f"{Path(clean).stem} ({counter}){Path(clean).suffix}"
+        counter += 1
+
+    try:
+        target.write_bytes(payload)
+    except OSError as exc:
+        raise FsError(f"Yazılamadı: {exc}") from exc
+
+    return {
+        "ok": True,
+        "path": str(target),
+        "size": _human_bytes(len(payload)),
+        "entry": _fs_entry(target),
+        "message": "Yüklendi.",
+    }
+
+
+def _fs_download(raw: str) -> tuple[bytes, str, str]:
+    """Dosya baytlarını okur → (içerik, dosya adı, MIME)."""
+    target = _fs_norm(raw)
+    if not target.exists():
+        raise FsError(f"Dosya bulunamadı: {target}", 404)
+    if target.is_dir():
+        raise FsError("Dizin indirilemez.")
+
+    try:
+        data = target.read_bytes()
+    except OSError as exc:
+        raise FsError(f"Okunamadı: {exc}") from exc
+
+    mime = "application/octet-stream"
+    if target.suffix.lower() in {".txt", ".md", ".log", ".json", ".csv", ".xml", ".ini", ".yml", ".yaml"}:
+        mime = "text/plain; charset=utf-8"
+    elif target.suffix.lower() in {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp"}:
+        mime = f"image/{target.suffix.lower().lstrip('.')}"
+
+    return data, target.name, mime
+
+
 class BridgeHandler(BaseHTTPRequestHandler):
     """Köprü HTTP işleyicisi."""
 
@@ -1151,6 +1615,131 @@ class BridgeHandler(BaseHTTPRequestHandler):
         else:
             self._send(200, {"ok": False, "error": "Tarayıcı açılamadı."})
 
+    # ---------------- Dosya sistemi ----------------
+    def _read_json(self, max_bytes: int = 64 * 1024 * 1024) -> dict[str, Any] | None:
+        """İstek gövdesini JSON olarak okur; başarısızsa `None`."""
+        length = int(self.headers.get("Content-Length", "0") or 0)
+        if length <= 0 or length > max_bytes:
+            self._send(400, {"ok": False, "error": "Geçersiz istek gövdesi."})
+            return None
+        try:
+            payload = json.loads(self.rfile.read(length).decode("utf-8"))
+        except (ValueError, UnicodeDecodeError):
+            self._send(400, {"ok": False, "error": "JSON çözümlenemedi."})
+            return None
+        return payload if isinstance(payload, dict) else None
+
+    def _send_bytes(self, data: bytes, filename: str, mime: str) -> None:
+        """Ham bayt gövdesi indirme başlıklarıyla gönderir."""
+        self.send_response(200)
+        self.send_header("Content-Type", mime)
+        self.send_header("Content-Length", str(len(data)))
+        self.send_header("Cache-Control", "no-store")
+        self.send_header(
+            "Content-Disposition",
+            f"attachment; filename*=UTF-8''{quote(filename)}",
+        )
+        for key, value in self._cors_headers().items():
+            self.send_header(key, value)
+        self.end_headers()
+        self.wfile.write(data)
+
+    def _handle_fs_get(self, path: str, query: str) -> None:
+        """`GET /fs/*` — listeleme, okuma, indirme, konumlar."""
+        if not self._authorized():
+            self._send(401, {"ok": False, "error": "Yetkisiz — X-Pixtool-Token gerekli."})
+            return
+
+        params = parse_qs(query)
+        target = (params.get("path") or [""])[0]
+
+        try:
+            if path == "/fs/locations":
+                self._send(200, {"ok": True, "locations": _fs_locations(), "home": str(Path.home())})
+                return
+
+            if path == "/fs/list":
+                self._send(200, _fs_list(target))
+                return
+
+            if path == "/fs/read":
+                self._send(200, _fs_read_text(target))
+                return
+
+            if path == "/fs/download":
+                data, filename, mime = _fs_download(target)
+                self._send_bytes(data, filename, mime)
+                return
+
+            self._send(404, {"ok": False, "error": f"Bilinmeyen dosya uç: {path}"})
+        except FsError as exc:
+            self._send(exc.code, {"ok": False, "error": exc.message})
+        except Exception as exc:  # noqa: BLE001 — köprü asla çökmemeli
+            self._send(500, {"ok": False, "error": f"Beklenmeyen hata: {exc}"})
+
+    def _handle_fs_post(self, path: str) -> None:
+        """`POST /fs/*` — yazma, oluşturma, taşıma, silme, yükleme."""
+        if not self._authorized():
+            self._send(401, {"ok": False, "error": "Yetkisiz — X-Pixtool-Token gerekli."})
+            return
+
+        payload = self._read_json()
+        if payload is None:
+            return
+
+        try:
+            if path == "/fs/write":
+                self._send(200, _fs_write_text(str(payload.get("path") or ""), str(payload.get("content") or "")))
+                return
+
+            if path == "/fs/mkdir":
+                self._send(200, _fs_mkdir(str(payload.get("path") or ""), str(payload.get("name") or "Yeni klasör")))
+                return
+
+            if path == "/fs/rename":
+                self._send(200, _fs_rename(str(payload.get("path") or ""), str(payload.get("name") or "")))
+                return
+
+            if path == "/fs/move":
+                sources = payload.get("sources") or []
+                if not isinstance(sources, list):
+                    raise FsError("`sources` liste olmalı.")
+                self._send(200, _fs_move([str(item) for item in sources], str(payload.get("destination") or "")))
+                return
+
+            if path == "/fs/trash":
+                items = payload.get("paths") or []
+                self._send(200, _fs_trash([str(item) for item in (items if isinstance(items, list) else [])]))
+                return
+
+            if path == "/fs/delete":
+                items = payload.get("paths") or []
+                self._send(
+                    200,
+                    _fs_delete(
+                        [str(item) for item in (items if isinstance(items, list) else [])],
+                        bool(payload.get("confirm")),
+                    ),
+                )
+                return
+
+            if path == "/fs/upload":
+                self._send(
+                    200,
+                    _fs_upload(
+                        str(payload.get("path") or ""),
+                        str(payload.get("name") or "yuklenen.bin"),
+                        str(payload.get("data") or ""),
+                    ),
+                )
+                return
+
+            self._send(404, {"ok": False, "error": f"Bilinmeyen dosya uç: {path}"})
+        except FsError as exc:
+            self._send(exc.code, {"ok": False, "error": exc.message})
+        except Exception as exc:  # noqa: BLE001
+            self._send(500, {"ok": False, "error": f"Beklenmeyen hata: {exc}"})
+
     # ---------------- HTTP metotları ----------------
     def do_OPTIONS(self) -> None:  # noqa: N802
         """CORS + PNA ön kontrolü."""
@@ -1186,7 +1775,23 @@ class BridgeHandler(BaseHTTPRequestHandler):
                     "ok": True,
                     "service": "Pixtool Bridge",
                     "version": VERSION,
-                    "endpoints": ["/health", "/info", "/run"],
+                    "endpoints": [
+                        "/health",
+                        "/info",
+                        "/run",
+                        "/open",
+                        "/fs/locations",
+                        "/fs/list",
+                        "/fs/read",
+                        "/fs/write",
+                        "/fs/mkdir",
+                        "/fs/rename",
+                        "/fs/move",
+                        "/fs/trash",
+                        "/fs/delete",
+                        "/fs/upload",
+                        "/fs/download",
+                    ],
                     "hint": "Bu yerel köprüdür; arayüz /info ile makine bilgisini alır.",
                 },
             )
@@ -1206,6 +1811,11 @@ class BridgeHandler(BaseHTTPRequestHandler):
             self._send(200, payload)
             return
 
+        if path.startswith("/fs/"):
+            query = self.path.split("?", 1)[1] if "?" in self.path else ""
+            self._handle_fs_get(path, query)
+            return
+
         self._send(404, {"ok": False, "error": f"Bilinmeyen uç: {path}"})
 
     def do_POST(self) -> None:  # noqa: N802
@@ -1213,6 +1823,10 @@ class BridgeHandler(BaseHTTPRequestHandler):
 
         if path == "/open":
             self._handle_open()
+            return
+
+        if path.startswith("/fs/"):
+            self._handle_fs_post(path)
             return
 
         if path != "/run":
