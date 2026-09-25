@@ -1,0 +1,188 @@
+/* Genel Bakış — ölçerler, künye, disk çubukları */
+
+.ov__gauges {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
+  gap: 9px;
+  margin-bottom: 10px;
+}
+
+.ov__gauge {
+  padding: 9px 11px;
+  border: 1px solid var(--border-weak);
+  border-radius: 7px;
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.ov__gauge-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.ov__gauge-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.ov__gauge-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.ov__gauge-track {
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.ov__gauge-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--accent, #4cc2ff);
+  transition: width 0.4s ease;
+}
+
+.ov__gauge.is-ok .ov__gauge-fill {
+  background: linear-gradient(90deg, #2f9e5e, #4ad97a);
+}
+
+.ov__gauge.is-warn .ov__gauge-fill {
+  background: linear-gradient(90deg, #b8860b, #ffb347);
+}
+
+.ov__gauge.is-danger .ov__gauge-fill {
+  background: linear-gradient(90deg, #a52a1f, #ff6b6b);
+}
+
+.ov__gauge.is-muted .ov__gauge-value {
+  color: var(--text-muted);
+}
+
+.ov__gauge-detail {
+  margin-top: 5px;
+  font-size: 10.5px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --- Künye --- */
+.ov__facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(126px, 1fr));
+  gap: 2px 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-weak);
+  border-radius: 7px;
+  background: rgba(0, 0, 0, 0.16);
+}
+
+.ov__fact {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 3px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.045);
+}
+
+.ov__fact-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.ov__fact-value {
+  font-size: 11.5px;
+  color: var(--text-primary);
+  font-family: ui-monospace, Consolas, monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 55%;
+  text-align: right;
+}
+
+/* --- Etiketler --- */
+.ov__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 8px;
+}
+
+.ov__chip {
+  padding: 4px 9px;
+  border: 1px solid var(--border-weak);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+/* --- Disk çubukları --- */
+.ov__bars {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 9px;
+}
+
+.ov__disk {
+  display: grid;
+  grid-template-columns: 122px 1fr 40px auto;
+  align-items: center;
+  gap: 9px;
+  font-size: 11px;
+}
+
+.ov__disk-label {
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ov__disk-track {
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.ov__disk-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #2f9e5e, #4ad97a);
+  transition: width 0.4s ease;
+}
+
+.ov__disk.is-warn .ov__disk-fill {
+  background: linear-gradient(90deg, #b8860b, #ffb347);
+}
+
+.ov__disk.is-danger .ov__disk-fill {
+  background: linear-gradient(90deg, #a52a1f, #ff6b6b);
+}
+
+.ov__disk-value {
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.ov__disk-detail {
+  color: var(--text-muted);
+  font-family: ui-monospace, Consolas, monospace;
+  white-space: nowrap;
+}
