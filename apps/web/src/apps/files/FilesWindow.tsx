@@ -750,13 +750,18 @@ export function FilesWindow() {
       </div>
 
       {/* --- Uyarılar --- */}
-      {unavailable && <BridgeHelpBox bridgeUrl={settings.bridge.url} />}
+      {/* Tek bir yonlendirme kutusu: kopru yoksa BridgeHelpBox, diger hatalarda mesaj */}
+      {unavailable || (error && /köprü/i.test(error)) ? (
+        <BridgeHelpBox bridgeUrl={settings.bridge.url} />
+      ) : (
+        error && <div className="app-msg app-msg--error">{error}</div>
+      )}
       {remoteReadOnly && (
         <div className="app-msg app-msg--info">
           Uzak sunucu <strong>salt okunur</strong> listelenir (SFTP). Düzenleme için yerel makineyi kullanın.
         </div>
       )}
-      {error && <div className="app-msg app-msg--error">{error}</div>}
+
 
       {/* --- Gövde --- */}
       <div className="files__body">
