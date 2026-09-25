@@ -14,9 +14,10 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.core.config import settings
+from app.core.deps import require_admin
 from app.models.remote import (
     RemoteInfoResponse,
     SftpListRequest,
@@ -29,7 +30,11 @@ from app.services import ssh_service
 
 logger = logging.getLogger("pixtool.remote")
 
-router = APIRouter(prefix="/api/v1/remote", tags=["uzak erişim"])
+router = APIRouter(
+    prefix="/api/v1/remote",
+    tags=["uzak erişim"],
+    dependencies=[Depends(require_admin)],
+)
 
 
 @router.get("/status")

@@ -5,7 +5,7 @@
  * NocoDB panelinden yapılır.
  */
 
-import { API_BASE } from "./apiBase";
+import { API_BASE, authHeaders } from "./apiBase";
 
 /** Tek bir NocoDB tablosu. */
 export interface DatabaseTable {
@@ -26,7 +26,7 @@ export interface TableRecords {
 async function getJson<T>(path: string, signal?: AbortSignal): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
     method: "GET",
-    headers: { Accept: "application/json" },
+    headers: { Accept: "application/json", ...authHeaders() },
     signal,
   });
 

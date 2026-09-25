@@ -12,14 +12,19 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.core.config import settings
+from app.core.deps import require_admin
 from app.integrations.nocodb import NocoDBClient, get_nocodb_client
 
 logger = logging.getLogger("pixtool.database")
 
-router = APIRouter(prefix="/api/v1/database", tags=["veritabanı"])
+router = APIRouter(
+    prefix="/api/v1/database",
+    tags=["veritabanı"],
+    dependencies=[Depends(require_admin)],
+)
 
 
 @router.get("/tables")

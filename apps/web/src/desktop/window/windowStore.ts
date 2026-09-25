@@ -21,6 +21,7 @@ export type WindowApp =
   | "games"
   | "browser"
   | "notes"
+  | "backups"
   | "status"
   | "settings"
   | "about";
@@ -58,6 +59,7 @@ export const APP_DEFINITIONS: Record<
   games: { title: "Oyunlar", icon: "🎮", width: 760, height: 640 },
   browser: { title: "Tarayıcı", icon: "🌐", width: 1180, height: 780 },
   notes: { title: "Yapışkan Notlar", icon: "🗒️", width: 720, height: 560 },
+  backups: { title: "Snapshot", icon: "🗃️", width: 880, height: 620 },
   status: { title: "Sistem Durumu", icon: "🖥️", width: 960, height: 640 },
   settings: { title: "Ayarlar", icon: "⚙️", width: 920, height: 680 },
   about: { title: "Pixtool Hakkında", icon: "ℹ️", width: 640, height: 560 },

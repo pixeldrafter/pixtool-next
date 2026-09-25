@@ -1,11 +1,16 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
-  "identifier": "default",
-  "description": "Pixtool Next masa\u00fcst\u00fc kabu\u011fu yetkileri",
+  "identifier": "remote",
+  "description": "Sunucudan yüklenen arayüz (uzak origin) yetkileri — kabuk komut çalıştırma izni HARİÇ",
   "windows": [
     "main"
   ],
-  "local": true,
+  "local": false,
+  "remote": {
+    "urls": [
+      "https://pixtool.omercataloglu.com"
+    ]
+  },
   "permissions": [
     "core:default",
     "core:window:allow-start-dragging",
@@ -19,10 +24,6 @@
     "core:window:allow-is-fullscreen",
     "core:window:allow-set-title",
     "core:webview:allow-internal-toggle-devtools",
-    "shell:allow-execute",
-    "shell:allow-spawn",
-    "shell:allow-kill",
-    "shell:allow-stdin-write",
     "opener:default",
     "updater:default",
     "process:default",

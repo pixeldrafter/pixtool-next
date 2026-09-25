@@ -14,9 +14,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { SystemIcon, type SystemIconName } from "../icons";
 import { useSettings } from "../settings";
+import { useAccessStore } from "../lib/accessStore";
+import { useSharesStore } from "../shares/sharesStore";
+import type { ShareRecord } from "../lib/shareApi";
 import { ContextMenu, type MenuItem } from "./ContextMenu";
 import { IconPicker } from "./IconPicker";
-import { snap, useItemsStore, type DesktopItem } from "./itemsStore";
+import { ShareDialog } from "./ShareDialog";
+import { useItemsStore, type DesktopItem } from "./itemsStore";
 import { useWindowManager, type WindowApp } from "./window/windowStore";
 import "./DesktopItems.css";
 
@@ -31,6 +35,7 @@ const APP_SHORTCUTS: { app: WindowApp; label: string; icon: SystemIconName }[] =
   { app: "resources", label: "Kaynaklar", icon: "resources" },
   { app: "tools", label: "Araçlar", icon: "tools" },
   { app: "notes", label: "Notlar", icon: "notes" },
+  { app: "backups", label: "Snapshot", icon: "backups" },
   { app: "browser", label: "Tarayıcı", icon: "browser" },
   { app: "games", label: "Oyunlar", icon: "games" },
   { app: "status", label: "Durum", icon: "status" },
@@ -59,7 +64,7 @@ export function DesktopItems() {
   const add = useItemsStore((state) => state.add);
   const seedApps = useItemsStore((state) => state.seedApps);
   const update = useItemsStore((state) => state.update);
-  const moveMany = useItemsStore((state) => state.moveMany);
+  const dropMany = useItemsStore((state) => state.dropMany);
   const removeItems = useItemsStore((state) => state.remove);
   const gridSnap = useItemsStore((state) => state.gridSnap);
   const setGridSnap = useItemsStore((state) => state.setGridSnap);
@@ -77,16 +82,24 @@ export function DesktopItems() {
   const [renaming, setRenaming] = useState<{ id: string; value: string } | null>(null);
   const [editing, setEditing] = useState<DesktopItem | null>(null);
   const [marquee, setMarquee] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
+  const [shareTarget, setShareTarget] = useState<DesktopItem | null>(null);
+  const [sharedView, setSharedView] = useState<ShareRecord | null>(null);
+
+  const can = useAccessStore((state) => state.can);
+  const shares = useSharesStore((state) => state.shares);
+  const removeShare = useSharesStore((state) => state.remove);
+  const token = useAccessStore((state) => state.token);
 
   // --- İlk açılışta uygulama kısayollarını ekle (idempotent) ---
   useEffect(() => {
     seedApps(
-      APP_SHORTCUTS.map((entry) => ({
+      APP_SHORTCUTS.filter((entry) => can(entry.app)).map((entry) => ({
         label: entry.label,
         app: entry.app,
         icon: `icon:${entry.icon}`,
       })),
     );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [seedApps]);
 
   // --- Açma ---
@@ -121,37 +134,59 @@ export function DesktopItems() {
         items.filter((entry) => group.includes(entry.id)).map((entry) => [entry.id, { x: entry.x, y: entry.y }]),
       );
 
-      let last = origins;
+      // Sürüklenen düğümler: React state'e yazmadan doğrudan `transform` ile
+      // hareket ettirilir → akıcı (kare kare zıplama yok). Bırakınca store'a
+      // yazılır ve ızgaraya hizalanır + çakışma çözülür.
+      const nodes = group
+        .map((id) => document.getElementById(`ditem-${id}`))
+        .filter((node): node is HTMLElement => node !== null);
+      nodes.forEach((node) => {
+        node.style.zIndex = "900";
+        node.style.willChange = "transform";
+      });
+
+      let frame = 0;
+      let dx = 0;
+      let dy = 0;
+
+      const paint = (): void => {
+        frame = 0;
+        const transform = `translate3d(${dx}px, ${dy}px, 0)`;
+        nodes.forEach((node) => {
+          node.style.transform = transform;
+        });
+      };
 
       const onMove = (moveEvent: PointerEvent): void => {
-        const dx = moveEvent.clientX - start.x;
-        const dy = moveEvent.clientY - start.y;
-
-        const moves = [...origins.entries()].map(([id, origin]) => {
-          // Ekran dışına taşmayı engelle
-          const maxX = Math.max(0, window.innerWidth - 96);
-          const maxY = Math.max(0, window.innerHeight - 96);
-          return {
-            id,
-            x: snap(Math.min(maxX, Math.max(0, origin.x + dx)), gridSnap),
-            y: snap(Math.min(maxY, Math.max(0, origin.y + dy)), gridSnap),
-          };
-        });
-
-        last = new Map(moves.map((move) => [move.id, { x: move.x, y: move.y }]));
-        moveMany(moves);
+        dx = moveEvent.clientX - start.x;
+        dy = moveEvent.clientY - start.y;
+        if (!frame) frame = window.requestAnimationFrame(paint);
       };
 
       const onUp = (): void => {
         window.removeEventListener("pointermove", onMove);
         window.removeEventListener("pointerup", onUp);
-        void last;
+        window.removeEventListener("pointercancel", onUp);
+        if (frame) window.cancelAnimationFrame(frame);
+        nodes.forEach((node) => {
+          node.style.transform = "";
+          node.style.zIndex = "";
+          node.style.willChange = "";
+        });
+
+        const moves = [...origins.entries()].map(([id, origin]) => ({
+          id,
+          x: origin.x + dx,
+          y: origin.y + dy,
+        }));
+        dropMany(moves);
       };
 
       window.addEventListener("pointermove", onMove);
       window.addEventListener("pointerup", onUp);
+      window.addEventListener("pointercancel", onUp);
     },
-    [items, selected, gridSnap, moveMany],
+    [items, selected, dropMany],
   );
 
   // --- Çerçeve seçimi (boş alanda) ---
@@ -284,6 +319,13 @@ export function DesktopItems() {
       },
       { id: "icon", label: "İkonu değiştir", icon: "🖼️", disabled: multi, onSelect: () => setIconTarget(item) },
       {
+        id: "share",
+        label: "Paylaş…",
+        icon: "🔗",
+        disabled: multi,
+        onSelect: () => setShareTarget(item),
+      },
+      {
         id: "duplicate",
         label: "Kopyasını oluştur",
         icon: "⧉",
@@ -320,7 +362,9 @@ export function DesktopItems() {
         setMenu({ x: event.clientX, y: event.clientY, itemId });
       }}
     >
-      {items.map((item) => {
+      {items
+        .filter((item) => item.kind !== "app" || !item.app || can(item.app))
+        .map((item) => {
         const isSelected = selected.includes(item.id);
         return (
           <button
@@ -368,6 +412,24 @@ export function DesktopItems() {
         );
       })}
 
+      {/* Bana paylaşılanlar — sağ tarafta rozetli */}
+      {shares.map((share, index) => (
+        <button
+          key={share.id}
+          type="button"
+          className="ditem ditem--shared"
+          style={{ right: 16, left: "auto", top: 84 + index * 104 }}
+          onClick={() => setSharedView(share)}
+          title={`${share.name} — ${share.from} tarafından paylaşıldı`}
+        >
+          <span className="ditem__glyph" aria-hidden="true">
+            🔗
+          </span>
+          <span className="ditem__label">{share.name}</span>
+          <span className="ditem__shared-badge">@{share.from}</span>
+        </button>
+      ))}
+
       {/* Çerçeve seçimi */}
       {marquee && (
         <div
@@ -409,6 +471,43 @@ export function DesktopItems() {
           onSave={(content) => update(editing.id, { content })}
           onClose={() => setEditing(null)}
         />
+      )}
+
+      {/* Paylaşım diyaloğu */}
+      {shareTarget && <ShareDialog item={shareTarget} onClose={() => setShareTarget(null)} />}
+
+      {/* Paylaşılan öğe görüntüleyici */}
+      {sharedView && (
+        <div className="txtedit" role="dialog" aria-modal="true" onClick={() => setSharedView(null)}>
+          <div className="txtedit__box" onClick={(event) => event.stopPropagation()}>
+            <header className="txtedit__head">
+              <span className="txtedit__icon">🔗</span>
+              <strong>{sharedView.name}</strong>
+              <span className="txtedit__count mono">@{sharedView.from}</span>
+            </header>
+            {sharedView.note && <div className="share__note">{sharedView.note}</div>}
+            <textarea
+              className="txtedit__area mono"
+              readOnly
+              value={sharedView.content ?? "(içerik yok)"}
+            />
+            <footer className="txtedit__actions">
+              <button
+                type="button"
+                className="btn"
+                onClick={() => {
+                  void removeShare(token, sharedView.id);
+                  setSharedView(null);
+                }}
+              >
+                Kaldır
+              </button>
+              <button type="button" className="btn" onClick={() => setSharedView(null)}>
+                Kapat
+              </button>
+            </footer>
+          </div>
+        </div>
       )}
     </div>
   );

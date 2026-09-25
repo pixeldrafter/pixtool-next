@@ -1914,7 +1914,21 @@ class BridgeHandler(BaseHTTPRequestHandler):
         if not self.token:
             return True
         supplied = self.headers.get("X-Pixtool-Token", "")
-        return secrets.compare_digest(supplied, self.token)
+        if supplied and secrets.compare_digest(supplied, self.token):
+            return True
+
+        # Sorgu parametresi (`?token=…`): tarayıcıdan doğrudan indirme ve
+        # işletim sistemine sürükle-bırak, özel başlık gönderemez. Yerel köprü
+        # olduğu için bu yol kabul edilir.
+        try:
+            query = self.path.split("?", 1)[1] if "?" in self.path else ""
+            values = parse_qs(query).get("token", [])
+            if values and secrets.compare_digest(values[0], self.token):
+                return True
+        except (ValueError, IndexError):
+            pass
+
+        return False
 
     def log_message(self, fmt: str, *args: Any) -> None:  # noqa: A003
         """Varsayılan gürültülü günlüğü sadeleştirir."""

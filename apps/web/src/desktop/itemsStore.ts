@@ -12,8 +12,9 @@
  */
 
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { createJSONStorage, persist } from "zustand/middleware";
 
+import { scopedStorage } from "../lib/scopedStorage";
 import type { WindowApp } from "./window/windowStore";
 
 /** Öğe türü. */
@@ -70,6 +71,11 @@ interface ItemsState {
   update: (id: string, patch: Partial<DesktopItem>) => void;
   /** Birden çok öğeyi taşır (çoklu sürükleme). */
   moveMany: (moves: { id: string; x: number; y: number }[]) => void;
+  /**
+   * Sürükleme bırakıldığında konumları uygular: ızgaraya hizalar (açıksa) ve
+   * **çakışmayı çözer** — iki öğe üst üste binmez.
+   */
+  dropMany: (moves: { id: string; x: number; y: number }[]) => void;
   /** Öğeyi siler. */
   remove: (ids: string[]) => void;
   /** Izgara hizalamayı açar/kapatır. */
@@ -109,6 +115,49 @@ function nextFreeSpot(items: DesktopItem[], viewportHeight = 800): { x: number; 
     }
   }
   return { x: startX, y: startY };
+}
+
+/** İki öğe kutusu çakışıyor mu (boyut ~GRID_SIZE). */
+function boxesOverlap(ax: number, ay: number, bx: number, by: number): boolean {
+  const tol = GRID_SIZE * 0.6;
+  return Math.abs(ax - bx) < tol && Math.abs(ay - by) < tol;
+}
+
+/**
+ * İstenen konuma en yakın **boş** hücreyi bulur.
+ *
+ * Izgara adımlarıyla dışa doğru spiral arama yapar; böylece bırakılan öğe
+ * başka bir öğenin üstüne binmez.
+ */
+function nearestFree(
+  x: number,
+  y: number,
+  placed: { x: number; y: number }[],
+  aligned: boolean,
+): { x: number; y: number } {
+  const step = GRID_SIZE;
+  const baseX = aligned ? Math.round(x / step) * step : Math.round(x);
+  const baseY = aligned ? Math.round(y / step) * step : Math.round(y);
+  const maxX = Math.max(0, window.innerWidth - GRID_SIZE);
+  const maxY = Math.max(0, window.innerHeight - GRID_SIZE - 46);
+  const clamp = (value: number, max: number): number => Math.max(0, Math.min(value, max));
+
+  const candidates: { x: number; y: number }[] = [{ x: baseX, y: baseY }];
+  for (let radius = 1; radius <= 10; radius += 1) {
+    for (let dx = -radius; dx <= radius; dx += 1) {
+      for (let dy = -radius; dy <= radius; dy += 1) {
+        if (Math.abs(dx) !== radius && Math.abs(dy) !== radius) continue;
+        candidates.push({ x: baseX + dx * step, y: baseY + dy * step });
+      }
+    }
+  }
+
+  for (const candidate of candidates) {
+    const cx = clamp(candidate.x, maxX);
+    const cy = clamp(candidate.y, maxY);
+    if (!placed.some((spot) => boxesOverlap(spot.x, spot.y, cx, cy))) return { x: cx, y: cy };
+  }
+  return { x: clamp(baseX, maxX), y: clamp(baseY, maxY) };
 }
 
 export const useItemsStore = create<ItemsState>()(
@@ -167,6 +216,29 @@ export const useItemsStore = create<ItemsState>()(
           };
         }),
 
+      dropMany: (moves) =>
+        set((state) => {
+          const moving = new Set(moves.map((move) => move.id));
+          // Sabit duran öğelerin kapladığı yerler
+          const placed: { x: number; y: number }[] = state.items
+            .filter((item) => !moving.has(item.id))
+            .map((item) => ({ x: item.x, y: item.y }));
+
+          const result = new Map<string, { x: number; y: number }>();
+          for (const move of moves) {
+            const spot = nearestFree(move.x, move.y, placed, state.gridSnap);
+            result.set(move.id, spot);
+            placed.push(spot);
+          }
+
+          return {
+            items: state.items.map((item) => {
+              const spot = result.get(item.id);
+              return spot ? { ...item, x: spot.x, y: spot.y } : item;
+            }),
+          };
+        }),
+
       remove: (ids) =>
         set((state) => {
           const set_ = new Set(ids);
@@ -197,6 +269,8 @@ export const useItemsStore = create<ItemsState>()(
     {
       name: "pixtool.desktop.items",
       version: 1,
+      // Kullanıcıya göre ayrılmış yerel önbellek (px:<kullanıcı>:pixtool.desktop.items)
+      storage: createJSONStorage(() => scopedStorage()),
     },
   ),
 );

@@ -22,6 +22,7 @@ import { CursorLayer } from "./cursor";
 import { Desktop } from "./desktop/Desktop";
 import { IdleScreen, useIdle } from "./idle";
 import { describeError, fetchStatus, type StatusResponse } from "./lib/api";
+import { useUserSync } from "./lib/userSync";
 import { IntroVideo, LoginScreen, OtpDemo, type LoginSession } from "./login";
 import { PunishmentScreen } from "./login/PunishmentScreen";
 import { getLoginTheme } from "./login/themes";
@@ -103,6 +104,10 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [session, setSession] = useState<LoginSession | null>(null);
+
+  // Kullanıcıya özel kalıcılık: yerel önbellek + sunucu senkronu (notlar,
+  // masaüstü öğeleri/dosyaları). Giriş yapılınca yükler, değişince kaydeder.
+  useUserSync(session ? { token: session.token, username: session.username } : null);
   const [reportSaved, setReportSaved] = useState<boolean | null>(null);
   /**
    * Makine envanteri — **bir kez** taranır, konsol ve boot ekranı paylaşır.

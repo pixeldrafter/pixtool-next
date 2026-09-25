@@ -120,3 +120,18 @@ _*.tar.gz
 # Yayinlanan kurulum paketleri, imzalar ve ozel anahtarlar
 releases/
 *.sig
+
+# ============================================================
+#  Public repo — kişisel / dağıtıma özel dosyalar
+# ============================================================
+scripts_library/
+.tauri-keys/
+icons/
+revize.md
+"güncel hal.png"
+services/n8n/check-executions.sh
+services/n8n/e2e-test.sh
+services/n8n/find-webhook-secret.sh
+services/n8n/full-chain-test.sh
+services/n8n/update-workflow.sh
+services/n8n/test-decision-code.mjs

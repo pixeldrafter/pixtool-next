@@ -1,19 +1,17 @@
 """
-Erişim talepleri — yeni kullanıcı kaydı ve parola yenileme.
+Erişim ve paylaşım servisi.
 
-Akış
-----
-1. Arayüz `POST /api/v1/access/register-request` gönderir.
-2. API talebi **diskte** saklar (`data/access_requests.json`) ve n8n webhook'una
-   iletir.
-3. n8n, Telegram'a **satır içi butonlu** mesaj atar (Onayla / Reddet).
-4. Yönetici butona basar → n8n `POST /api/v1/access/callback` çağırır.
-5. API kararı uygular: onayda kullanıcıyı NocoDB'ye ekler, redde kaydı işaretler.
-6. Arayüz `GET /api/v1/access/request/{id}` ile durumu **yoklar**.
+Kimlik doğrulama NocoDB `Users` tablosundan gelir. Bu modül onun üstüne:
 
-Neden n8n?  Telegram buton etkileşimi ve yönetici bildirimi tek yerde toplanır;
-API yalnızca talebi saklar ve kararı uygular. n8n yapılandırılmamışsa API
-**doğrudan Telegram Bot API**'sini kullanır (yedek yol).
+  • **rol** (admin / user),
+  • **izinler** (`Settings` tablosunda `perm:<kullanıcı>` anahtarıyla JSON),
+  • **paylaşımlar** (`Settings` tablosunda `share:<alıcı>:<id>` anahtarıyla)
+
+katmanlarını ekler.
+
+Tüm izin/paylaşım verisi tek tabloda (Settings) tutulur; bu yüzden okurken
+kayıtlar çekilip Python tarafında süzülür (NocoDB `where` sözdizimine bağımlı
+kalmamak için).
 """
 
 from __future__ import annotations
@@ -21,346 +19,250 @@ from __future__ import annotations
 import json
 import logging
 import secrets
-import threading
 import time
-from dataclasses import asdict, dataclass, field
-from pathlib import Path
-from typing import Any, Literal
-
-import httpx
+from typing import Any
 
 from app.core.config import settings
+from app.integrations.nocodb import get_nocodb_client
 
 logger = logging.getLogger("pixtool.access")
 
-#: Talep türü
-AccessKind = Literal["register", "forgot"]
+#: Tüm izinlere sahip rol.
+ADMIN_ROLE = "admin"
 
-#: Talep durumu
-AccessStatus = Literal["pending", "approved", "rejected", "expired", "failed"]
+#: Yönetici olmayan kullanıcıların varsayılan erişebileceği uygulamalar.
+DEFAULT_APPS: list[str] = [
+    "overview",
+    "files",
+    "notes",
+    "backups",
+    "tools",
+    "games",
+    "browser",
+    "status",
+    "about",
+    "settings",
+]
 
-#: Talebin geçerlilik süresi (saniye) — 30 dakika
-REQUEST_TTL_SECONDS = 30 * 60
-
-#: Veri dosyası
-_DATA_DIR = Path(__file__).resolve().parent.parent.parent / "data"
-_STORE_PATH = _DATA_DIR / "access_requests.json"
-
-#: Dosya erişimi için kilit (uvicorn tek işçi ama yine de güvenli olsun)
-_LOCK = threading.Lock()
-
-
-@dataclass
-class AccessRequest:
-    """Tek bir erişim talebi."""
-
-    id: str
-    kind: AccessKind
-    status: AccessStatus
-    username: str
-    full_name: str = ""
-    email: str = ""
-    note: str = ""
-    #: Kullanıcıya gösterilecek mesaj
-    message: str = ""
-    created_at: float = field(default_factory=time.time)
-    decided_at: float | None = None
-    decided_by: str = ""
-    #: Onaylandıysa üretilen geçici parola (yalnızca yöneticiye gönderilir)
-    issued_password: str = ""
-
-    @property
-    def expired(self) -> bool:
-        return time.time() - self.created_at > REQUEST_TTL_SECONDS
-
-    def to_dict(self) -> dict[str, Any]:
-        payload = asdict(self)
-        payload["expired"] = self.expired
-        # Geçici parolayı arayüze sızdırma
-        payload.pop("issued_password", None)
-        return payload
+#: İzin verilebilecek tüm uygulama anahtarları (WindowApp ile eşleşir).
+ALL_APPS: list[str] = [
+    "overview",
+    "scripts",
+    "terminal",
+    "files",
+    "users",
+    "database",
+    "resources",
+    "tools",
+    "notes",
+    "backups",
+    "browser",
+    "games",
+    "status",
+    "settings",
+    "about",
+]
 
 
-# ----------------------------------------------------------------------
-#  Disk deposu
-# ----------------------------------------------------------------------
+def _settings_table() -> str:
+    return settings.nocodb_table_settings
 
 
-def _load() -> dict[str, dict[str, Any]]:
-    """Talepleri diskten okur."""
-    if not _STORE_PATH.exists():
-        return {}
+def _configured() -> bool:
+    return bool(settings.nocodb_configured and _settings_table())
+
+
+async def _all_settings() -> list[dict[str, Any]]:
+    """Settings tablosundaki tüm kayıtlar (boşsa boş liste)."""
+    if not _configured():
+        return []
+    client = get_nocodb_client()
     try:
-        data = json.loads(_STORE_PATH.read_text(encoding="utf-8"))
-        return data if isinstance(data, dict) else {}
-    except (OSError, ValueError) as exc:
-        logger.warning("Erişim talepleri okunamadı: %s", exc)
-        return {}
-
-
-def _save(store: dict[str, dict[str, Any]]) -> None:
-    """Talepleri diske yazar (atomik)."""
-    _DATA_DIR.mkdir(parents=True, exist_ok=True)
-    temp = _STORE_PATH.with_suffix(".json.tmp")
-    try:
-        temp.write_text(
-            json.dumps(store, ensure_ascii=False, indent=2, sort_keys=True),
-            encoding="utf-8",
-        )
-        temp.replace(_STORE_PATH)
-    except OSError as exc:
-        logger.error("Erişim talepleri yazılamadı: %s", exc)
-
-
-def _prune(store: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
-    """Süresi geçmiş talepleri temizler (son 200 kayıt tutulur)."""
-    now = time.time()
-    alive: dict[str, dict[str, Any]] = {}
-
-    for key, value in store.items():
-        age = now - float(value.get("created_at") or 0)
-        status = value.get("status")
-        # Bekleyen ve süresi geçmiş → expired
-        if status == "pending" and age > REQUEST_TTL_SECONDS:
-            value["status"] = "expired"
-        # 7 günden eski karara bağlanmış kayıtları at
-        if age < 7 * 24 * 3600:
-            alive[key] = value
-
-    # En yeni 200 kayıt
-    if len(alive) > 200:
-        ordered = sorted(
-            alive.items(), key=lambda item: item[1].get("created_at") or 0, reverse=True
-        )
-        alive = dict(ordered[:200])
-
-    return alive
-
-
-def _read_request(request_id: str) -> AccessRequest | None:
-    """Tek talebi okur."""
-    with _LOCK:
-        store = _load()
-        raw = store.get(request_id)
-    if not raw:
-        return None
-    return AccessRequest(
-        **{k: v for k, v in raw.items() if k in AccessRequest.__dataclass_fields__}
-    )
-
-
-# ----------------------------------------------------------------------
-#  Bildirim
-# ----------------------------------------------------------------------
-
-
-def _telegram_keyboard(request_id: str, kind: AccessKind) -> dict[str, Any]:
-    """Telegram satır içi buton takımı."""
-    return {
-        "inline_keyboard": [
-            [
-                {"text": "✅ Onayla", "callback_data": f"px:{kind}:approve:{request_id}"},
-                {"text": "❌ Reddet", "callback_data": f"px:{kind}:reject:{request_id}"},
-            ]
-        ]
-    }
-
-
-def _telegram_text(request: AccessRequest) -> str:
-    """Telegram mesaj gövdesi."""
-    title = "🔐 YENİ KULLANICI KAYDI" if request.kind == "register" else "🔑 PAROLA YENİLEME TALEBİ"
-    lines = [
-        title,
-        "",
-        f"👤 Kullanıcı   : {request.username}",
-    ]
-    if request.full_name:
-        lines.append(f"📛 Ad Soyad   : {request.full_name}")
-    if request.email:
-        lines.append(f"✉️  E-posta    : {request.email}")
-    if request.note:
-        lines.append(f"📝 Not        : {request.note}")
-    lines += [
-        "",
-        f"🆔 Talep       : {request.id}",
-        f"⏱  Zaman       : {time.strftime('%d.%m.%Y %H:%M', time.localtime(request.created_at))}",
-        "",
-        "Onaylarsan hesap oluşturulur. Reddedersen talep kapatılır.",
-    ]
-    return "\n".join(lines)
-
-
-async def _notify_via_n8n(request: AccessRequest) -> tuple[bool, str]:
-    """Talebi n8n webhook'una iletir (asıl yol)."""
-    webhook = settings.n8n_register_webhook
-    if not webhook:
-        return False, "n8n webhook tanımlı değil"
-
-    headers = {"Content-Type": "application/json"}
-    if settings.n8n_webhook_secret:
-        headers["X-Pixtool-Secret"] = settings.n8n_webhook_secret
-
-    payload = {
-        "requestId": request.id,
-        "kind": request.kind,
-        "username": request.username,
-        "fullName": request.full_name,
-        "email": request.email,
-        "note": request.note,
-        "text": _telegram_text(request),
-        "keyboard": _telegram_keyboard(request.id, request.kind),
-        "decidedBy": "n8n",
-    }
-
-    try:
-        async with httpx.AsyncClient(timeout=20.0, follow_redirects=True) as client:
-            response = await client.post(webhook, json=payload, headers=headers)
-        if response.status_code >= 400:
-            logger.warning("n8n kayıt webhook hatası (HTTP %s)", response.status_code)
-            return False, f"n8n HTTP {response.status_code}"
-        return True, "n8n"
-    except Exception as exc:  # noqa: BLE001 — ağ hataları çeşitli
-        logger.warning("n8n kayıt webhook'una ulaşılamadı: %s", exc)
-        return False, str(exc)
-
-
-async def _notify_via_telegram(request: AccessRequest) -> tuple[bool, str]:
-    """Yedek yol: Telegram Bot API'sine doğrudan gönderir."""
-    token = settings.telegram_bot_token
-    chat_id = settings.telegram_chat_id
-    if not token or not chat_id:
-        return False, "Telegram yapılandırılmamış"
-
-    url = f"https://api.telegram.org/bot{token}/sendMessage"
-    payload = {
-        "chat_id": chat_id,
-        "text": _telegram_text(request),
-        "reply_markup": _telegram_keyboard(request.id, request.kind),
-        "disable_web_page_preview": True,
-    }
-
-    try:
-        async with httpx.AsyncClient(timeout=20.0) as client:
-            response = await client.post(url, json=payload)
-        if response.status_code >= 400:
-            logger.warning(
-                "Telegram gönderimi başarısız (HTTP %s): %s",
-                response.status_code,
-                response.text[:200],
-            )
-            return False, f"Telegram HTTP {response.status_code}"
-        return True, "telegram"
+        return await client.list_records(_settings_table(), limit=400)
     except Exception as exc:  # noqa: BLE001
-        logger.warning("Telegram'a ulaşılamadı: %s", exc)
-        return False, str(exc)
+        logger.warning("Settings okunamadı: %s", exc)
+        return []
 
 
-async def notify(request: AccessRequest) -> tuple[bool, str]:
-    """
-    Talebi yöneticiye bildirir.
+async def _find_setting(key: str) -> dict[str, Any] | None:
+    for record in await _all_settings():
+        if record.get("Key") == key:
+            return record
+    return None
 
-    Mesaj **doğrudan Telegram Bot API'si** üzerinden gönderilir: satır içi
-    butonlar (`reply_markup.inline_keyboard`) Telegram'ın belgelenmiş, kararlı
-    yapısıdır — n8n düğüm parametrelerine bağımlı olmaktan kaçınırız.
 
-    Butona basıldığında **n8n** devreye girer (Telegram tetikleyicisi) ve
-    `POST /api/v1/access/callback` ucunu çağırır. Yani:
+async def _put_setting(key: str, value: str) -> None:
+    if not _configured():
+        raise RuntimeError("NocoDB Settings tablosu yapılandırılmamış.")
+    client = get_nocodb_client()
+    existing = await _find_setting(key)
+    if existing:
+        record_id = existing.get("Id") or existing.get("id")
+        await client.update_record(_settings_table(), record_id, {"Value": value})
+    else:
+        await client.insert_record(_settings_table(), {"Key": key, "Value": value})
 
-        API  → Telegram (mesaj + buton)
-        n8n  ← Telegram (buton tıklaması)
-        n8n  → API (karar)
-    """
-    return await _notify_via_telegram(request)
+
+async def _delete_setting(key: str) -> None:
+    if not _configured():
+        return
+    existing = await _find_setting(key)
+    if not existing:
+        return
+    record_id = existing.get("Id") or existing.get("id")
+    client = get_nocodb_client()
+    try:
+        await client.delete_record(_settings_table(), record_id)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Settings silinemedi (%s): %s", key, exc)
 
 
 # ----------------------------------------------------------------------
-#  Genel API
+#  Kullanıcı / rol
 # ----------------------------------------------------------------------
-
-
-def create_request(
-    kind: AccessKind,
-    username: str,
-    full_name: str = "",
-    email: str = "",
-    note: str = "",
-) -> AccessRequest:
-    """Yeni talep oluşturur ve diske yazar."""
-    request = AccessRequest(
-        id=secrets.token_urlsafe(16),
-        kind=kind,
-        status="pending",
-        username=username.strip(),
-        full_name=full_name.strip(),
-        email=email.strip(),
-        note=note.strip(),
-    )
-
-    with _LOCK:
-        store = _prune(_load())
-        store[request.id] = asdict(request) | {"expired": False}
-        _save(store)
-
-    logger.info("Erişim talebi oluşturuldu: tür=%s kullanıcı=%s id=%s", kind, username, request.id)
-    return request
-
-
-def get_request(request_id: str) -> AccessRequest | None:
-    """Talep durumunu döndürür (arayüz yoklaması)."""
-    with _LOCK:
-        store = _prune(_load())
-        _save(store)
-        raw = store.get(request_id)
-
-    if not raw:
+async def get_user(username: str) -> dict[str, Any] | None:
+    """NocoDB `Users` tablosundan kullanıcı kaydı."""
+    table = settings.nocodb_table_users
+    if not (settings.nocodb_configured and table):
         return None
-
-    request = AccessRequest(
-        **{k: v for k, v in raw.items() if k in AccessRequest.__dataclass_fields__}
-    )
-    return request
-
-
-def mark_decision(
-    request_id: str,
-    approved: bool,
-    decided_by: str = "telegram",
-    message: str = "",
-    issued_password: str = "",
-) -> AccessRequest | None:
-    """Talebi karara bağlar."""
-    with _LOCK:
-        store = _load()
-        raw = store.get(request_id)
-        if not raw:
-            return None
-
-        raw["status"] = "approved" if approved else "rejected"
-        raw["decided_at"] = time.time()
-        raw["decided_by"] = decided_by
-        raw["message"] = message
-        raw["issued_password"] = issued_password
-        store[request_id] = raw
-        _save(store)
-
-    logger.info("Talep karara bağlandı: id=%s onay=%s", request_id, approved)
-    return get_request(request_id)
+    client = get_nocodb_client()
+    try:
+        records = await client.list_records(table, limit=1, where=f"(Username,eq,{username})")
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Kullanıcı sorgulanamadı: %s", exc)
+        return None
+    return records[0] if records else None
 
 
-def list_requests(limit: int = 40) -> list[AccessRequest]:
-    """Son talepleri listeler (yönetici görünümü)."""
-    with _LOCK:
-        store = _prune(_load())
-        _save(store)
+async def get_role(username: str) -> str:
+    record = await get_user(username)
+    role = str(record.get("Role") or "").strip().lower() if record else ""
+    return role or "user"
 
-    ordered = sorted(store.values(), key=lambda item: item.get("created_at") or 0, reverse=True)
+
+async def is_admin(username: str) -> bool:
+    return await get_role(username) == ADMIN_ROLE
+
+
+async def list_users() -> list[dict[str, Any]]:
+    """Tüm uygulama kullanıcıları (parola özeti hariç)."""
+    table = settings.nocodb_table_users
+    if not (settings.nocodb_configured and table):
+        return []
+    client = get_nocodb_client()
+    try:
+        records = await client.list_records(table, limit=200)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Kullanıcı listesi alınamadı: %s", exc)
+        return []
+
     return [
-        AccessRequest(**{k: v for k, v in raw.items() if k in AccessRequest.__dataclass_fields__})
-        for raw in ordered[:limit]
+        {
+            "id": record.get("Id") or record.get("id"),
+            "username": record.get("Username"),
+            "role": str(record.get("Role") or "user").lower(),
+            "active": bool(record.get("IsActive", True)),
+            "expiration": record.get("ExpirationDate"),
+            "lastLogin": record.get("LastLogin"),
+        }
+        for record in records
+        if record.get("Username")
     ]
 
 
-def reset() -> None:
-    """Tüm talepleri siler (test)."""
-    with _LOCK:
-        _save({})
+async def update_user(record_id: int | str, patch: dict[str, Any]) -> None:
+    table = settings.nocodb_table_users
+    client = get_nocodb_client()
+    await client.update_record(table, record_id, patch)
+
+
+# ----------------------------------------------------------------------
+#  İzinler
+# ----------------------------------------------------------------------
+async def get_permissions(username: str) -> dict[str, Any]:
+    """
+    Kullanıcının etkin izinleri.
+
+    Admin → tüm uygulamalar. Diğerleri → `perm:<kullanıcı>` anahtarındaki JSON
+    (yoksa varsayılan küme).
+    """
+    role = await get_role(username)
+    if role == ADMIN_ROLE:
+        return {"role": role, "apps": ALL_APPS, "all": True}
+
+    record = await _find_setting(f"perm:{username}")
+    apps = DEFAULT_APPS
+    if record and record.get("Value"):
+        try:
+            parsed = json.loads(str(record["Value"]))
+            if isinstance(parsed, dict) and isinstance(parsed.get("apps"), list):
+                apps = [str(item) for item in parsed["apps"] if item in ALL_APPS]
+        except ValueError:
+            pass
+    return {"role": role, "apps": apps, "all": False}
+
+
+async def set_permissions(username: str, apps: list[str]) -> dict[str, Any]:
+    clean = [item for item in apps if item in ALL_APPS]
+    await _put_setting(f"perm:{username}", json.dumps({"apps": clean}, ensure_ascii=False))
+    return {"apps": clean}
+
+
+# ----------------------------------------------------------------------
+#  Paylaşımlar
+# ----------------------------------------------------------------------
+def _share_key(to: str, share_id: str) -> str:
+    return f"share:{to}:{share_id}"
+
+
+async def list_shares(to: str) -> list[dict[str, Any]]:
+    """Bir kullanıcıya yapılan paylaşımlar."""
+    prefix = f"share:{to}:"
+    results: list[dict[str, Any]] = []
+    for record in await _all_settings():
+        key = str(record.get("Key") or "")
+        if not key.startswith(prefix):
+            continue
+        raw = record.get("Value")
+        if not raw:
+            continue
+        try:
+            data = json.loads(str(raw))
+        except ValueError:
+            continue
+        if isinstance(data, dict):
+            data.setdefault("id", key[len(prefix):])
+            results.append(data)
+    results.sort(key=lambda item: item.get("createdAt") or 0, reverse=True)
+    return results
+
+
+async def create_share(
+    sender: str,
+    to: str,
+    kind: str,
+    name: str,
+    body: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Bir kullanıcıya dosya/klasör/not paylaşır."""
+    if not to or to == sender:
+        raise ValueError("Geçersiz alıcı.")
+
+    share_id = secrets.token_urlsafe(8)
+    payload: dict[str, Any] = {
+        "id": share_id,
+        "from": sender,
+        "to": to,
+        "kind": kind,
+        "name": name,
+        "createdAt": int(time.time() * 1000),
+    }
+    if body:
+        payload.update(body)
+
+    await _put_setting(_share_key(to, share_id), json.dumps(payload, ensure_ascii=False))
+    return payload
+
+
+async def delete_share(to: str, share_id: str) -> None:
+    await _delete_setting(_share_key(to, share_id))

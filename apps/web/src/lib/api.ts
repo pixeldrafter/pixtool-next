@@ -5,7 +5,7 @@
  * (tarayıcı → aynı köken · Tauri kabuğu → uzak sunucu).
  */
 
-import { API_BASE, IS_TAURI } from "./apiBase";
+import { API_BASE, IS_TAURI, authHeaders } from "./apiBase";
 
 // Geriye dönük dışa aktarım (bazı bileşenler buradan import ediyor)
 export { API_BASE, IS_TAURI };
@@ -73,7 +73,7 @@ export interface HealthResponse {
 async function request<T>(path: string, signal?: AbortSignal): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
     signal,
-    headers: { Accept: "application/json" },
+    headers: { Accept: "application/json", ...authHeaders() },
   });
 
   if (!response.ok) {
@@ -234,7 +234,7 @@ async function mutate<T>(
 ): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
     method,
-    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    headers: { "Content-Type": "application/json", Accept: "application/json", ...authHeaders() },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
 
@@ -267,7 +267,7 @@ export async function runScript(
 ): Promise<RunScriptResponse> {
   const response = await fetch(`${API_BASE}/api/v1/scripts/${encodeURIComponent(id)}/run`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    headers: { "Content-Type": "application/json", Accept: "application/json", ...authHeaders() },
     body: JSON.stringify({ script_id: id, target: options.target ?? "local", policy: options.policy }),
   });
 
@@ -340,7 +340,7 @@ export interface RemoteInfoResponse {
 async function post<T>(path: string, body: unknown): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    headers: { "Content-Type": "application/json", Accept: "application/json", ...authHeaders() },
     body: JSON.stringify(body),
   });
 

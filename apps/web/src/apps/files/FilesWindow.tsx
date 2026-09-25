@@ -24,6 +24,7 @@ import {
 import { describeError, fetchRemoteStatus, sftpList, type RemoteFile } from "../../lib/api";
 import {
   deleteEntries,
+  downloadFile,
   downloadUrl,
   fileIcon,
   isTextFile,
@@ -43,6 +44,7 @@ import {
 import { toast } from "../../notifications";
 import { useSettings } from "../../settings";
 import { BridgeHelpBox } from "../ui/BridgeHelpBox";
+import { useBridgeFsOptions } from "../../lib/useBridgeFsOptions";
 import "../apps.css";
 import "./files-window.css";
 
@@ -80,10 +82,8 @@ function sortEntries(entries: FsEntry[]): FsEntry[] {
 
 export function FilesWindow() {
   const { settings } = useSettings();
-  const bridgeOptions = useMemo(
-    () => ({ baseUrl: settings.bridge.url, token: settings.bridge.token || undefined }),
-    [settings.bridge.url, settings.bridge.token],
-  );
+  // Köprü token'ı kabuktan gelebilir; ayarlara düşen yedek bu kancada çözülür.
+  const bridgeOptions = useBridgeFsOptions();
 
   const initial = useRef(loadPersisted());
 
@@ -604,6 +604,25 @@ export function FilesWindow() {
     [dropTarget, entries, path, doUpload, doMove],
   );
 
+  // --- Sürükle başlat: iç taşıma + OS'a dışa sürükleme (masaüstüne bırak) ---
+  const beginItemDrag = useCallback(
+    (event: React.DragEvent, entry: FsEntry) => {
+      const payload = selected.has(entry.path) ? [...selected] : [entry.path];
+      event.dataTransfer.setData("application/x-pixtool-paths", JSON.stringify(payload));
+      event.dataTransfer.effectAllowed = entry.is_dir ? "move" : "copyMove";
+
+      // Dosyayı işletim sistemine sürükleme (dataTransfer DownloadURL)
+      if (!entry.is_dir) {
+        const url = downloadUrl(entry.path, bridgeOptions);
+        event.dataTransfer.setData(
+          "DownloadURL",
+          `application/octet-stream:${entry.name}:${url}`,
+        );
+      }
+    },
+    [selected, bridgeOptions],
+  );
+
   // --- Klavye ---
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
@@ -768,7 +787,7 @@ export function FilesWindow() {
         {/* Kenar çubuğu */}
         <aside className="files__sidebar">
           <div className="files__side-head">Hızlı erişim</div>
-          {locations.length === 0 && <div className="files__side-empty">Köprü bekleniyor…</div>}
+          {locations.length === 0 && <div className="files__side-empty">Köprü bağlı değil</div>}
           {locations.map((location) => (
             <button
               key={location.path}
@@ -822,14 +841,23 @@ export function FilesWindow() {
               <button
                 className="files__side-btn"
                 onClick={() => {
-                  selectedEntries.forEach((entry) => {
-                    if (!entry.is_dir) {
-                      const link = document.createElement("a");
-                      link.href = downloadUrl(entry.path, bridgeOptions);
-                      link.download = entry.name;
-                      link.click();
-                    }
-                  });
+                  selectedEntries
+                    .filter((entry) => !entry.is_dir)
+                    .forEach((entry) => {
+                      void (async () => {
+                        try {
+                          const blob = await downloadFile(entry.path, bridgeOptions);
+                          const url = URL.createObjectURL(blob);
+                          const link = document.createElement("a");
+                          link.href = url;
+                          link.download = entry.name;
+                          link.click();
+                          window.setTimeout(() => URL.revokeObjectURL(url), 4000);
+                        } catch (caught) {
+                          toast.error(`${entry.name} indirilemedi`, describeError(caught), "Dosyalar");
+                        }
+                      })();
+                    });
                 }}
               >
                 ⬇ İndir
@@ -884,11 +912,7 @@ export function FilesWindow() {
                       dropTarget === entry.path ? " is-drop" : ""
                     }`}
                     draggable={!remoteReadOnly}
-                    onDragStart={(event) => {
-                      const payload = selected.has(entry.path) ? [...selected] : [entry.path];
-                      event.dataTransfer.setData("application/x-pixtool-paths", JSON.stringify(payload));
-                      event.dataTransfer.effectAllowed = "move";
-                    }}
+                    onDragStart={(event) => beginItemDrag(event, entry)}
                     onDragOver={(event) => {
                       if (remoteReadOnly || !entry.is_dir) return;
                       event.preventDefault();
@@ -963,10 +987,7 @@ export function FilesWindow() {
                     dropTarget === entry.path ? " is-drop" : ""
                   }`}
                   draggable={!remoteReadOnly}
-                  onDragStart={(event) => {
-                    const payload = selected.has(entry.path) ? [...selected] : [entry.path];
-                    event.dataTransfer.setData("application/x-pixtool-paths", JSON.stringify(payload));
-                  }}
+                  onDragStart={(event) => beginItemDrag(event, entry)}
                   onDragOver={(event) => {
                     if (remoteReadOnly || !entry.is_dir) return;
                     event.preventDefault();

@@ -1,35 +1,38 @@
 /**
- * Otomatik güncelleme.
+ * Güncelleme bildirimi.
  *
  * ## İki katman, iki strateji
  *
  * | Katman | Nasıl güncellenir |
  * |---|---|
  * | **Arayüz** | Sunucudan yüklenir → uygulama açılışta en güncelini alır. Bildirim gerekmez. |
- * | **Kabuk** | Tauri güncelleyicisi imzalı paketi **indirir, kurar, yeniden başlatır**. |
+ * | **Kabuk** | Tauri güncelleyicisi imzalı paketi indirir, kurar, yeniden başlatır. |
  *
- * Kullanıcı hiçbir şey yapmaz: uygulama açılır, güncelleme varsa indirir,
- * kurar ve kendini yeniden başlatır.
+ * ## Neden artık tam otomatik değil?
  *
- * ## Akış
+ * Önceki sürüm güncellemeyi açılışta **kendiliğinden** indirip kuruyordu.
+ * Windows'ta kurulum başlayınca uygulama süreci aniden kapanıyor ve bu,
+ * kullanıcıyı tedirgin ediyordu. Ayrıca çalışan **köprü süreci** kurulum
+ * dosyasını kilitlediği için "durdur / yoksay / yeniden dene" hatası çıkıyordu.
+ *
+ * Artık akış kullanıcı denetiminde:
  *
  * ```
  * uygulama açılır
  *    ↓
- * /api/v1/app/latest.json okunur   (imzalı, Tauri biçimi)
+ * /api/v1/app/latest.json okunur
  *    ↓
  * sürüm daha yeni mi?  ──hayır──→  hiçbir şey yapma
  *    ↓ evet
- * indirme başlar → ilerleme çubuğu
- *    ↓
- * imza doğrulanır → kurulum (sessiz) → yeniden başlatma
+ * "Yeni sürüm bulundu: x.y.z"  →  [Güncelle] butonu        (kullanıcı bekler)
+ *    ↓ (tıklanınca)
+ * köprü durdurulur → indirme (ilerleme çubuğu) → kurulum → yeniden başlatma
  * ```
  *
  * ## Geri dönüş
  *
- * Tauri güncelleyicisi yoksa (eski kabuk veya tarayıcı) bildirim gösterilir ve
- * **elle indirme** bağlantısı sunulur. Böylece 1.0.0 gibi güncelleyicisiz bir
- * sürümden de 1.1.0'a geçilebilir; sonrası tamamen otomatik olur.
+ * Tauri güncelleyicisi yoksa (eski kabuk veya tarayıcı) sunucudan sürüm bilgisi
+ * çekilir ve **elle indirme** bağlantısı sunulur.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -79,7 +82,7 @@ type TauriGlobal = {
 type Phase = "idle" | "checking" | "available" | "downloading" | "installing" | "done" | "error";
 
 /** Yerel uygulama sürümü (gömülü — Tauri'de komuttan okunur) */
-const LOCAL_SHELL_VERSION = "1.1.0";
+const LOCAL_SHELL_VERSION = "1.2.0";
 
 /** Sürüm karşılaştırması: `a > b` mi? */
 function isNewer(a: string, b: string): boolean {
@@ -106,6 +109,11 @@ function humanSize(bytes: number | null | undefined): string {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
+/** Kısa bekleme (Windows kurulumunun dosya kilidini bırakması için). */
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export function UpdateBanner() {
   const [info, setInfo] = useState<VersionInfo | null>(null);
   const [phase, setPhase] = useState<Phase>("idle");
@@ -115,64 +123,58 @@ export function UpdateBanner() {
   const [currentVersion, setCurrentVersion] = useState(LOCAL_SHELL_VERSION);
   /** Güncelleyici kullanılabiliyor mu (yoksa elle indirme) */
   const [canAutoUpdate, setCanAutoUpdate] = useState(false);
+  /** Bulunan güncelleme (kullanıcı onayı bekler) */
+  const [update, setUpdate] = useState<UpdaterHandle | null>(null);
+  /** Son kurulum denemesi hatası */
+  const [installError, setInstallError] = useState<string | null>(null);
 
   const startedRef = useRef(false);
+  const installingRef = useRef(false);
 
-  // --- Kabuk sürümü + güncelleyici yeteneği ---
-  useEffect(() => {
-    if (!IS_TAURI) return;
-
+  /** Güncellemeyi yoklar — indirmez; bulursa bildirim gösterir. */
+  const checkUpdate = useCallback(async (): Promise<void> => {
     const tauri = (window as unknown as TauriGlobal).__TAURI__;
+    if (!tauri?.updater?.check) return;
 
-    void (async () => {
-      try {
-        const version = await tauri?.core?.invoke?.("shell_version");
-        if (typeof version === "string" && version) setCurrentVersion(version);
-      } catch {
-        /* gömülü sürüm */
+    try {
+      const found = await tauri.updater.check();
+      if (found) {
+        setUpdate(found);
+        setPhase("available");
+        setMessage(`Yeni sürüm bulundu: ${found.version}`);
       }
-
-      // Güncelleyici eklentisi yüklü mü?
-      setCanAutoUpdate(Boolean(tauri?.updater?.check));
-    })();
+    } catch {
+      /* sessiz — bir sonraki kontrol tekrar dener */
+    }
   }, []);
 
-  /** Tam otomatik güncelleme: indir → kur → yeniden başlat */
-  const autoUpdate = useCallback(async () => {
+  /** Kullanıcı "Güncelle" dedi: köprüyü durdur → indir → kur → yeniden başlat. */
+  const installUpdate = useCallback(async () => {
+    if (!update || installingRef.current) return;
+    installingRef.current = true;
+    setInstallError(null);
+
     const tauri = (window as unknown as TauriGlobal).__TAURI__;
-    if (!tauri?.updater?.check) return false;
 
-    setPhase("checking");
-    setMessage("Güncelleme kontrol ediliyor…");
-
-    let updater: UpdaterHandle | null = null;
+    // ⚠️ Kurulum dosyası çalışan süreçler tarafından kilitlenirse Windows
+    // "durdur / yoksay / yeniden dene" diyalogu çıkar. Köprü exe'si tam olarak
+    // böyle bir kilittir; kurulumdan ÖNCE durdurulur.
     try {
-      updater = await tauri.updater.check();
-    } catch (error) {
-      setPhase("error");
-      setMessage(`Güncelleme kontrol edilemedi: ${error instanceof Error ? error.message : error}`);
-      return false;
+      await tauri?.core?.invoke?.("bridge_stop");
+    } catch {
+      /* köprü zaten kapalı olabilir */
     }
-
-    if (!updater) {
-      setPhase("idle");
-      return true; // güncelleme yok
-    }
-
-    setPhase("available");
-    setMessage(`Yeni sürüm bulundu: ${updater.version}`);
-
-    // Kullanıcıya çok kısa bilgi verip indirmeye geç
-    await new Promise((resolve) => setTimeout(resolve, 900));
+    await wait(700);
 
     setPhase("downloading");
     setProgress(0);
+    setMessage("İndiriliyor…");
 
     let total = 0;
     let received = 0;
 
     try {
-      await updater.downloadAndInstall((event) => {
+      await update.downloadAndInstall((event) => {
         if (event.event === "Started") {
           total = event.data?.contentLength ?? 0;
           setMessage(`İndiriliyor… ${humanSize(total)}`);
@@ -188,23 +190,24 @@ export function UpdateBanner() {
         }
       });
     } catch (error) {
-      setPhase("error");
-      setMessage(`Güncellenemedi: ${error instanceof Error ? error.message : error}`);
-      return false;
+      installingRef.current = false;
+      const text = error instanceof Error ? error.message : String(error);
+      setInstallError(text);
+      setPhase("available");
+      toast.warn("Güncelleme tamamlanamadı", text, "Güncelleme");
+      return;
     }
 
     setPhase("done");
     setMessage("Güncelleme tamamlandı — yeniden başlatılıyor…");
 
-    // Yeniden başlat (plugin-process)
+    // Windows'ta kurulum uygulamayı kapatabilir; yine de yeniden başlatmayı dene.
     try {
-      await tauri.process?.relaunch?.();
+      await tauri?.process?.relaunch?.();
     } catch {
       toast.ok("Güncelleme kuruldu", "Uygulamayı kapatıp açın", "Güncelleme");
     }
-
-    return true;
-  }, []);
+  }, [update]);
 
   /** Sürüm bilgisini çeker (yalnızca elle indirme yedeği için). */
   const fetchVersion = useCallback(async () => {
@@ -217,40 +220,58 @@ export function UpdateBanner() {
     }
   }, []);
 
-  // --- Açılışta: otomatik güncelleme dene ---
+  // --- Açılışta: kabuk sürümü + güncelleyici yeteneği + güncelleme yoklaması ---
+  //
+  // ⚠️ Tek akış: "yeteneği algıla" ile "yokla" ayrı effect'lerde yarışırdı
+  // (açılış effect'i ilk render'da `canAutoUpdate === false` görüp kilidi
+  // kapatıyordu). Bu yüzden algılama aynı async akışta yapılır.
   useEffect(() => {
     if (startedRef.current) return;
     startedRef.current = true;
 
     void (async () => {
-      // Önce tam otomatik yol
-      if (IS_TAURI && canAutoUpdate) {
-        const handled = await autoUpdate();
-        if (handled) return;
+      if (IS_TAURI) {
+        const tauri = (window as unknown as TauriGlobal).__TAURI__;
+
+        // 1) Kabuk sürümünü Rust'tan oku (yoksa gömülü sürüm kalır)
+        try {
+          const version = await tauri?.core?.invoke?.("shell_version");
+          if (typeof version === "string" && version) setCurrentVersion(version);
+        } catch {
+          /* gömülü sürüm */
+        }
+
+        // 2) Güncelleyici eklentisi yüklü mü? (plugin-updater global API)
+        const canAuto = Boolean(tauri?.updater?.check);
+        setCanAutoUpdate(canAuto);
+
+        // 3) Yokla — ama KENDİLİĞİNDEN İNDİRME. Bulursa buton göster.
+        if (canAuto) {
+          await checkUpdate();
+          return;
+        }
       }
 
-      // Yedek: sürüm bildirimi (elle indirme)
+      // Yedek: sürüm bildirimi (tarayıcı veya güncelleyicisiz eski kabuk)
       await fetchVersion();
     })();
+  }, [checkUpdate, fetchVersion]);
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [canAutoUpdate]);
-
-  // --- Periyodik kontrol (6 saat) ---
+  // --- Periyodik yoklama (6 saat) — yine yalnızca bildirim ---
   useEffect(() => {
     const timer = window.setInterval(() => {
       if (IS_TAURI && canAutoUpdate) {
-        void autoUpdate();
+        void checkUpdate();
       } else {
         void fetchVersion();
       }
     }, 6 * 60 * 60 * 1000);
 
     return () => window.clearInterval(timer);
-  }, [autoUpdate, canAutoUpdate, fetchVersion]);
+  }, [checkUpdate, canAutoUpdate, fetchVersion]);
 
-  // Aktif güncelleme sürerken bildirim her zaman görünür
-  const busy = phase === "checking" || phase === "downloading" || phase === "installing" || phase === "done";
+  // Aktif güncelleme sürerken ilerleme görünür (yoklama sessizdir)
+  const busy = phase === "downloading" || phase === "installing" || phase === "done";
 
   if (busy) {
     return (
@@ -259,7 +280,7 @@ export function UpdateBanner() {
           ⬆
         </span>
         <div className="update-banner__body">
-          <div className="update-banner__title">Otomatik güncelleme</div>
+          <div className="update-banner__title">Güncelleme</div>
           <div className="update-banner__notes">{message}</div>
           {phase === "downloading" && (
             <div className="update-banner__progress">
@@ -271,10 +292,55 @@ export function UpdateBanner() {
     );
   }
 
-  // Yedek yol: elle indirme bildirimi
-  const newer = info ? isNewer(info.shell.version, currentVersion) : false;
+  if (dismissed) return null;
 
-  if (!info || !newer || dismissed || phase === "error") return null;
+  // --- Yol 1: Tauri güncelleyici mevcut ve sürüm bulundu → buton ---
+  if (update) {
+    return (
+      <div className="update-banner">
+        <span className="update-banner__icon" aria-hidden="true">
+          ⬆
+        </span>
+
+        <div className="update-banner__body">
+          <div className="update-banner__title">
+            Yeni sürüm hazır: <strong>{update.version}</strong>
+            <span className="update-banner__current">(kurulu {currentVersion})</span>
+          </div>
+          <div className="update-banner__notes">
+            {update.body || "Tek tıkla indirilip kurulur; uygulama yeniden başlar."}
+          </div>
+          {installError && (
+            <div className="update-banner__notes">
+              ⚠ {installError} — tekrar deneyebilirsin.
+            </div>
+          )}
+        </div>
+
+        <div className="update-banner__actions">
+          <button
+            type="button"
+            className="update-banner__btn is-primary"
+            onClick={() => void installUpdate()}
+          >
+            ⬆ Güncelle
+          </button>
+          <button
+            type="button"
+            className="update-banner__btn is-ghost"
+            onClick={() => setDismissed(true)}
+            title="Daha sonra"
+          >
+            Sonra
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // --- Yol 2: güncelleyici yok (eski kabuk / tarayıcı) → elle indirme ---
+  const newer = info ? isNewer(info.shell.version, currentVersion) : false;
+  if (!info || !newer) return null;
 
   const downloadUrl = info.shell.download ? `${API_BASE}${info.shell.download}` : null;
 
@@ -317,10 +383,7 @@ export function UpdateBanner() {
         <button
           type="button"
           className="update-banner__btn"
-          onClick={() => {
-            void autoUpdate();
-            void fetchVersion();
-          }}
+          onClick={() => void checkUpdate()}
           title="Yeniden kontrol et"
         >
           ⟳

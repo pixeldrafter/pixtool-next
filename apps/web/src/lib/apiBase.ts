@@ -69,3 +69,18 @@ export function apiUrl(path: string): string {
   if (!API_BASE) return path;
   return `${API_BASE}${path.startsWith("/") ? path : `/${path}`}`;
 }
+
+// ----------------------------------------------------------------------
+//  Oturum tokenı — korumalı uçlar için ortak başlık
+// ----------------------------------------------------------------------
+let authToken = "";
+
+/** Oturum tokenını ayarlar (giriş/çıkışta `accessStore` çağırır). */
+export function setAuthToken(token: string): void {
+  authToken = token ?? "";
+}
+
+/** Korumalı istekler için `Authorization` başlığı (token yoksa boş). */
+export function authHeaders(): Record<string, string> {
+  return authToken ? { Authorization: `Bearer ${authToken}` } : {};
+}

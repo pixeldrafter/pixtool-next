@@ -10,6 +10,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { Card } from "../../desktop/ui/Card";
+import { ContextMenu, type MenuItem } from "../../desktop/ContextMenu";
+import { useItemsStore } from "../../desktop/itemsStore";
 import { describeError, fetchStatus, type StatusResponse } from "../../lib/api";
 import {
   fetchDatabaseTables,
@@ -18,8 +20,31 @@ import {
   type DatabaseTable,
 } from "../../lib/databaseApi";
 import { useBackendConfig } from "../../lib/useBackendConfig";
+import { toast } from "../../notifications";
 import "../apps.css";
 import "./database-window.css";
+
+/**
+ * Kaydı okunabilir metne çevirir.
+ *
+ * Ham tablo yerine "alan: değer" satırları — masaüstüne kaydedilen .txt raporu.
+ */
+function recordToText(
+  record: Record<string, unknown>,
+  columns: string[],
+  title: string,
+): string {
+  const lines = [
+    `# ${title}`,
+    `# Oluşturulma: ${new Date().toLocaleString("tr-TR")}`,
+    "",
+  ];
+  for (const column of columns) {
+    if (/^(nc_|CreatedAt|UpdatedAt)/.test(column)) continue;
+    lines.push(`${column}: ${formatCell(record[column])}`);
+  }
+  return lines.join("\n");
+}
 
 export function DatabaseWindow() {
   const backend = useBackendConfig();
@@ -35,6 +60,11 @@ export function DatabaseWindow() {
   const [loading, setLoading] = useState(true);
   const [recordsLoading, setRecordsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [menu, setMenu] = useState<{ x: number; y: number; record: Record<string, unknown> } | null>(
+    null,
+  );
+
+  const addDesktopItem = useItemsStore((state) => state.add);
 
   const nocodb = status?.integrations.nocodb;
 
@@ -108,6 +138,53 @@ export function DatabaseWindow() {
     );
   }, [records, query]);
 
+  /** Bir kaydı masaüstüne .txt olarak bırakır. */
+  const exportRecord = useCallback(
+    (record: Record<string, unknown>, suffix = "") => {
+      const title = currentTable?.title ?? "Kayıt";
+      const text = recordToText(record, columns, `${title}${suffix}`);
+      const stamp = new Date().toISOString().slice(11, 19).replace(/:/g, "-");
+      addDesktopItem({
+        kind: "file",
+        label: `${(currentTable?.table_name || title).slice(0, 24)}-${stamp}.txt`,
+        content: text,
+        extension: ".txt",
+      });
+      toast.ok("Masaüstüne kaydedildi", "Okunabilir .txt raporu oluşturuldu", "Veritabanı");
+    },
+    [currentTable, columns, addDesktopItem],
+  );
+
+  /** Görünen tüm kayıtları tek bir rapora yazar. */
+  const exportAll = useCallback(() => {
+    if (!filtered.length) return;
+    const title = currentTable?.title ?? "Kayıtlar";
+    const parts = filtered.map((record, index) =>
+      recordToText(record, columns, `${title} · kayıt ${index + 1}`),
+    );
+    const text = [`# ${title} — ${filtered.length} kayıt`, ""].concat(parts).join("\n\n---\n\n");
+    const stamp = new Date().toISOString().slice(0, 10);
+    addDesktopItem({
+      kind: "file",
+      label: `${(currentTable?.table_name || title).slice(0, 20)}-rapor-${stamp}.txt`,
+      content: text,
+      extension: ".txt",
+    });
+    toast.ok("Rapor oluşturuldu", `${filtered.length} kayıt masaüstüne yazıldı`, "Veritabanı");
+  }, [filtered, columns, currentTable, addDesktopItem]);
+
+  const recordMenu = useMemo<MenuItem[]>(() => {
+    if (!menu) return [];
+    return [
+      {
+        id: "export",
+        label: "Okunabilir forma dönüştür (masaüstüne .txt)",
+        icon: "📄",
+        onSelect: () => exportRecord(menu.record),
+      },
+    ];
+  }, [menu, exportRecord]);
+
   return (
     <div className="app">
       <div className="app__toolbar">
@@ -135,6 +212,14 @@ export function DatabaseWindow() {
         </select>
         <button className="app-btn" onClick={() => void load()} disabled={loading}>
           {loading ? "…" : "⟳"}
+        </button>
+        <button
+          className="app-btn"
+          onClick={exportAll}
+          disabled={!filtered.length}
+          title="Görünen kayıtları masaüstüne okunabilir .txt olarak yaz"
+        >
+          📄 Raporla
         </button>
       </div>
 
@@ -232,7 +317,14 @@ export function DatabaseWindow() {
                       </thead>
                       <tbody>
                         {filtered.map((record, index) => (
-                          <tr key={String(record["Id"] ?? index)}>
+                          <tr
+                            key={String(record["Id"] ?? index)}
+                            onContextMenu={(event) => {
+                              event.preventDefault();
+                              setMenu({ x: event.clientX, y: event.clientY, record });
+                            }}
+                            title="Sağ tık: okunabilir forma dönüştür"
+                          >
                             <td className="db-table__num mono">{index + 1}</td>
                             {columns.map((column) => (
                               <td key={column} title={formatCell(record[column])}>
@@ -249,6 +341,16 @@ export function DatabaseWindow() {
             )}
           </div>
         </div>
+      )}
+      {/* Kayıt sağ tık menüsü */}
+      {menu && (
+        <ContextMenu
+          x={menu.x}
+          y={menu.y}
+          items={recordMenu}
+          title="Kayıt"
+          onClose={() => setMenu(null)}
+        />
       )}
     </div>
   );

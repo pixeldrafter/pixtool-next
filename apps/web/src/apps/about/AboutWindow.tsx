@@ -52,7 +52,7 @@ export function AboutWindow() {
         </div>
         <div>
           <h1 className="about__title">Pixtool Next</h1>
-          <p className="about__subtitle">Uzak sistem yönetim paneli · v0.1.0 · Faz 1</p>
+          <p className="about__subtitle">Uzak sistem yönetim paneli</p>
         </div>
       </header>
 

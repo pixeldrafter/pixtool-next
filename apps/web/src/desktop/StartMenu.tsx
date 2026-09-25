@@ -13,6 +13,7 @@ import { useI18n } from "../i18n";
 import { openExternal } from "../lib/openExternal";
 import { useSettings } from "../settings";
 import { APP_DEFINITIONS, useWindowManager, type WindowApp } from "./window/windowStore";
+import { useAccessStore } from "../lib/accessStore";
 import "./StartMenu.css";
 
 interface StartMenuProps {
@@ -39,6 +40,7 @@ const START_ITEMS: StartItem[] = [
   { app: "database", key: "database", icon: "🗄️", groupKey: "start.group.manage" },
   { app: "tools", key: "tools", icon: "🧰", groupKey: "start.group.manage" },
   { app: "notes", key: "notes", icon: "🗒️", groupKey: "start.group.manage" },
+  { app: "backups", key: "backups", icon: "🗃️", groupKey: "start.group.manage" },
   { app: "browser", key: "browser", icon: "🌐", groupKey: "start.group.manage" },
   { app: "games", key: "games", icon: "🎮", groupKey: "start.group.manage" },
   { app: "settings", key: "settings", icon: "⚙️", groupKey: "start.group.system" },
@@ -49,6 +51,7 @@ export function StartMenu({ onClose }: StartMenuProps) {
   const { t } = useI18n();
   const { settings } = useSettings();
   const open = useWindowManager((state) => state.open);
+  const can = useAccessStore((state) => state.can);
   const [query, setQuery] = useState("");
   const [cursor, setCursor] = useState(0);
 
@@ -56,14 +59,16 @@ export function StartMenu({ onClose }: StartMenuProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const results = useMemo(() => {
+    // Yalnızca erişim izni olan uygulamalar listelenir
+    const allowed = START_ITEMS.filter((item) => can(item.app));
     const normalized = query.trim().toLocaleLowerCase("tr");
-    if (!normalized) return START_ITEMS;
-    return START_ITEMS.filter((item) => {
+    if (!normalized) return allowed;
+    return allowed.filter((item) => {
       const label = t(`app.${item.key}`).toLocaleLowerCase("tr");
       const description = t(`app.${item.key}.desc`).toLocaleLowerCase("tr");
       return label.includes(normalized) || description.includes(normalized);
     });
-  }, [query, t]);
+  }, [query, t, can]);
 
   const grouped = useMemo(() => {
     const map = new Map<string, StartItem[]>();
@@ -137,7 +142,7 @@ export function StartMenu({ onClose }: StartMenuProps) {
         </div>
         <div className="start__who">
           <strong>{t("app.name")}</strong>
-          <span className="start__version">v0.1.0 · Faz 2</span>
+          <span className="start__version">Uzak sistem yönetimi</span>
         </div>
       </div>
 

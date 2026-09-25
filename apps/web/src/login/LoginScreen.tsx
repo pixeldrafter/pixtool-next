@@ -14,7 +14,7 @@ import { useState } from "react";
 
 import { AuthPanel } from "./AuthPanel";
 import { JokeBubble } from "./JokeBubble";
-import { LoginCopyright, LoginMarquee } from "./LoginOverlays";
+import { LoginCopyright } from "./LoginOverlays";
 import { OtpStep } from "./OtpStep";
 import { PunishmentScreen } from "./PunishmentScreen";
 import { YetiOtpStep } from "./YetiOtpStep";
@@ -88,8 +88,7 @@ export function LoginScreen({ onSuccess }: LoginScreenProps) {
       className={`login-screen login-screen--${login.form}`}
       style={overlayVars as React.CSSProperties}
     >
-      {/* Kayan hoş geldiniz şeridi — tüm formların üstünde */}
-      <LoginMarquee enabled={login.marqueeEnabled} duration={login.marqueeSeconds} />
+      {/* Kayan hoş geldiniz şeridi kaldırıldı — kullanıcı istemedi. */}
       {/* Form / OTP / Ceza — kendi düzenlerini getirirler */}
       <div className="login-screen__stage">
         {isCredentials &&

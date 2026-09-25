@@ -260,10 +260,31 @@ export async function uploadFile(
   );
 }
 
-/** İndirme adresi (tarayıcı doğrudan indirir). */
+/** İndirme adresi (tarayıcı doğrudan indirir).
+ *
+ * ⚠️ Tarayıcı/sürükle-bırak bu adrese **başlık gönderemez**; bu yüzden token
+ * sorgu parametresi olarak eklenir (yerel köprü bunu kabul eder). */
 export function downloadUrl(path: string, options: FsOptions = {}): string {
-  const { base } = normalize(options);
-  return `${base}/fs/download?path=${encodeURIComponent(path)}`;
+  const { base, token } = normalize(options);
+  const query = `path=${encodeURIComponent(path)}`;
+  const withToken = token ? `${query}&token=${encodeURIComponent(token)}` : query;
+  return `${base}/fs/download?${withToken}`;
+}
+
+/** Dosyayı başlıkla indirir (token URL'e sızmaz) ve blob döndürür. */
+export async function downloadFile(path: string, options: FsOptions = {}): Promise<Blob> {
+  const { base, token } = normalize(options);
+  const headers: Record<string, string> = { "X-Pixtool-Client": "web" };
+  if (token) headers["X-Pixtool-Token"] = token;
+
+  const response = await fetch(`${base}/fs/download?path=${encodeURIComponent(path)}`, {
+    headers,
+    signal: options.signal,
+  });
+  if (!response.ok) {
+    throw new Error(`İndirme başarısız (HTTP ${response.status}).`);
+  }
+  return response.blob();
 }
 
 /** Dosya uzantısına göre simge. */

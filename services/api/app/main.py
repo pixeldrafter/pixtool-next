@@ -22,12 +22,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import PROJECT_ROOT, settings
 from app.integrations.nocodb import NocoDBClient
 from app.routers.access import router as access_router
+from app.routers.admin import router as admin_router
 from app.routers.auth import router as auth_router
+from app.routers.backups import router as backups_router
 from app.routers.browser import router as browser_router
 from app.routers.database import router as database_router
 from app.routers.devices import router as devices_router
 from app.routers.remote import router as remote_router
 from app.routers.scripts import router as scripts_router
+from app.routers.shares import router as shares_router
+from app.routers.sync import router as sync_router
 from app.routers.version import router as version_router
 from app.services.script_service import LIBRARY_ROOT as SCRIPT_LIBRARY
 
@@ -75,12 +79,16 @@ app.add_middleware(
 
 # --- Uç nokta grupları ---
 app.include_router(access_router)
+app.include_router(admin_router)
+app.include_router(backups_router)
 app.include_router(browser_router)
 app.include_router(auth_router)
 app.include_router(database_router)
 app.include_router(devices_router)
 app.include_router(scripts_router)
+app.include_router(shares_router)
 app.include_router(remote_router)
+app.include_router(sync_router)
 app.include_router(version_router)
 
 

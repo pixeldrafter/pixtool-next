@@ -1,0 +1,7 @@
+/* Snapshot penceresi — küçük ek stiller */
+
+.db-table__actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}

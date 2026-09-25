@@ -73,6 +73,8 @@ export const tr: Dictionary = {
   "app.browser.desc": "Sunucu üzerinden gezen web tarayıcısı",
   "app.notes": "Yapışkan Notlar",
   "app.notes.desc": "Renkli notlar — tema ve renk seçenekleri",
+  "app.backups": "Snapshot",
+  "app.backups.desc": "Masaüstünün anlık görüntüsünü al, geri dön",
   "app.settings": "Ayarlar",
   "app.settings.desc": "Tema, görünüm, giriş, akış",
   "app.about": "Pixtool Hakkında",
@@ -195,6 +197,8 @@ export const en: Dictionary = {
   "app.settings.desc": "Theme, appearance, login, flow",
   "app.about": "About Pixtool",
   "app.about.desc": "Version, shortcuts, component demos",
+  "app.backups": "Snapshot",
+  "app.backups.desc": "Take a snapshot of the desktop and restore it",
 
   "login.username": "Username",
   "login.password": "Password",

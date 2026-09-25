@@ -1,0 +1,274 @@
+/**
+ * Donanım widget'ları — stiller.
+ *
+ * Kartlar masaüstünde sabit konumlu (position: fixed) durur; konum store'dan
+ * gelir. Tema değişkenleri kullanıldığı için açık/koyu temaya uyar.
+ */
+
+.wg {
+  position: fixed;
+  z-index: 15;
+  display: flex;
+  flex-direction: column;
+  color: var(--text-primary, #e8eaf0);
+  background: var(--bg-elevated, rgba(22, 24, 30, 0.82));
+  border: 1px solid var(--border-weak, rgba(255, 255, 255, 0.1));
+  border-radius: var(--radius-md, 12px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(16px);
+  overflow: hidden;
+  user-select: none;
+}
+
+/* --- Başlık (sürükleme tutamacı) --- */
+.wg__bar-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 6px);
+  padding: 8px 10px;
+  cursor: grab;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0));
+  border-bottom: 1px solid var(--border-weak, rgba(255, 255, 255, 0.08));
+  touch-action: none;
+}
+
+.wg__bar-head:active {
+  cursor: grabbing;
+}
+
+.wg__icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.wg__title {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-secondary, #b6bcc9);
+}
+
+.wg__close {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--text-muted, #8b93a3);
+  font-size: 12px;
+  line-height: 1;
+  padding: 3px 5px;
+  border-radius: var(--radius-sm, 6px);
+  cursor: pointer;
+}
+
+.wg__close:hover {
+  background: var(--error, #e5484d);
+  color: #fff;
+}
+
+/* --- Gövde --- */
+.wg__body {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.wg__readout {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  justify-content: center;
+}
+
+.wg__value {
+  font-family: var(--font-mono, monospace);
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.wg__unit {
+  font-size: 14px;
+  color: var(--text-muted, #8b93a3);
+}
+
+.wg__value.is-ok {
+  color: var(--ok, #46c46b);
+}
+.wg__value.is-warn {
+  color: var(--warn, #e0a020);
+}
+.wg__value.is-crit {
+  color: var(--error, #e5484d);
+}
+.wg__value.is-idle {
+  color: var(--text-muted, #8b93a3);
+}
+
+/* --- Yüzde çubuğu --- */
+.wg__bar {
+  position: relative;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.09);
+  overflow: hidden;
+}
+
+.wg__bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  transition: width 320ms var(--ease-out, ease);
+}
+
+.wg__bar.is-ok > span {
+  background: var(--ok, #46c46b);
+}
+.wg__bar.is-warn > span {
+  background: var(--warn, #e0a020);
+}
+.wg__bar.is-crit > span {
+  background: var(--error, #e5484d);
+}
+.wg__bar.is-idle > span {
+  background: var(--text-muted, #8b93a3);
+}
+
+.wg__foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 10.5px;
+  color: var(--text-muted, #8b93a3);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.wg__foot > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* --- Liste (disk / sıcaklık) --- */
+.wg__list {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.wg__row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.wg__row-label {
+  font-size: 11px;
+  color: var(--text-secondary, #b6bcc9);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wg__row-pct {
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+  font-weight: 600;
+  align-self: flex-end;
+}
+
+.wg__row-pct.is-ok {
+  color: var(--ok, #46c46b);
+}
+.wg__row-pct.is-warn {
+  color: var(--warn, #e0a020);
+}
+.wg__row-pct.is-crit {
+  color: var(--error, #e5484d);
+}
+
+.wg__empty {
+  font-size: 11.5px;
+  color: var(--text-muted, #8b93a3);
+  text-align: center;
+  padding: 6px 0;
+}
+
+/* --- Ekleme düğmesi + menü --- */
+.wg-add {
+  position: fixed;
+  right: 18px;
+  bottom: 58px;
+  z-index: 16;
+}
+
+.wg-add__btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--border-weak, rgba(255, 255, 255, 0.14));
+  background: var(--bg-frost, rgba(22, 24, 30, 0.85));
+  color: var(--accent, #4cc2ff);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(14px);
+  transition: transform var(--dur-fast, 120ms) var(--ease-out, ease);
+}
+
+.wg-add__btn:hover,
+.wg-add__btn.is-active {
+  transform: scale(1.06);
+  border-color: var(--accent, #4cc2ff);
+}
+
+.wg-add__menu {
+  position: absolute;
+  right: 0;
+  bottom: 54px;
+  display: flex;
+  flex-direction: column;
+  min-width: 210px;
+  padding: 6px;
+  gap: 2px;
+  background: var(--bg-elevated, rgba(22, 24, 30, 0.95));
+  border: 1px solid var(--border-weak, rgba(255, 255, 255, 0.12));
+  border-radius: var(--radius-md, 12px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(18px);
+}
+
+.wg-add__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: none;
+  background: transparent;
+  color: var(--text-primary, #e8eaf0);
+  border-radius: var(--radius-sm, 8px);
+  cursor: pointer;
+  text-align: left;
+}
+
+.wg-add__item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.wg-add__label {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.wg-add__label strong {
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.wg-add__label small {
+  font-size: 10.5px;
+  color: var(--text-muted, #8b93a3);
+}

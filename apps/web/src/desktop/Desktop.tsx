@@ -27,6 +27,7 @@ import {
   BrowserWindow,
   GamesWindow,
   UsersWindow,
+  BackupsWindow,
 } from "../apps";
 import { DesktopItems } from "./DesktopItems";
 import { SettingsWindow } from "./SettingsWindow";
@@ -34,6 +35,8 @@ import { ShutdownButton } from "./ShutdownButton";
 import { StartMenu } from "./StartMenu";
 import { StatusWindow } from "./StatusWindow";
 import { StickyLayer, useStickyStore } from "../sticky";
+import { useAccessStore } from "../lib/accessStore";
+import { WidgetLayer } from "../widgets/WidgetLayer";
 import { configureBridge } from "../lib/openExternal";
 import { ManagedWindow } from "./window/ManagedWindow";
 import { APP_DEFINITIONS, useWindowManager, type WindowApp } from "./window/windowStore";
@@ -66,6 +69,7 @@ export function Desktop({
   const windows = useWindowManager((state) => state.windows);
   const open = useWindowManager((state) => state.open);
   const focus = useWindowManager((state) => state.focus);
+  const can = useAccessStore((state) => state.can);
 
   // Yapışkan notlar — görev çubuğundaki düğme yeni not açar
   const addNote = useStickyStore((state) => state.add);
@@ -97,6 +101,17 @@ export function Desktop({
   }, []);
 
   function renderApp(app: WindowApp) {
+    // Erişim denetimi — izin yoksa içerik yerine uyarı gösterilir
+    if (!can(app)) {
+      return (
+        <div className="desktop__placeholder">
+          <span aria-hidden="true">🔒</span>
+          <strong>Bu bölüme erişimin yok</strong>
+          <p>Yöneticiden yetki istemen gerekiyor.</p>
+        </div>
+      );
+    }
+
     switch (app) {
       case "overview":
         return <OverviewWindow />;
@@ -116,6 +131,8 @@ export function Desktop({
         return <ToolsWindow />;
       case "notes":
         return <NotesWindow />;
+      case "backups":
+        return <BackupsWindow />;
       case "browser":
         return <BrowserWindow />;
       case "games":
@@ -152,6 +169,9 @@ export function Desktop({
 
       {/* Masaüstü yapışkan notları — boş alana çift tıkla → yeni not */}
       <StickyLayer />
+
+      {/* Donanım widget kartları (CPU/RAM/Disk/Sıcaklık) — + ile eklenir */}
+      <WidgetLayer />
 
       {/* Pencereler */}
       {windows.map((win) => (

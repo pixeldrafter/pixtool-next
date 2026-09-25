@@ -94,6 +94,7 @@ class Settings(BaseSettings):
     nocodb_table_resources: str = ""
     nocodb_table_logs: str = ""
     nocodb_table_settings: str = ""
+    nocodb_table_backups: str = ""
 
     # --- 5) n8n ---
     n8n_base_url: str = ""

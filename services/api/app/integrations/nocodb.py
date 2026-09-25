@@ -173,6 +173,18 @@ class NocoDBClient:
             response.raise_for_status()
             return response.json()
 
+    async def delete_record(self, table: str, record_id: str | int) -> dict[str, Any]:
+        """Kaydı siler."""
+        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+            response = await client.request(
+                "DELETE",
+                self._url(f"/api/v2/tables/{table}/records"),
+                headers={**self._headers, "Content-Type": "application/json"},
+                json=[{"Id": record_id}],
+            )
+            response.raise_for_status()
+            return response.json()
+
     async def list_tables(self) -> list[dict[str, Any]]:
         """
         Yapılandırılmış base içindeki tabloları listeler.

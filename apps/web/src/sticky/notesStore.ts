@@ -8,7 +8,9 @@
  */
 
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { createJSONStorage, persist } from "zustand/middleware";
+
+import { scopedStorage } from "../lib/scopedStorage";
 
 /** Yapışkan kağıt renkleri (Windows Sticky Notes paleti + genişletilmiş). */
 export const NOTE_COLORS = [
@@ -152,6 +154,8 @@ export const useStickyStore = create<StickyState>()(
     {
       name: "pixtool.stickies",
       version: 2,
+      // Kullanıcıya göre ayrılmış yerel önbellek (px:<kullanıcı>:pixtool.stickies)
+      storage: createJSONStorage(() => scopedStorage()),
       // v1 → v2: tema, yazı boyutu ve sabitleme alanları eklendi.
       migrate: (persisted, version) => {
         const state = persisted as { notes?: Partial<StickyNote>[] } | undefined;

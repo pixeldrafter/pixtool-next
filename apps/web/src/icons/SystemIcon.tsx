@@ -27,7 +27,8 @@ export type SystemIconName =
   | "tools"
   | "notes"
   | "browser"
-  | "games";
+  | "games"
+  | "backups";
 
 interface IconProps extends SVGProps<SVGSVGElement> {
   size?: number;
@@ -254,6 +255,17 @@ function GamesIcon(props: IconProps) {
   );
 }
 
+function BackupsIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <rect x="4" y="6" width="24" height="20" rx="2.5" fill="#2f6fd0" />
+      <rect x="4" y="6" width="24" height="5" rx="2.5" fill="#4a8ee8" />
+      <circle cx="16" cy="18" r="5" fill="none" stroke="#bfe3ff" strokeWidth="2" />
+      <path d="M16 15.6V18l1.8 1.4" stroke="#dbeaff" strokeWidth="1.8" strokeLinecap="round" />
+    </Svg>
+  );
+}
+
 const REGISTRY = {
   overview: OverviewIcon,
   resources: ResourcesIcon,
@@ -271,6 +283,7 @@ const REGISTRY = {
   notes: NotesIcon,
   browser: BrowserIcon,
   games: GamesIcon,
+  backups: BackupsIcon,
 } as const;
 
 /** İsimle sistem ikonu çizer. */

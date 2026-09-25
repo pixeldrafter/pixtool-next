@@ -1,216 +1,147 @@
 # Pixtool Next
 
-Uzak sistem yönetim paneli — **online**, işletim sistemi gibi görünen, web + mobil + masaüstü hedefli.
+Kendini bir **işletim sistemi gibi** sunan, uzak sistem yönetim paneli.
+Tarayıcıdan, mobil tarayıcıdan veya masaüstü kabuğundan (Tauri) erişilir;
+çoklu pencere, masaüstü, görev çubuğu ve önyükleme dizisi ile gerçek bir
+masaüstü deneyimi verir.
 
-> Bu klasör **yeni çalışmanın** deposudur. Eski kod tabanları (`Pixtool Global v6`,
-> `PixtoolDesktopDemo`, `Pixtool Global Gemini Pro v5`) buradan **ayrıdır**; yalnızca
-> referans ve hasat kaynağı olarak kullanılır. Bkz. `docs/HASAT.md`.
-> Ham demolar `_referans/` altındadır (git dışı).
-
----
-
-## Ne yapıyor?
-
-Tarayıcıdan veya masaüstü kabuğundan erişilen, kendini bir **işletim sistemi gibi** sunan
-(çoklu pencere, masaüstü, görev çubuğu, önyükleme dizisi) bir uzak sistem yönetim paneli:
-
-- Sunucuya SSH ile bağlanıp komut çalıştırma, dosya yönetimi, terminal
-- Yerel makinede script çalıştırma (yerel köprü üzerinden)
-- NocoDB üzerinden tüm veri: kullanıcı, cihaz, script, kaynak, log
-- Login + OTP (n8n / Telegram)
-- Sistem monitörü, ağ araçları, zaafiyet taraması
+> Bu depo **self-hosted** bir kurulum içindir. Tüm veri katmanı NocoDB,
+> kimlik doğrulama ve OTP akışı n8n + Telegram üzerinden çalışır.
 
 ---
 
-## Açılış akışı
+## Özellikler
 
-```
-Giriş (login + OTP)  →  Konsol (makine envanteri)  →  Boot  →  Masaüstü
-```
-
-Sıra **Ayarlar → Açılış Akışı**'ndan değiştirilebilir. Konsol ayrıntı seviyesi
-`Kapalı` yapılırsa konsol adımı tamamen atlanır (sessiz açılış — kimseyi rahatsız etmez).
+- **Masaüstü deneyimi:** pencereler, görev çubuğu, başlat menüsü, masaüstü
+  kısayolları, yapışkan notlar, donanım widget kartları (CPU/RAM/Disk/Sıcaklık).
+- **Yerel köprü (Python):** çalıştırılan makinenin canlı envanteri — anakart,
+  BIOS, RAM modülleri, diskler, ağ, sıcaklıklar, kurulu programlar, servisler.
+- **Script kütüphanesi:** PowerShell/bash script'lerini seçip çalıştırma.
+- **Dosya yöneticisi:** yerel disk (köprü) ve uzak sunucu (SFTP); sürükle-bırak
+  ile yükleme/indirme, Windows tarzı arayüz.
+- **Kullanıcı yönetimi + paylaşım:** roller, uygulama bazlı yetkiler, kullanıcılar
+  arası dosya/not paylaşımı.
+- **Kalıcılık:** notlar, masaüstü öğeleri, widget'lar ve ayarlar kullanıcıya özel
+  olarak sunucuda saklanır (cihazlar arası taşınır).
+- **Snapshot / geri dön:** masaüstünün o anki hâlini kaydet, saniyeler içinde geri yükle.
+- **Otomatik güncelleme:** masaüstü kabuğu imzalı güncellemeyi indirip kurar.
 
 ---
 
 ## Mimari
 
 ```
-                    [ SUNUCU — internete açık ]
-   ┌──────────────────────────────────────────────────────┐
-   │  Web Arayüzü (React, statik)  → tarayıcı / mobil / desktop
-   │  Backend API (FastAPI, Python) → iş mantığı, auth, orkestrasyon
-   │  n8n     → login / OTP / Telegram otomasyonu
-   │  NocoDB  → TÜM VERİ
-   └──────────────────────────────────────────────────────┘
-                          ▲ HTTPS
-        ┌─────────────────┼─────────────────┐
-   [Masaüstü Win10/11] [Linux]          [Mobil]
-    Tauri kabuğu        Tauri/tarayıcı   Tarayıcı / PWA
-        │
-        ▼
-   [ PIXTOOL BRIDGE ]  ← localhost'ta Python servisi
-     sistem bilgisi · kurulu programlar · script çalıştırma · boot taraması
+apps/web        React arayüzü (masaüstü + pencereler)
+apps/desktop    Tauri masaüstü kabuğu (Rust) + otomatik güncelleme
+services/api    FastAPI backend (NocoDB veri katmanı, kimlik, script, paylaşım)
+services/bridge Makinede çalışan yerel Python köprüsü (donanım envanteri, dosya, script)
+services/n8n    n8n iş akışı örnekleri (OTP / kayıt onayı)
 ```
 
-Ayrıntı: `docs/MIMARI.md`
+Veri akışı: **Arayüz → API → NocoDB** ve **Arayüz → Köprü (localhost) → İşletim sistemi**.
 
 ---
 
-## Teknoloji yığını
+## Gereksinimler
 
-| Katman | Teknoloji |
-|---|---|
-| Arayüz | React 19 + TypeScript + Vite 7 |
-| Stil | Özel CSS + tasarım tokenları (3 tema) |
-| Durum | zustand (localStorage kalıcılığı) |
-| Backend | FastAPI + Pydantic v2 |
-| Veri | NocoDB (REST adapter) |
-| Yerel köprü | Python (psutil + paramiko) — Faz 3 |
-| Masaüstü kabuk | Tauri 2 — Faz 4 |
-| Paket yöneticisi | pnpm (workspace) |
-| Test | pytest · vitest |
+- **Node.js** ≥ 22 + **pnpm**
+- **Python** ≥ 3.11 (köprü ve API için)
+- **NocoDB** (veri katmanı)
+- *(Opsiyonel)* **n8n** + **Telegram bot** (OTP ve bildirimler)
+- *(Opsiyonel)* **Rust** (masaüstü kabuğunu derlemek için)
 
 ---
 
-## Klasör yapısı
-
-```
-pixtool-next/
-├── apps/
-│   └── web/                    # React arayüzü
-│       └── src/
-│           ├── settings/       # Ayar çekirdeği (şema, store, merge)
-│           ├── theme/          # Tema motoru (Windows / KDE / Neon)
-│           ├── login/          # 6 login formu + OTP + ceza ekranı + şakalar
-│           ├── console/        # Makine envanteri konsolu
-│           ├── cursor/         # Özel imleçler (örümcek / sürüngen)
-│           ├── wallpaper/      # Spider Clock · Pixel Bat
-│           ├── idle/           # Boşta kalma ekranı
-│           ├── boot/           # Önyükleme animasyonu
-│           └── desktop/        # Masaüstü kabuğu + Ayarlar + Kapatma
-├── services/
-│   └── api/                    # FastAPI backend
-│       └── app/
-│           ├── core/           # Ayarlar, güvenlik
-│           ├── models/         # Pydantic şemaları
-│           ├── routers/        # auth, devices
-│           ├── services/       # Kimlik doğrulama mantığı
-│           └── integrations/   # NocoDB
-├── docs/                       # Kararlar, mimari, yol haritası, hasat, özelleştirme, API
-├── _referans/                  # Ham demolar (GİT DIŞI)
-└── package.json                # workspace kökü
-```
-
----
-
-## Hızlı başlangıç
-
-### Gereksinimler
-
-- **Node.js** 22+ (mevcut: v25) ve **pnpm**
-- **Python** 3.12+ (mevcut: 3.14)
-- **Git**
-- *(Faz 4)* Rust + Visual Studio C++ Build Tools → Tauri için
-
-### Kurulum
+## Hızlı Başlangıç
 
 ```bash
-# 1. Bağımlılıklar
+# 1) Ortam değişkenleri
+cp .env.example .env
+#    .env içini doldur (NocoDB, Telegram, API_SECRET_KEY, …)
+
+# 2) Bağımlılıklar
 pnpm install
+pnpm setup:api            # Python sanal ortamı + bağımlılıklar
 
-# 2. Ortam dosyası
-copy .env.example .env      # Windows
-# .env içini doldur (NocoDB, n8n, SSH …)
+# 3) Backend
+pnpm dev:api              # http://127.0.0.1:8000
 
-# 3. Backend sanal ortamı
-pnpm setup:api
+# 4) Arayüz
+pnpm dev:web              # http://localhost:5173
 ```
 
-### Çalıştırma
+### Yerel köprü
 
 ```bash
-# Backend (http://127.0.0.1:8000)
-pnpm dev:api
-
-# Arayüz (http://localhost:5173)
-pnpm dev:web
+pnpm build:bridge         # tek dosya exe üretir (PyInstaller)
+# ya da doğrudan:
+cd services/bridge && python pixtool_bridge.py
 ```
 
-OpenAPI arayüzü: <http://127.0.0.1:8000/docs>
+Köprü başlarken bir **token** yazdırır. Arayüz, masaüstü kabuğunda bu token'ı
+kabuktan otomatik alır; tarayıcıda Ayarlar → Köprü bölümüne elle girilir.
 
----
-
-## İlk giriş (demo kipi)
-
-NocoDB / n8n / Telegram yapılandırılmadan önce sistem **demo kipiyle** çalışır:
-
-| Alan | Değer |
-|---|---|
-| Kullanıcı adı | `admin` |
-| Parola | `pixtool` |
-| OTP | Ekranda gösterilir (geliştirme kipi) |
-
-> ⚠️ Demo kipi `APP_ENV=production` iken **otomatik kapanır**. Gerçek kullanımda
-> NocoDB + n8n/Telegram entegrasyonu kurulmalıdır.
-> `.env` içinde `AUTH_DEMO_USER` / `AUTH_DEMO_PASSWORD` ile değiştirilebilir.
-
----
-
-## Denenecekler
-
-| Ne | Nerede |
-|---|---|
-| 🎨 Tema değiştir (Windows / KDE / Neon) | Ayarlar → Görünüm |
-| 🔑 Login formu değiştir (6 form) | Ayarlar → Giriş → Login formu |
-| 📐 Arayüz ölçeği, duvar kağıdı karartma | Ayarlar → Görünüm |
-| 🕷️ Cursor: örümcek / sürüngen | Ayarlar → Görünüm → Cursor |
-| 🕷️🦇 Duvar kağıdı: Spider Clock / Pixel Bat | Ayarlar → Görünüm → Arkaplan |
-| 💡 Ceza ekranı (lamba + 2 dk geri sayım) | Giriş → OTP'yi 3 kez yanlış gir |
-| 😄 Şakalar (100 adet, forma göre temalı) | Giriş ekranında otomatik |
-| 🦇 Boşta ekranı | 5 dk hareketsiz kal |
-| ⏻ Animasyonlu kapatma | Görev çubuğu → Kapat |
-| ▶️ Akış sırasını değiştir | Ayarlar → Açılış Akışı |
-| 💾 Ayarları yedekle (JSON) | Ayarlar → en altta |
-
----
-
-## Kalite
+### Masaüstü kabuk (Tauri)
 
 ```bash
-pnpm typecheck     # TypeScript
-pnpm test          # vitest (arayüz)
-pnpm test:api      # pytest (backend)
-pnpm lint:api      # ruff
-pnpm build         # üretim derlemesi
+pnpm dev:desktop          # geliştirme
+pnpm build:desktop        # dağıtım derlemesi
 ```
 
-Mevcut durum: **35 backend testi**, **13 arayüz testi** — hepsi geçiyor.
-
 ---
 
-## Dokümanlar
+## Yapılandırma
 
-| Dosya | İçerik |
+Tüm ayarlar `.env` dosyasındadır (`.env.example` şablonuna bakın). Öne çıkanlar:
+
+| Anahtar | Açıklama |
 |---|---|
-| `docs/KARARLAR.md` | Alınan kilitli kararlar |
-| `docs/MIMARI.md` | Mimari detayı ve gerekçeler |
-| `docs/YOL-HARITASI.md` | Faz 0-5 planı ve ilerleme durumu |
-| `docs/HASAT.md` | Eski kod tabanlarından neyin taşınacağı |
-| `docs/OZELLESTIRME.md` | Özelleştirme sistemi + içerik yerleştirme haritası |
-| `docs/API.md` | Backend uç noktaları |
-| `docs/ACIK-KONULAR.md` | Sonradan netleşecek, bloklamayan konular |
+| `API_SECRET_KEY` | Oturum tokenı imzalama anahtarı (güçlü bir değer verin) |
+| `API_ALLOWED_ORIGINS` | CORS izinli kökenler |
+| `NOCODB_BASE_URL` / `NOCODB_API_TOKEN` / `NOCODB_BASE_ID` | NocoDB bağlantısı |
+| `NOCODB_TABLE_*` | NocoDB tablo kimlikleri |
+| `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` | OTP ve bildirimler |
+| `BRIDGE_TOKEN` | Yerel köprü erişim tokenı |
+| `COMMAND_POLICY` | `confirm` \| `whitelist` \| `allow_all` |
+
+> **Güvenlik:** `.env` asla commit edilmez. Gerçek token/şifreleri yalnızca
+> yerel `.env` içinde tutun.
 
 ---
 
-## Durum
+## Dağıtım
 
-**Faz 0 ✓ · Faz 1 büyük ölçüde ✓** — ayrıntı: `docs/YOL-HARITASI.md`
+`tools/deploy.mjs` katmanlı dağıtım sunar (kendi sunucunuz için uyarlayın):
 
-Çalışan: kimlik doğrulama + OTP, ceza ekranı, makine envanteri konsolu,
-cihaz raporu kaydı, 3 tema, 6 login formu, 2 özel imleç, 2 animasyonlu duvar
-kağıdı, boşta ekranı, animasyonlu kapatma, kapsamlı ayar sistemi.
+```bash
+node tools/deploy.mjs web      # arayüz (anında)
+node tools/deploy.mjs api      # backend
+node tools/deploy.mjs shell    # masaüstü kabuğu (imzalı kurulum üretir)
+node tools/deploy.mjs all
+```
+
+Arka uç, systemd servisi (`pixtool-api`) veya Docker ile çalıştırılabilir.
+Nginx örnek yapılandırması ve systemd unit'i `docs/` altındadır.
+
+### Otomatik güncelleme
+
+Masaüstü kabuğu, imzalı kurulumu sunucudaki `latest.json` ucundan kontrol eder.
+İmzalama anahtarı `tauri signer generate` ile üretilir; private key **repoya
+konmaz**. `tauri.conf.json` içindeki `plugins.updater.endpoints` ve `pubkey`
+kendi dağıtımınıza göre ayarlanır.
+
+---
+
+## Kişiselleştirme
+
+Bu bir **şablondur**: marka adı, alan adı, logosu ve metinleri kendi
+kurulumunuza göre değiştirin. Arayüz metinleri `apps/web/src/i18n/dictionaries.ts`
+içinde; görünüm `apps/web/src/settings/` altında; giriş ekranı
+`apps/web/src/login/` altındadır.
+
+---
 
 ## Lisans
 
-Kişisel proje. Ticari kısım (lisans / imzalama / marka) **askıda**.
+Bu depo, kullandığınız kuruluma göre kendi lisansınızla yayınlanmak üzere
+hazırlanmıştır. Üçüncü taraf bileşenlerin lisansları kendi paketlerinde geçerlidir.

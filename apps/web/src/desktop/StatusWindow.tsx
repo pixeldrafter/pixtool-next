@@ -96,7 +96,7 @@ export function StatusWindow({
               label="Yerel Köprü"
               value={status.integrations.bridge.configured ? "Hazır" : "Yok"}
               tone={status.integrations.bridge.configured ? "ok" : "warn"}
-              detail="Faz 3"
+              detail="Yerel köprü servisi"
             />
             <Card
               label="Komut Politikası"

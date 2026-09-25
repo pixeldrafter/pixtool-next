@@ -564,7 +564,7 @@ export function SettingsWindow() {
           {importMessage && <span className="settings__message">{importMessage}</span>}
         </div>
         {section === "bridge" && (
-          <Group title="Yerel köprü (Faz 3)">
+          <Group title="Yerel köprü">
             <p className="settings__note">
               Tarayıcı donanımın tamamına erişemez. Yerel köprü, konsolda
               <strong> kurulu programları, servisleri, işlemleri, disk bölümlerini

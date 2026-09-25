@@ -14,9 +14,16 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { Card } from "../../desktop/ui/Card";
 import { describeError } from "../../lib/api";
-import { fetchTableRecords, formatCell } from "../../lib/databaseApi";
+import {
+  fetchAdminUsers,
+  setUserPermissions,
+  updateAdminUser,
+  type AdminUser,
+} from "../../lib/adminApi";
+import { useAccessStore } from "../../lib/accessStore";
 import { runCommand, type RunTarget } from "../../lib/runTarget";
 import { useSettings } from "../../settings";
+import { toast } from "../../notifications";
 import { BridgeHelpBox } from "../ui/BridgeHelpBox";
 import "../apps.css";
 import "./users-window.css";
@@ -84,8 +91,14 @@ export function UsersWindow() {
   const [source, setSource] = useState<Source>("local");
   const [users, setUsers] = useState<SystemUser[]>([]);
   const [sessions, setSessions] = useState<string[]>([]);
-  const [appUsers, setAppUsers] = useState<Record<string, unknown>[]>([]);
-  const [appColumns, setAppColumns] = useState<string[]>([]);
+  const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
+  const [allApps, setAllApps] = useState<string[]>([]);
+  const [permTarget, setPermTarget] = useState<AdminUser | null>(null);
+  const [permDraft, setPermDraft] = useState<string[]>([]);
+
+  const token = useAccessStore((state) => state.token);
+  const isAdmin = useAccessStore((state) => state.isAdmin);
+  const me = useAccessStore((state) => state.username);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -166,33 +179,74 @@ export function UsersWindow() {
     [settings.bridge.url, settings.bridge.token],
   );
 
-  /** NocoDB `Users` tablosunu çeker. */
+  /** Uygulama kullanıcılarını (NocoDB) yönetici uç noktasından çeker. */
   const loadAppUsers = useCallback(async () => {
     setLoading(true);
     setError(null);
+    if (!isAdmin) {
+      setAdminUsers([]);
+      setError("Bu bölüm için yönetici yetkisi gerekli.");
+      setLoading(false);
+      return;
+    }
     try {
-      // Kullanıcılar tablosunun kimliği backend `.env`'inden gelir;
-      // tablo listesinden "Users" başlığını buluruz.
-      const { fetchDatabaseTables } = await import("../../lib/databaseApi");
-      const tables = await fetchDatabaseTables();
-      const target = tables.find((table) => /^users?$/i.test(table.title ?? "")) ?? tables[0];
-
-      if (!target) {
-        setError("NocoDB'de kullanıcı tablosu bulunamadı.");
-        setAppUsers([]);
-        return;
-      }
-
-      const data = await fetchTableRecords(target.id, { limit: 100 });
-      setAppUsers(data.records);
-      setAppColumns(data.columns);
+      const data = await fetchAdminUsers(token);
+      setAdminUsers(data.users);
+      setAllApps(data.allApps);
     } catch (caught) {
       setError(describeError(caught));
-      setAppUsers([]);
+      setAdminUsers([]);
     } finally {
       setLoading(false);
     }
+  }, [isAdmin, token]);
+
+  /** Rol değiştirir. */
+  const changeRole = useCallback(
+    async (user: AdminUser, role: string) => {
+      try {
+        await updateAdminUser(token, user.id, { role });
+        toast.ok("Rol güncellendi", `${user.username} → ${role}`, "Kullanıcılar");
+        void loadAppUsers();
+      } catch (caught) {
+        toast.error("Rol güncellenemedi", describeError(caught), "Kullanıcılar");
+      }
+    },
+    [token, loadAppUsers],
+  );
+
+  /** Etkinlik durumunu değiştirir. */
+  const changeActive = useCallback(
+    async (user: AdminUser, active: boolean) => {
+      try {
+        await updateAdminUser(token, user.id, { active });
+        toast.ok("Durum güncellendi", `${user.username} → ${active ? "etkin" : "devre dışı"}`, "Kullanıcılar");
+        void loadAppUsers();
+      } catch (caught) {
+        toast.error("Durum güncellenemedi", describeError(caught), "Kullanıcılar");
+      }
+    },
+    [token, loadAppUsers],
+  );
+
+  /** İzin düzenleyiciyi açar. */
+  const openPerms = useCallback((user: AdminUser) => {
+    setPermTarget(user);
+    setPermDraft(user.permissions?.apps ?? []);
   }, []);
+
+  /** İzinleri kaydeder. */
+  const savePerms = useCallback(async () => {
+    if (!permTarget) return;
+    try {
+      await setUserPermissions(token, permTarget.username, permDraft);
+      toast.ok("İzinler kaydedildi", permTarget.username, "Kullanıcılar");
+      setPermTarget(null);
+      void loadAppUsers();
+    } catch (caught) {
+      toast.error("İzinler kaydedilemedi", describeError(caught), "Kullanıcılar");
+    }
+  }, [permTarget, permDraft, token, loadAppUsers]);
 
   // Kaynak değişince yükle
   useEffect(() => {
@@ -258,7 +312,7 @@ export function UsersWindow() {
           placeholder="Ara…"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          disabled={source === "app" ? !appUsers.length : !users.length}
+          disabled={source === "app" ? !adminUsers.length : !users.length}
         />
 
         {source !== "app" && (
@@ -325,35 +379,65 @@ export function UsersWindow() {
           </div>
         )}
 
-        {/* --- Uygulama kullanıcıları (NocoDB) --- */}
+        {/* --- Uygulama kullanıcıları — yönetim --- */}
         {!loading && source === "app" && (
-          appUsers.length === 0 ? (
-            <div className="app-empty">NocoDB kullanıcı kaydı bulunamadı</div>
+          adminUsers.length === 0 ? (
+            <div className="app-empty">
+              {error ?? "Kullanıcı kaydı bulunamadı"}
+            </div>
           ) : (
             <table className="app-table">
               <thead>
                 <tr>
-                  {appColumns.map((column) => (
-                    <th key={column}>{column.replace(/^(nc_|CreatedAt|UpdatedAt)/, "").trim() || column}</th>
-                  ))}
+                  <th>Kullanıcı</th>
+                  <th style={{ width: 130 }}>Rol</th>
+                  <th style={{ width: 80 }}>Durum</th>
+                  <th style={{ width: 110 }}>İzinler</th>
                 </tr>
               </thead>
               <tbody>
-                {appUsers
-                  .filter((record) => {
-                    const needle = query.trim().toLocaleLowerCase("tr");
-                    if (!needle) return true;
-                    return Object.values(record).some((value) =>
-                      formatCell(value).toLocaleLowerCase("tr").includes(needle),
-                    );
-                  })
-                  .map((record, index) => (
-                    <tr key={index}>
-                      {appColumns.map((column) => (
-                        <td key={column}>{formatCell(record[column])}</td>
-                      ))}
-                    </tr>
-                  ))}
+                {adminUsers.map((user) => (
+                  <tr key={String(user.id)}>
+                    <td style={{ color: "var(--text-primary)" }}>
+                      {user.username}
+                      {user.username === me && (
+                        <span className="app-tag app-tag--muted" style={{ marginLeft: 8 }}>
+                          sen
+                        </span>
+                      )}
+                    </td>
+                    <td>
+                      <select
+                        className="share__select"
+                        value={user.role}
+                        disabled={user.username === me}
+                        onChange={(event) => void changeRole(user, event.target.value)}
+                      >
+                        <option value="admin">admin</option>
+                        <option value="user">user</option>
+                      </select>
+                    </td>
+                    <td>
+                      <input
+                        type="checkbox"
+                        checked={user.active}
+                        disabled={user.username === me}
+                        onChange={(event) => void changeActive(user, event.target.checked)}
+                      />
+                    </td>
+                    <td>
+                      <button
+                        type="button"
+                        className="btn"
+                        disabled={user.role === "admin"}
+                        title={user.role === "admin" ? "Yönetici tüm bölümlere erişir" : "Uygulama izinleri"}
+                        onClick={() => openPerms(user)}
+                      >
+                        Düzenle
+                      </button>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           )
@@ -414,6 +498,50 @@ export function UsersWindow() {
           </div>
         )}
       </div>
+      {/* İzin düzenleyici */}
+      {permTarget && (
+        <div className="txtedit" role="dialog" aria-modal="true" onClick={() => setPermTarget(null)}>
+          <div className="txtedit__box" onClick={(event) => event.stopPropagation()}>
+            <header className="txtedit__head">
+              <span className="txtedit__icon">🔐</span>
+              <strong>{permTarget.username} — Uygulama izinleri</strong>
+            </header>
+
+            <div className="share__body">
+              {allApps.map((app) => (
+                <label
+                  key={app}
+                  className="share__label"
+                  style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={permDraft.includes(app)}
+                    onChange={(event) =>
+                      setPermDraft((prev) =>
+                        event.target.checked
+                          ? [...prev, app]
+                          : prev.filter((item) => item !== app),
+                      )
+                    }
+                  />
+                  {app}
+                </label>
+              ))}
+            </div>
+
+            <footer className="txtedit__actions">
+              <span className="txtedit__count" />
+              <button type="button" className="btn" onClick={() => setPermTarget(null)}>
+                Vazgeç
+              </button>
+              <button type="button" className="btn btn--primary" onClick={() => void savePerms()}>
+                Kaydet
+              </button>
+            </footer>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

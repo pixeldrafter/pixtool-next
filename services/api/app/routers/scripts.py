@@ -18,9 +18,10 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.core.config import settings
+from app.core.deps import require_admin
 from app.models.scripts import (
     RunScriptRequest,
     RunScriptResponse,
@@ -34,7 +35,11 @@ from app.services import script_service
 
 logger = logging.getLogger("pixtool.scripts")
 
-router = APIRouter(prefix="/api/v1/scripts", tags=["scriptler"])
+router = APIRouter(
+    prefix="/api/v1/scripts",
+    tags=["scriptler"],
+    dependencies=[Depends(require_admin)],
+)
 
 
 def _command_for(script_id: str, extension: str, script_type: str) -> str:

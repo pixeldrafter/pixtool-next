@@ -212,3 +212,57 @@
 .app__spacer {
   flex: 1;
 }
+
+/* --- Paylaşılan öğeler (sağ tarafta rozetli) --- */
+.ditem--shared {
+  border: 1px dashed var(--border-weak, rgba(255, 255, 255, 0.22));
+  border-radius: var(--radius-sm, 10px);
+  background: rgba(76, 194, 255, 0.06);
+  padding: 6px 4px;
+}
+
+.ditem__shared-badge {
+  font-size: 9.5px;
+  color: var(--accent, #4cc2ff);
+  opacity: 0.9;
+  max-width: 84px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --- Paylaşım diyaloğu --- */
+.share__body {
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.share__label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary, #b6bcc9);
+}
+
+.share__select {
+  padding: 8px 10px;
+  border-radius: var(--radius-sm, 8px);
+  border: 1px solid var(--border-weak, rgba(255, 255, 255, 0.14));
+  background: var(--bg-void, rgba(0, 0, 0, 0.25));
+  color: var(--text-primary, #e8eaf0);
+  font-size: 12.5px;
+}
+
+.share__error {
+  color: var(--error, #e5484d);
+  font-size: 12px;
+}
+
+.share__note {
+  padding: 8px 16px 0;
+  font-size: 12px;
+  color: var(--text-secondary, #b6bcc9);
+}
