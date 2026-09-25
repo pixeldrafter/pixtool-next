@@ -18,11 +18,104 @@
 //!   • uygulama kapanınca köprü de kapanır.
 
 use std::sync::Mutex;
+use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 use tauri::{Manager, State};
 use tauri_plugin_shell::process::CommandChild;
 use tauri_plugin_shell::ShellExt;
+
+// ----------------------------------------------------------------------
+//  Arayüz kaynağı (uzak / yerel)
+// ----------------------------------------------------------------------
+///
+/// ## Neden?
+///
+/// Arayüz `frontendDist` ile exe'nin içine gömülürse **her arayüz değişikliği
+/// yeniden derleme** gerektirir. Oysa kabuk (Rust) nadiren değişir.
+///
+/// Bu yüzden uygulama açılışta sunucuyu yoklar:
+///
+/// | Durum | Ne yüklenir | Güncelleme |
+/// |---|---|---|
+/// | Sunucu erişilebilir | **Uzak** arayüz | Sunucuya kopyala → anında |
+/// | Sunucu yok (çevrimdışı) | **Gömülü** kopya | exe yeniden derlenir |
+///
+/// `PIXTOOL_UI_URL` ortam değişkeniyle geçersiz kılınabilir (geliştirme).
+const DEFAULT_UI_URL: &str = "https://pixtool.omercataloglu.com";
+
+/// Arayüz kaynak bilgisi.
+#[derive(Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+struct UiSource {
+    /// Kullanılan mod: "remote" | "local"
+    upstream: String,
+    /// Uzak adres
+    remote_url: String,
+    /// Uzak erişilebilir mi
+    remote_reachable: bool,
+    /// Kabuk sürümü
+    shell_version: String,
+}
+
+/// Uzak arayüz adresini döndürür (ortam değişkeni > varsayılan).
+fn ui_remote_url() -> String {
+    std::env::var("PIXTOOL_UI_URL").unwrap_or_else(|_| DEFAULT_UI_URL.to_string())
+}
+
+/// Sunucu erişilebilir mi? (kısa zaman aşımı — açılışı bekletmesin)
+fn remote_reachable(url: &str) -> bool {
+    let client = match reqwest::blocking::Client::builder()
+        .timeout(Duration::from_secs(6))
+        .connect_timeout(Duration::from_secs(4))
+        .user_agent("PixtoolShell/1.0")
+        .build()
+    {
+        Ok(client) => client,
+        Err(_) => return false,
+    };
+
+    // Sağlık ucu en hafif kontrol
+    let health = format!("{}/health", url.trim_end_matches('/'));
+    client
+        .get(&health)
+        .send()
+        .map(|response| response.status().is_success())
+        .unwrap_or(false)
+}
+
+/// Arayüzün nereden yükleneceğini söyler.
+#[tauri::command]
+fn ui_source(app: tauri::AppHandle) -> UiSource {
+    let remote_url = ui_remote_url();
+    let reachable = remote_reachable(&remote_url);
+
+    UiSource {
+        upstream: if reachable { "remote" } else { "local" }.to_string(),
+        remote_url,
+        remote_reachable: reachable,
+        shell_version: app.package_info().version.to_string(),
+    }
+}
+
+/// Webview'ı verilen adrese yönlendirir.
+#[tauri::command]
+fn navigate_ui(window: tauri::WebviewWindow, url: String) -> Result<(), String> {
+    let parsed = url.parse().map_err(|err| format!("Geçersiz adres: {err}"))?;
+    window.navigate(parsed).map_err(|err| err.to_string())
+}
+
+/// Arayüzü yeniler (uzak adres kullanılıyorsa sunucudan tekrar çeker).
+#[tauri::command]
+fn reload_ui(window: tauri::WebviewWindow) -> Result<(), String> {
+    window.reload().map_err(|err| err.to_string())
+}
+
+/// Kabuk sürümü.
+#[tauri::command]
+fn shell_version(app: tauri::AppHandle) -> String {
+    app.package_info().version.to_string()
+}
 
 // ----------------------------------------------------------------------
 //  Köprü durumu
@@ -334,18 +427,52 @@ pub fn run() {
             bridge_start,
             bridge_stop,
             bridge_status,
+            ui_source,
+            navigate_ui,
+            reload_ui,
+            shell_version,
         ])
         .setup(|app| {
-            // Köprüyü otomatik başlat (arayüz de isteyebilir)
+            // Yerel köprüyü otomatik başlat
             let handle = app.handle().clone();
             std::thread::spawn(move || {
-                std::thread::sleep(std::time::Duration::from_millis(600));
+                std::thread::sleep(Duration::from_millis(600));
                 let state = handle.state::<BridgeState>();
                 let status = bridge_start(handle.clone(), state, None);
                 if status.running {
                     println!("[pixtool] köprü hazır: {}", status.url);
                 } else if let Some(error) = status.error {
                     eprintln!("[pixtool] köprü başlatılamadı: {error}");
+                }
+            });
+
+            // Arayüzü uzak sunucudan yükle (varsa).
+            //
+            // Gömülü kopya **çevrimdişi yedek**tir: arayüz değişiklikleri
+            // sunucuya kopyalanır ve uygulama yeniden derlenmeden güncellenir.
+            let handle = app.handle().clone();
+            std::thread::spawn(move || {
+                let remote = ui_remote_url();
+
+                if !remote_reachable(&remote) {
+                    println!("[pixtool] uzak arayüz erişilemez — gömülü kopya kullanılıyor");
+                    return;
+                }
+
+                // Pencere hazır olana kadar bekle
+                for _ in 0..40 {
+                    if let Some(window) = handle.get_webview_window("main") {
+                        match remote.parse() {
+                            Ok(url) => {
+                                if window.navigate(url).is_ok() {
+                                    println!("[pixtool] arayüz uzaktan yüklendi: {remote}");
+                                }
+                            }
+                            Err(err) => eprintln!("[pixtool] geçersiz arayüz adresi: {err}"),
+                        }
+                        return;
+                    }
+                    std::thread::sleep(Duration::from_millis(150));
                 }
             });
 

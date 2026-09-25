@@ -26,6 +26,7 @@ import { IntroVideo, LoginScreen, OtpDemo, type LoginSession } from "./login";
 import { PunishmentScreen } from "./login/PunishmentScreen";
 import { getLoginTheme } from "./login/themes";
 import { ToastLayer } from "./notifications";
+import { UpdateBanner } from "./updater/UpdateBanner";
 import { useSettings } from "./settings";
 import { LOGIN_FORM_OPTIONS, type FlowStep } from "./settings";
 import { ThemeBackdrop, useThemeSync } from "./theme";
@@ -313,6 +314,9 @@ export default function App() {
 
       {/* Windows 11 tarzı bildirimler — sağ altta */}
       <ToastLayer />
+
+      {/* Kabuk güncellemesi bildirimi (arayüz sunucudan otomatik güncellenir) */}
+      <UpdateBanner />
 
       {isIdle && <IdleScreen onDismiss={resetIdle} />}
     </>

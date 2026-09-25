@@ -69,8 +69,23 @@ describe("mergeDeep", () => {
 });
 
 describe("varsayılan ayarlar", () => {
-  it("onaylanan akışı içerir (Giriş → Konsol → Boot → Masaüstü)", () => {
-    expect(DEFAULT_SETTINGS.flow.order).toEqual(["login", "console", "boot", "desktop"]);
+  it("onaylanan akışı içerir (Giriş → Tanıtım → Konsol → Boot → Masaüstü)", () => {
+    expect(DEFAULT_SETTINGS.flow.order).toEqual([
+      "login",
+      "intro",
+      "console",
+      "boot",
+      "desktop",
+    ]);
+  });
+
+  it("tanıtım videosu tanımlı", () => {
+    expect(DEFAULT_SETTINGS.flow.introVideo).toBe("/vendor/pixtool.mp4");
+  });
+
+  it("kayan şerit ve telif hakkı açık", () => {
+    expect(DEFAULT_SETTINGS.login.marqueeEnabled).toBe(true);
+    expect(DEFAULT_SETTINGS.login.copyrightEnabled).toBe(true);
   });
 
   it("varsayılan login formu Login Form Lamp", () => {

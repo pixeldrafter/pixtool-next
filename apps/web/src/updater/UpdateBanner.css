@@ -1,0 +1,143 @@
+/* Güncelleme bildirimi — sağ üstte şık şerit */
+
+.update-banner {
+  position: fixed;
+  top: 14px;
+  right: 16px;
+  z-index: 9400;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: min(520px, calc(100vw - 32px));
+  padding: 11px 14px;
+  border: 1px solid rgba(76, 194, 255, 0.4);
+  border-radius: 12px;
+  background: rgba(10, 18, 30, 0.94);
+  backdrop-filter: blur(14px);
+  box-shadow:
+    0 16px 46px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+  color: var(--text-primary, #e9f1f9);
+  animation: update-banner-in 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes update-banner-in {
+  from {
+    opacity: 0;
+    transform: translateY(-14px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.update-banner__icon {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  border-radius: 9px;
+  background: rgba(76, 194, 255, 0.16);
+  color: #8fdcff;
+  font-size: 16px;
+}
+
+.update-banner__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.update-banner__title {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #e9f1f9;
+}
+
+.update-banner__title strong {
+  color: #8fdcff;
+}
+
+.update-banner__current {
+  margin-left: 6px;
+  font-weight: 400;
+  font-size: 11px;
+  color: rgba(200, 220, 240, 0.6);
+}
+
+.update-banner__notes {
+  margin-top: 3px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: rgba(200, 220, 240, 0.75);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.update-banner__meta {
+  margin-top: 3px;
+  font-size: 10.5px;
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  color: rgba(180, 205, 230, 0.55);
+}
+
+.update-banner__actions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.update-banner__btn {
+  padding: 7px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #dbe9f7;
+  font: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, transform 0.08s;
+}
+
+.update-banner__btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.update-banner__btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.update-banner__btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.update-banner__btn.is-primary {
+  border-color: rgba(76, 194, 255, 0.6);
+  background: rgba(76, 194, 255, 0.2);
+  color: #cdeeff;
+  font-weight: 600;
+}
+
+.update-banner__btn.is-primary:hover:not(:disabled) {
+  background: rgba(76, 194, 255, 0.32);
+}
+
+.update-banner__btn.is-ghost {
+  border-color: transparent;
+  background: transparent;
+  color: rgba(200, 220, 240, 0.5);
+  padding: 7px 9px;
+}
+
+.update-banner__btn.is-ghost:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #dbe9f7;
+}

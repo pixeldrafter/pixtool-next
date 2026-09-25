@@ -28,6 +28,7 @@ from app.routers.database import router as database_router
 from app.routers.devices import router as devices_router
 from app.routers.remote import router as remote_router
 from app.routers.scripts import router as scripts_router
+from app.routers.version import router as version_router
 from app.services.script_service import LIBRARY_ROOT as SCRIPT_LIBRARY
 
 logging.basicConfig(
@@ -80,6 +81,7 @@ app.include_router(database_router)
 app.include_router(devices_router)
 app.include_router(scripts_router)
 app.include_router(remote_router)
+app.include_router(version_router)
 
 
 # ----------------------------------------------------------------------
