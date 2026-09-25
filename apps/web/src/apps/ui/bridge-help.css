@@ -1,0 +1,35 @@
+/* Yerel köprü yönlendirme kutusu */
+
+.bridge-help {
+  display: block;
+}
+
+.bridge-help__head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 5px;
+}
+
+.bridge-help__icon {
+  font-size: 14px;
+}
+
+.bridge-help__body {
+  margin: 0 0 7px;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.bridge-help__steps {
+  margin: 0;
+  padding-left: 17px;
+  font-size: 11.5px;
+  line-height: 1.75;
+  color: var(--text-muted);
+}
+
+.bridge-help__steps li {
+  margin-bottom: 1px;
+}

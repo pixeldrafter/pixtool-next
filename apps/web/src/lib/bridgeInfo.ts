@@ -133,7 +133,7 @@ export async function fetchBridgeInfo(
   const base = (options.baseUrl || DEFAULT_BRIDGE).replace(/\/+$/, "");
   const query = parts.length ? `?parts=${parts.join(",")}` : "";
 
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = { "X-Pixtool-Client": "web" };
   if (options.token) headers["X-Pixtool-Token"] = options.token;
 
   let response: Response;

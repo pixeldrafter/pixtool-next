@@ -136,7 +136,7 @@ async function runLocal(command: string, options: RunOptions): Promise<RunResult
     }
   }
 
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const headers: Record<string, string> = { "Content-Type": "application/json", "X-Pixtool-Client": "web" };
   if (token) headers["X-Pixtool-Token"] = token;
 
   try {

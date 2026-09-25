@@ -1543,7 +1543,7 @@ class BridgeHandler(BaseHTTPRequestHandler):
         headers = {
             "Access-Control-Allow-Origin": origin if self._origin_allowed(origin) else "null",
             "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type, X-Pixtool-Token",
+            "Access-Control-Allow-Headers": "Content-Type, X-Pixtool-Token, X-Pixtool-Client",
             "Access-Control-Max-Age": "600",
             # Private Network Access: HTTPS sayfadan localhost'a izin
             "Access-Control-Allow-Private-Network": "true",

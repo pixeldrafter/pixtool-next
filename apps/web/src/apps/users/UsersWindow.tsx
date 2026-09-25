@@ -17,6 +17,7 @@ import { describeError } from "../../lib/api";
 import { fetchTableRecords, formatCell } from "../../lib/databaseApi";
 import { runCommand, type RunTarget } from "../../lib/runTarget";
 import { useSettings } from "../../settings";
+import { BridgeHelpBox } from "../ui/BridgeHelpBox";
 import "../apps.css";
 import "./users-window.css";
 
@@ -280,7 +281,13 @@ export function UsersWindow() {
         </button>
       </div>
 
-      {error && <div className="app-msg app-msg--error">{error}</div>}
+      {error && (
+        source === "local" && /köprü/i.test(error) ? (
+          <BridgeHelpBox bridgeUrl={settings.bridge.url} />
+        ) : (
+          <div className="app-msg app-msg--error">{error}</div>
+        )
+      )}
 
       {source !== "app" && (
         <div className="cards">

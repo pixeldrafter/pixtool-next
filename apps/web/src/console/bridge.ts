@@ -167,6 +167,9 @@ export async function probeBridge(
   try {
     const response = await fetchWithTimeout(`${base}/health`, {
       method: "GET",
+      // Ozel baslik -> istek "basit" olmaktan cikar, tarayici PNA on kontrolu
+      // yapar. Aksi halde Chrome genel HTTPS sayfadan 127.0.0.1'e erisimi keser.
+      headers: { "X-Pixtool-Client": "web" },
       timeoutMs: options.timeoutMs ?? 4000,
     });
     if (!response.ok) return null;
@@ -188,7 +191,7 @@ export async function fetchBridgeInfo(
   options: BridgeOptions = {},
 ): Promise<BridgeInfo | null> {
   const base = normaliseUrl(options.url);
-  const headers: Record<string, string> = { Accept: "application/json" };
+  const headers: Record<string, string> = { Accept: "application/json", "X-Pixtool-Client": "web" };
   if (options.token) headers["X-Pixtool-Token"] = options.token;
 
   const query = options.parts?.length ? `?parts=${options.parts.join(",")}` : "";
@@ -214,7 +217,7 @@ export async function runOnBridge(
   options: BridgeOptions & { executor?: BridgePart | string } = {},
 ): Promise<{ ok: boolean; stdout?: string; stderr?: string; exit_code?: number | null; error?: string } | null> {
   const base = normaliseUrl(options.url);
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const headers: Record<string, string> = { "Content-Type": "application/json", "X-Pixtool-Client": "web" };
   if (options.token) headers["X-Pixtool-Token"] = options.token;
 
   try {

@@ -42,6 +42,7 @@ import {
 } from "../../lib/fsApi";
 import { toast } from "../../notifications";
 import { useSettings } from "../../settings";
+import { BridgeHelpBox } from "../ui/BridgeHelpBox";
 import "../apps.css";
 import "./files-window.css";
 
@@ -749,12 +750,7 @@ export function FilesWindow() {
       </div>
 
       {/* --- Uyarılar --- */}
-      {unavailable && (
-        <div className="app-msg app-msg--warn">
-          <strong>Yerel köprü çalışmıyor.</strong> Dosya işlemleri için köprüyü başlatın
-          (<code>start-bridge.bat</code>) veya masaüstü uygulamasını açın.
-        </div>
-      )}
+      {unavailable && <BridgeHelpBox bridgeUrl={settings.bridge.url} />}
       {remoteReadOnly && (
         <div className="app-msg app-msg--info">
           Uzak sunucu <strong>salt okunur</strong> listelenir (SFTP). Düzenleme için yerel makineyi kullanın.

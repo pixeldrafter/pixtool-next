@@ -34,7 +34,7 @@ import { StatusWindow } from "./StatusWindow";
 import { StickyLayer, useStickyStore } from "../sticky";
 import { configureBridge } from "../lib/openExternal";
 import { ManagedWindow } from "./window/ManagedWindow";
-import { useWindowManager, type WindowApp } from "./window/windowStore";
+import { APP_DEFINITIONS, useWindowManager, type WindowApp } from "./window/windowStore";
 import "./Desktop.css";
 
 interface DesktopProps {
@@ -76,19 +76,9 @@ export function Desktop({
   // Açılışta Genel Bakış penceresi (veya ?window=<ad> ile belirtilen)
   useEffect(() => {
     const requested = new URLSearchParams(window.location.search).get("window");
-    const valid = [
-      "overview",
-      "scripts",
-      "terminal",
-      "files",
-      "users",
-      "database",
-      "resources",
-      "status",
-      "settings",
-      "about",
-    ];
-    open(requested && valid.includes(requested) ? (requested as WindowApp) : "overview");
+    // Geçerli liste `APP_DEFINITIONS`'tan türetilir — elle tutulan liste kaymaz.
+    const valid = Object.keys(APP_DEFINITIONS) as WindowApp[];
+    open(requested && valid.includes(requested as WindowApp) ? (requested as WindowApp) : "overview");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

@@ -69,7 +69,13 @@ async function call<T>(
   options: FsOptions,
 ): Promise<T> {
   const { base, token } = normalize(options);
-  const headers: Record<string, string> = { Accept: "application/json" };
+  // `X-Pixtool-Client` her zaman gonderilir: boylece istek "basit" olmaktan cikar
+  // ve tarayici PNA (Private Network Access) on kontrolu yapar. Aksi halde
+  // Chrome, genel HTTPS sayfadan 127.0.0.1'e yapilan basit istekleri reddeder.
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+    "X-Pixtool-Client": "web",
+  };
   if (token) headers["X-Pixtool-Token"] = token;
   if (init.body) headers["Content-Type"] = "application/json";
 
@@ -120,7 +126,11 @@ export async function probeBridge(options: FsOptions = {}): Promise<{
 }> {
   const { base } = normalize(options);
   try {
-    const response = await fetch(`${base}/health`, { signal: options.signal });
+    const response = await fetch(`${base}/health`, {
+      // Ozel baslik -> on kontrol tetiklenir (PNA izni icin sart)
+      headers: { "X-Pixtool-Client": "web" },
+      signal: options.signal,
+    });
     if (!response.ok) return { ok: false, message: `Köprü HTTP ${response.status}` };
     const data = (await response.json()) as { platform?: string; version?: string };
     return { ok: true, platform: data.platform, version: data.version, message: "Köprü bağlı" };
