@@ -18,6 +18,10 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = [] }
 tauri-plugin-shell = "2"
 tauri-plugin-opener = "2"
+# Otomatik guncelleme (imzali paket indirir ve kurar)
+tauri-plugin-updater = "2"
+# Guncelleme sonrasi yeniden baslatma
+tauri-plugin-process = "2"
 # Arayüz kaynağını yoklamak için (uzak/yerel kararı)
 reqwest = { version = "0.12", default-features = false, features = ["blocking", "rustls-tls"] }
 serde = { version = "1", features = ["derive"] }

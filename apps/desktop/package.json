@@ -2,7 +2,7 @@
   "name": "@pixtool/desktop",
   "version": "1.1.0",
   "private": true,
-  "description": "Pixtool Next — masaüstü kabuğu (Tauri 2)",
+  "description": "Pixtool Next \u2014 masa\u00fcst\u00fc kabu\u011fu (Tauri 2)",
   "type": "module",
   "scripts": {
     "dev": "tauri dev",
@@ -16,6 +16,8 @@
   },
   "dependencies": {
     "@tauri-apps/api": "^2.1.1",
-    "@tauri-apps/plugin-shell": "^2.0.2"
+    "@tauri-apps/plugin-shell": "^2.0.2",
+    "@tauri-apps/plugin-updater": "^2.0.0",
+    "@tauri-apps/plugin-process": "^2.0.0"
   }
 }

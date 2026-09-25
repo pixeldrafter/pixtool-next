@@ -116,3 +116,7 @@ services/bridge/__pycache__/
 # --- Gecici ---
 _*.zip
 _*.tar.gz
+
+# Yayinlanan kurulum paketleri, imzalar ve ozel anahtarlar
+releases/
+*.sig

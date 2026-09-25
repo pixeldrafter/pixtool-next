@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -119,6 +120,64 @@ async def app_version() -> dict[str, Any]:
         },
         "checkedAt": datetime.now(UTC).isoformat(),
     }
+
+
+@router.get("/latest.json")
+async def latest_json() -> JSONResponse:
+    """
+    Tauri güncelleyicisinin bekledigi bicim.
+
+    `tauri.conf.json` icindeki `plugins.updater.endpoints` bu adresi gosterir.
+    Uygulama acilista burayi okur; surum daha yeniyse imzali paketi indirip
+    **kendini gunceller ve yeniden baslatir** — kullanici hicbir sey yapmaz.
+    """
+    manifest = _read_manifest()
+    version = str(manifest.get("version") or "")
+
+    if not version:
+        return JSONResponse(
+            status_code=404,
+            content={"ok": False, "error": "Sürüm bilgisi yok (shell.json eksik)."},
+        )
+
+    installer = _installer_path(version)
+    if installer is None:
+        return JSONResponse(
+            status_code=404,
+            content={"ok": False, "error": "Kurulum dosyası bulunamadı."},
+        )
+
+    # İmza dosyası: `…setup.exe.sig`
+    signature_path = installer.with_suffix(installer.suffix + ".sig")
+    if not signature_path.exists():
+        return JSONResponse(
+            status_code=409,
+            content={
+                "ok": False,
+                "error": (
+                    "İmza dosyası yok — otomatik güncelleme çalışmaz. "
+                    f"Beklenen: {signature_path.name}"
+                ),
+            },
+        )
+
+    signature = signature_path.read_text(encoding="utf-8").strip()
+    base = os.environ.get("APP_PUBLIC_URL", "https://pixtool.omercataloglu.com").rstrip("/")
+
+    return JSONResponse(
+        content={
+            "version": version,
+            "notes": manifest.get("notes") or "",
+            "pub_date": manifest.get("released") or datetime.now(UTC).isoformat(),
+            "platforms": {
+                "windows-x86_64": {
+                    "signature": signature,
+                    "url": f"{base}/api/v1/app/download",
+                }
+            },
+        },
+        headers={"Cache-Control": "no-store"},
+    )
 
 
 @router.get("/download", response_model=None)

@@ -1,8 +1,10 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Pixtool Next masaüstü kabuğu yetkileri",
-  "windows": ["main"],
+  "description": "Pixtool Next masa\u00fcst\u00fc kabu\u011fu yetkileri",
+  "windows": [
+    "main"
+  ],
   "permissions": [
     "core:default",
     "core:window:allow-start-dragging",
@@ -20,6 +22,9 @@
     "shell:allow-spawn",
     "shell:allow-kill",
     "shell:allow-stdin-write",
-    "opener:default"
+    "opener:default",
+    "updater:default",
+    "process:default",
+    "process:allow-restart"
   ]
 }

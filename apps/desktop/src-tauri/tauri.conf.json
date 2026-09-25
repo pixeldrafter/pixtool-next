@@ -58,7 +58,20 @@
       }
     },
     "shortDescription": "Uzak sistem yönetim paneli",
-    "longDescription": "Pixtool Next — uzak sistem yönetimi, script kütüphanesi, canlı makine envanteri ve Telegram doğrulamalı güvenli giriş."
+    "longDescription": "Pixtool Next — uzak sistem yönetimi, script kütüphanesi, canlı makine envanteri ve Telegram doğrulamalı güvenli giriş.",
+    "createUpdaterArtifacts": true
   },
-  "plugins": {}
+  "plugins": {
+    "updater": {
+      "active": true,
+      "dialog": false,
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDYwOEUzQkUzRTAzMEIyOTUKUldTVnNqRGc0enVPWUdZbmxQRG9jMFVoc2tqV0VsSnBIbDQwdlBNak51dUNseTYxM2dnbHZiNDAK",
+      "endpoints": [
+        "https://pixtool.omercataloglu.com/api/v1/app/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
+  }
 }

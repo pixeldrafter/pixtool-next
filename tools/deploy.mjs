@@ -341,8 +341,33 @@ function findCargoBin() {
   return null;
 }
 
+/**
+ * Kurulum paketini seçer.
+ *
+ * ⚠️ `readdirSync` alfabetik sıralar: `…_1.0.0_…` < `…_1.1.0_…` ama
+ * `…_1.10.0_…` < `…_1.9.0_…` olur. Bu yüzden **sürüme uyan** paket aranır,
+ * bulunamazsa **en yeni** (mtime) paket seçilir.
+ */
+function pickInstaller(bundleDir, version) {
+  if (!existsSync(bundleDir)) return null;
+
+  const installers = readdirSync(bundleDir)
+    .filter((name) => name.toLowerCase().endsWith(".exe"))
+    .map((name) => ({ name, mtime: statSync(join(bundleDir, name)).mtimeMs }))
+    .sort((left, right) => right.mtime - left.mtime);
+
+  if (!installers.length) return null;
+
+  // 1) Sürüme uyan (en yeni)
+  const matching = installers.find((item) => item.name.includes(version));
+  if (matching) return matching.name;
+
+  // 2) En yeni paket
+  return installers[0]?.name ?? null;
+}
+
 /** Kabuk (shell) paketi üretir ve yayınlar. */
-function buildShell() {
+function buildShell(notes = "") {
   log.title("Kabuk (Tauri) derleniyor");
   log.dim("Bu adım 2-3 dakika sürer ve yalnızca Rust/kabuk değişince gerekir.");
 
@@ -382,6 +407,21 @@ function buildShell() {
   }
   log.dim(`Cargo: ${cargoBin}`);
 
+  // İmzalama anahtarı (otomatik güncelleme için zorunlu)
+  //
+  // Tauri, `createUpdaterArtifacts: true` ile derleme sırasında `.sig` üretir.
+  // Anahtar yoksa imza üretilmez ve otomatik güncelleme çalışmaz.
+  const keyPath = join(ROOT, ".tauri-keys", "pixtool.key");
+  const hasKey = existsSync(keyPath);
+
+  if (hasKey) {
+    log.ok("İmzalama anahtarı bulundu (otomatik güncelleme aktif)");
+  } else {
+    log.warn("İmzalama anahtarı yok — otomatik güncelleme çalışmayacak");
+    log.dim(`  Beklenen: ${keyPath}`);
+    log.dim("  Üretmek için: pnpm tauri signer generate -w ../.tauri-keys/pixtool.key");
+  }
+
   const cargoHome = cargoBin.replace(/[\\/]bin$/, "");
   const rustupHome = join(cargoHome, "..", ".rustup");
 
@@ -402,12 +442,22 @@ function buildShell() {
 
   log.dim(`Tauri: ${useCmd ? "tauri.cmd" : "tauri.js"} · Cargo: ${cargoBin}`);
 
+  // ⚠️ İmza anahtarı `set` ile verilmez — Tauri CLI alt süreçlere aktarırken
+  // kaybolur. `env` ile doğrudan verilir.
+  const signingEnv = hasKey
+    ? {
+        TAURI_SIGNING_PRIVATE_KEY: readFileSync(keyPath, "utf8"),
+        TAURI_SIGNING_PRIVATE_KEY_PASSWORD: "",
+      }
+    : {};
+
   const result = spawnSync(command, {
     cwd: join(ROOT, "apps", "desktop"),
     encoding: "utf8",
     timeout: 2_100_000,
     maxBuffer: 32 * 1024 * 1024,
     shell: true,
+    env: { ...process.env, ...signingEnv },
   });
 
   const output = `${result.stdout ?? ""}${result.stderr ?? ""}`;
@@ -428,7 +478,13 @@ function buildShell() {
     return false;
   }
 
-  const installer = readdirSync(bundleDir).find((name) => name.endsWith(".exe"));
+  // Sürüm bilgisini oku — paket seçiminden ÖNCE gerekli
+  const config = JSON.parse(
+    readFileSync(join(ROOT, "apps", "desktop", "src-tauri", "tauri.conf.json"), "utf8"),
+  );
+  const version = config.version ?? "1.0.0";
+
+  const installer = pickInstaller(bundleDir, version);
   if (!installer) {
     log.err("NSIS kurulum dosyası yok");
     return false;
@@ -438,19 +494,10 @@ function buildShell() {
   const size = statSync(installerPath).size;
   log.dim(`Kurulum: ${installer} (${(size / 1024 / 1024).toFixed(1)} MB)`);
 
-  // Sürüm bilgisini oku
-  const config = JSON.parse(
-    readFileSync(join(ROOT, "apps", "desktop", "src-tauri", "tauri.conf.json"), "utf8"),
-  );
-  const version = config.version ?? "1.0.0";
-
-  // Manifest
   const manifest = {
     version,
     released: new Date().toISOString(),
-    notes: process.argv.includes("--notes")
-      ? process.argv[process.argv.indexOf("--notes") + 1] ?? ""
-      : "",
+    notes,
     mandatory: false,
   };
 
@@ -463,16 +510,41 @@ function buildShell() {
   writeFileSync(join(localReleases, "shell.json"), JSON.stringify(manifest, null, 2), "utf8");
   writeFileSync(join(localReleases, installer), readFileSync(installerPath));
 
+  // İmza dosyası (Tauri üretir) — otomatik güncelleme için sunucuya da gider
+  const signaturePath = `${installerPath}.sig`;
+  const hasSignature = existsSync(signaturePath);
+
+  if (hasSignature) {
+    writeFileSync(join(localReleases, `${installer}.sig`), readFileSync(signaturePath));
+    log.ok("İmza üretildi (.sig) — otomatik güncelleme hazır");
+  } else {
+    log.warn("İmza üretilmedi (.sig yok) — otomatik güncelleme çalışmaz");
+  }
+
   // Sunucuya yükle
   log.step("Sunucuya yükleniyor…");
   ssh(`mkdir -p ${REMOTE.releases}`, { sudo: true });
+
   const remoteInstaller = `/tmp/${installer.replace(/[^A-Za-z0-9._-]/g, "_")}`;
-  upload([installerPath, manifestPath], [remoteInstaller, "/tmp/shell.json"]);
+  const uploads = [installerPath, manifestPath];
+  const remotes = [remoteInstaller, "/tmp/shell.json"];
+
+  if (hasSignature) {
+    uploads.push(signaturePath);
+    remotes.push("/tmp/shell.sig");
+  }
+
+  upload(uploads, remotes);
+
+  const signLine = hasSignature
+    ? `cp /tmp/shell.sig "${REMOTE.releases}/${installer}.sig"`
+    : `rm -f "${REMOTE.releases}/${installer}.sig"`;
 
   const script = `
 set -e
 cp "${remoteInstaller}" "${REMOTE.releases}/${installer}"
 cp /tmp/shell.json ${REMOTE.releases}/shell.json
+${signLine}
 chown -R www-data:www-data ${REMOTE.releases}
 echo "yuklendi"
 `;
@@ -480,6 +552,16 @@ echo "yuklendi"
   const uploadResult = ssh(script, { sudo: true });
   if (uploadResult.includes("yuklendi")) {
     log.ok(`Kurulum yayınlandı: ${REMOTE.base}/api/v1/app/download`);
+
+    // Otomatik güncelleme ucunu doğrula
+    const check = ssh(
+      `curl -s -m 15 -o /dev/null -w "%{http_code}" ${REMOTE.base}/api/v1/app/latest.json`,
+    );
+    if (check.includes("200")) {
+      log.ok("Otomatik güncelleme hazır — uygulama açılışta kendini güncelleyecek");
+    } else if (hasSignature) {
+      log.warn(`latest.json yanıtı: ${check} (nginx/api kontrol edin)`);
+    }
   } else {
     log.err("Yükleme başarısız");
     log.dim(uploadResult.split("\n").slice(-6).join("\n"));
@@ -494,13 +576,31 @@ echo "yuklendi"
 // ----------------------------------------------------------------------
 
 function main() {
-  const args = process.argv.slice(2).filter((item) => !item.startsWith("--"));
+  const argv = process.argv.slice(2);
+
+  // Seçenekler ve değerlerini ayıkla
+  const FLAGS = ["--check", "--notes"];
+  const args = [];
+  const options = {};
+
+  for (let index = 0; index < argv.length; index += 1) {
+    const item = argv[index] ?? "";
+    if (item === "--notes") {
+      options.notes = argv[index + 1] ?? "";
+      index += 1;
+    } else if (item.startsWith("--")) {
+      if (!FLAGS.includes(item)) log.warn(`Bilinmeyen seçenek: ${item}`);
+      else options[item.slice(2)] = "true";
+    } else {
+      args.push(item);
+    }
+  }
 
   console.log(`\n${C.bold}${C.cyan}Pixtool Dağıtım${C.reset}`);
 
   creds = loadCredentials();
 
-  if (args.includes("--check") || args.length === 0) {
+  if (options.check || args.length === 0) {
     checkLive();
     console.log("");
     log.dim("Katman dağıtmak için: node tools/deploy.mjs web | api | scripts | shell | all");
@@ -510,7 +610,10 @@ function main() {
 
   const targets = args.includes("all")
     ? ["web", "api", "scripts"]
-    : args.filter((item) => item !== "shell");
+    : args.filter((item) => item !== "shell" && LAYERS[item]);
+
+  const unknown = args.filter((item) => item !== "shell" && item !== "all" && !LAYERS[item]);
+  for (const item of unknown) log.warn(`Bilinmeyen katman: ${item}`);
 
   let failed = 0;
 
@@ -521,15 +624,16 @@ function main() {
     }
   }
 
-  if (args.includes("shell") || args.includes("all")) {
-    if (!buildShell()) failed += 1;
+  const wantShell = args.includes("shell") || args.includes("all");
+
+  if (wantShell) {
+    if (!buildShell(options.notes ?? "")) failed += 1;
   }
 
   console.log("");
   log.title("Özet");
 
-  const shellDone = args.includes("shell") || args.includes("all");
-  const total = targets.length + (shellDone ? 1 : 0);
+  const total = targets.length + (wantShell ? 1 : 0);
   const ok = total - failed;
 
   if (failed === 0) {

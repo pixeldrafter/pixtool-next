@@ -141,3 +141,48 @@
   background: rgba(255, 255, 255, 0.08);
   color: #dbe9f7;
 }
+
+/* --- Aktif güncelleme (ilerleme çubuğu) --- */
+.update-banner.is-busy {
+  border-color: rgba(76, 194, 255, 0.55);
+  box-shadow:
+    0 16px 46px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(76, 194, 255, 0.22) inset;
+}
+
+.update-banner__progress {
+  margin-top: 7px;
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.update-banner__progress > span {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #2f9e5e, #4ad97a);
+  transition: width 0.25s ease;
+}
+
+/* Dönen simge — kontrol/indirme sırasında */
+.update-banner.is-busy .update-banner__icon {
+  animation: update-banner-spin 1.6s linear infinite;
+}
+
+@keyframes update-banner-spin {
+  0%,
+  70% {
+    transform: none;
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .update-banner.is-busy .update-banner__icon {
+    animation: none;
+  }
+}

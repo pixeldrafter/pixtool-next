@@ -416,6 +416,10 @@ pub fn run() {
     builder
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_opener::init())
+        // Otomatik güncelleme: imzalı paketi indirir ve kurar.
+        // Kontrol arayüzden yapılır (ilerleme çubuğu uygulamanın kendi stiliyle).
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .manage(BridgeState::default())
         .invoke_handler(tauri::generate_handler![
             window_minimize,
