@@ -38,11 +38,13 @@ import hashlib
 import json
 import os
 import platform
+import re
 import secrets
 import shutil
 import socket
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 from datetime import UTC, datetime
@@ -100,6 +102,337 @@ except ImportError:  # pragma: no cover
 # ======================================================================
 #  Yardımcılar
 # ======================================================================
+# ======================================================================
+#  Betik çalıştırma — geçici dosya tabanlı
+# ======================================================================
+
+#: Yükseltme (UAC) isteyen scriptlerin tanıma deseni.
+#
+#  Bu betikler kendini `Start-Process -Verb RunAs` ile yeniden başlatır ve
+#  orijinal süreç **anında çıkar** — bu yüzden çıktı yakalanamaz ve arayüzde
+#  "PowerShell göz kırpıp kayboldu" gibi görünür.
+_ELEVATION_PATTERN = re.compile(
+    r"Start-Process[^\n]*-Verb\s+RunAs"
+    r"|IsInRole\(\s*\[Security\.Principal\.WindowsBuiltInRole\]::Administrator",
+    re.IGNORECASE,
+)
+
+#: Yorumlayıcı → dosya uzantısı
+_EXECUTOR_SUFFIX = {
+    "powershell": ".ps1",
+    "cmd": ".cmd",
+    "bash": ".sh",
+    "python": ".py",
+}
+
+
+def _wants_elevation(script: str) -> bool:
+    """Betik yönetici hakkı istiyor mu (kendini RunAs ile yeniden başlatıyor)?"""
+    return bool(_ELEVATION_PATTERN.search(script or ""))
+
+
+def _write_temp_script(script: str, executor: str) -> str:
+    """
+    Betiği geçici bir dosyaya yazar ve yolunu döndürür.
+
+    Neden dosya? `-Command` ile satır içi çalıştırma:
+      • uzun betiklerde komut satırı sınırına takılır
+      • çok satırlı bloklarda ayrıştırma hataları verir
+      • PowerShell'de `$PSScriptRoot` / `-File` semantiği kaybolur
+
+    PowerShell için **UTF-8 BOM** eklenir: aksi hâlde PowerShell 5.1 dosyayı
+    ANSI sanar ve Türkçe karakterler sözdizimini bozar.
+    """
+    suffix = _EXECUTOR_SUFFIX.get(executor, ".txt")
+    newline = "\r\n" if executor in {"powershell", "cmd"} else "\n"
+
+    handle = tempfile.NamedTemporaryFile(
+        mode="w",
+        suffix=suffix,
+        delete=False,
+        encoding="utf-8",
+        newline=newline,
+    )
+    try:
+        if executor == "powershell":
+            # ⚠️ ÇİFT BOM koruması: gelen içerik zaten BOM ile başlıyorsa
+            # (`readFileSync(..., 'utf8')` BOM'u `\ufeff` karakteri olarak
+            # döndürür) tekrar eklemek `param()` öncesine görünmez karakter
+            # koyar ve PowerShell ayrıştırma hatası verir.
+            handle.write("\ufeff")
+
+        # Baştaki BOM'u temizle — BOM'u her zaman biz ekleriz
+        body = script[1:] if script.startswith("\ufeff") else script
+        handle.write(body)
+    finally:
+        handle.close()
+
+    return handle.name
+
+
+#: Çıktı üst sınırı (karakter) — arayüz donmasın
+_MAX_OUTPUT = 400_000
+
+
+#: Betik başına en fazla parametre sayısı
+_MAX_SCRIPT_ARGS = 32
+
+
+def _clean_args(args: Any) -> list[str]:
+    """Parametre listesini doğrular ve sadeleştirir."""
+    if not isinstance(args, list):
+        return []
+    cleaned: list[str] = []
+    for item in args[:_MAX_SCRIPT_ARGS]:
+        text = str(item)
+        cleaned.append(text[:400] if len(text) > 400 else text)
+    return cleaned
+
+
+def _resolve_python() -> str:
+    """
+    Python yorumlayıcısını bulur.
+
+    ⚠️ `sys.executable` PyInstaller paketinde **köprü exe'sinin kendisidir**.
+    Onu kullanmak köprüyü yeniden başlatır — bu yüzden sistemdeki gerçek
+    Python aranır.
+    """
+    if not getattr(sys, "frozen", False):
+        return sys.executable or "python"
+
+    for candidate in ("python", "python3", "py"):
+        found = shutil.which(candidate)
+        if found:
+            return found
+
+    beside = Path(sys.executable).parent / "python.exe"
+    if beside.exists():
+        return str(beside)
+
+    return "python"
+
+
+def run_script(
+    script: str,
+    executor: str = "powershell",
+    timeout: float = 120.0,
+    elevate: bool = False,
+    args: list[str] | None = None,
+) -> dict[str, Any]:
+    """
+    Betiği çalıştırır ve çıktıyı döndürür.
+
+    Args:
+        script:   Betik içeriği
+        executor: powershell | cmd | bash | python
+        timeout:  Saniye
+        elevate:  Yönetici hakkiyla çalıştır (`RunAs`, UAC onayı ister)
+        args:     Betiğe geçirilecek parametreler (`-File betik.ps1 <args>`)
+
+    Returns:
+        `{ok, stdout, stderr, exit_code, duration_ms, elevated, note}`
+    """
+    started = time.time()
+    path = _write_temp_script(script, executor)
+    extra = _clean_args(args)
+
+    try:
+        if executor == "powershell":
+            # ⚠️ Kodlama satırlarını betiğin **başına ekleyemeyiz**: `param()` ve
+            # `[CmdletBinding()]` betikte ilk ifade olmak zorundadır, önek
+            # eklersek PowerShell ayrıştırma hatası verir.
+            # Bu yüzden dosya `&` ile çağrılır, kodlama sarmalayıcıda ayarlanır.
+            call = f"& {_ps_quote(path)}"
+            if extra:
+                call += " " + " ".join(_ps_quote(item) for item in extra)
+
+            wrapper = (
+                "[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;"
+                "$OutputEncoding=[System.Text.Encoding]::UTF8;"
+                f"{call};"
+                "exit $LASTEXITCODE"
+            )
+            base = [
+                "powershell",
+                "-NoProfile",
+                "-NonInteractive",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-Command",
+                wrapper,
+            ]
+        elif executor == "cmd":
+            base = ["cmd", "/c", path, *extra]
+        elif executor == "bash":
+            base = ["bash", path, *extra]
+        elif executor == "python":
+            base = [_resolve_python(), path, *extra]
+        else:
+            return {
+                "ok": False,
+                "stdout": "",
+                "stderr": "",
+                "exit_code": None,
+                "duration_ms": 0,
+                "elevated": False,
+                "note": f"Desteklenmeyen yorumlayıcı: {executor}",
+            }
+
+        # --- Yükseltme isteniyorsa ---
+        if elevate and IS_WINDOWS:
+            # `-Verb RunAs` ayrı bir pencere açar; çıktıyı dosyaya yönlendiririz
+            out_file = path + ".out"
+            inner = " ".join(_quote_for_ps(part) for part in base)
+            wrapper = (
+                f"$p = Start-Process -FilePath '{base[0]}' "
+                f"-ArgumentList '{' '.join(_quote_for_ps(p) for p in base[1:])}' "
+                f"-Verb RunAs -Wait -PassThru "
+                f"-RedirectStandardOutput '{out_file}' "
+                f"-RedirectStandardError '{out_file}.err' -WindowStyle Hidden; "
+                f"exit $p.ExitCode"
+            )
+
+            result = subprocess.run(  # noqa: S603
+                ["powershell", "-NoProfile", "-NonInteractive", "-Command", wrapper],
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+                check=False,
+                encoding="utf-8",
+                errors="replace",
+                creationflags=subprocess.CREATE_NO_WINDOW,  # type: ignore[attr-defined]
+            )
+
+            stdout = _read_text(out_file)
+            stderr = _read_text(out_file + ".err")
+            for leftover in (out_file, out_file + ".err"):
+                try:
+                    Path(leftover).unlink(missing_ok=True)
+                except OSError:
+                    pass
+
+            return {
+                "ok": result.returncode == 0,
+                "stdout": stdout[:_MAX_OUTPUT],
+                "stderr": (stderr or result.stderr or "")[:_MAX_OUTPUT],
+                "exit_code": result.returncode,
+                "duration_ms": int((time.time() - started) * 1000),
+                "elevated": True,
+                "note": "Yönetici hakkiyla çalıştırıldı.",
+            }
+
+        # --- Normal çalıştırma ---
+        result = subprocess.run(  # noqa: S603
+            base,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            check=False,
+            encoding="utf-8",
+            errors="replace",
+            creationflags=(
+                subprocess.CREATE_NO_WINDOW  # type: ignore[attr-defined]
+                if IS_WINDOWS
+                else 0
+            ),
+        )
+
+        stdout = result.stdout or ""
+        stderr = result.stderr or ""
+        note = ""
+
+        # Sessiz çıkış: betik kendini yükselterek yeniden başlatmış olabilir
+        if not stdout.strip() and not stderr.strip() and result.returncode == 0:
+            if _wants_elevation(script):
+                note = (
+                    "Betik yönetici hakkı istiyor (Start-Process -Verb RunAs). "
+                    "Orijinal süreç hemen çıktığı için çıktı yakalanamadı — "
+                    "'Yönetici olarak çalıştır' seçeneğini kullanın."
+                )
+            else:
+                note = "Betik çıktı üretmedi (sessiz çıkış)."
+
+        return {
+            "ok": result.returncode == 0,
+            "stdout": stdout[:_MAX_OUTPUT],
+            "stderr": stderr[:_MAX_OUTPUT],
+            "exit_code": result.returncode,
+            "duration_ms": int((time.time() - started) * 1000),
+            "elevated": False,
+            "wants_elevation": _wants_elevation(script),
+            "note": note,
+        }
+
+    except subprocess.TimeoutExpired:
+        return {
+            "ok": False,
+            "stdout": "",
+            "stderr": f"Zaman aşımı ({timeout} sn).",
+            "exit_code": None,
+            "duration_ms": int((time.time() - started) * 1000),
+            "elevated": elevate,
+            "note": "Betik zaman aşımına uğradı.",
+        }
+    except OSError as exc:
+        return {
+            "ok": False,
+            "stdout": "",
+            "stderr": str(exc),
+            "exit_code": None,
+            "duration_ms": int((time.time() - started) * 1000),
+            "elevated": elevate,
+            "note": f"Çalıştırılamadı: {exc}",
+        }
+    finally:
+        try:
+            Path(path).unlink(missing_ok=True)
+        except OSError:
+            pass
+
+
+def _ps_quote(value: str) -> str:
+    """
+    PowerShell argüman tırnaklama.
+
+    ⚠️ `-Quick` gibi anahtarlar **tırnaklanmamalıdır**: tırnak içine alınırsa
+    PowerShell onları konumsal metin argümanı sanır ve
+    "A positional parameter cannot be found" hatası verir.
+
+    Boşluk veya özel karakter içeren değerler tırnaklanır.
+    """
+    text = str(value)
+
+    # Anahtar (switch) → olduğu gibi bırak
+    if text.startswith("-") and text[1:2].isalpha() and " " not in text.strip():
+        return text
+
+    # Boşluk / tırnak / özel karakter yoksa tırnak gerekmez
+    if text and all(ch.isalnum() or ch in ".,:/\\_=-" for ch in text):
+        return text
+
+    return "'" + text.replace("'", "''") + "'"
+
+
+def _quote_for_ps(value: str) -> str:
+    """PowerShell tek tırnaklı dize kaçışı."""
+    return value.replace("'", "''")
+
+
+def _read_text(path: str) -> str:
+    """Dosyayı UTF-8 (veya cp1254) olarak okur."""
+    try:
+        data = Path(path).read_bytes()
+    except OSError:
+        return ""
+
+    for encoding in ("utf-8-sig", "utf-8", "cp1254", "latin-1"):
+        try:
+            return data.decode(encoding)
+        except UnicodeDecodeError:
+            continue
+    return ""
+
+
 def _run(command: list[str], timeout: float = 12.0) -> str:
     """
     Komutu çalıştırır, çıktıyı döndürür. Hata durumunda boş string.
@@ -1876,53 +2209,52 @@ class BridgeHandler(BaseHTTPRequestHandler):
             return
 
         script = str(payload.get("script") or "").strip()
-        executor = str(payload.get("executor") or "powershell" if IS_WINDOWS else "bash")
+        executor = str(payload.get("executor") or ("powershell" if IS_WINDOWS else "bash"))
         timeout = min(float(payload.get("timeout") or 120), 900)
+        elevate = bool(payload.get("elevate"))
 
         if not script:
             self._send(400, {"ok": False, "error": "`script` alanı zorunlu."})
             return
 
-        # Politika: yalnızca bilinen yorumlayıcılar
-        commands = {
-            "powershell": ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script],
-            "cmd": ["cmd", "/c", script],
-            "bash": ["bash", "-lc", script],
-            "python": ["python", "-c", script],
-        }
-        command = commands.get(executor)
-        if command is None:
+        # Yaygın yanlış yorumlayıcı adlarını düzelt
+        executor = {
+            "ps": "powershell",
+            "ps1": "powershell",
+            "pwsh": "powershell",
+            "shell": "bash",
+            "sh": "bash",
+            "py": "python",
+            "bat": "cmd",
+        }.get(executor.lower(), executor.lower())
+
+        if executor not in {"powershell", "cmd", "bash", "python"}:
             self._send(400, {"ok": False, "error": f"Desteklenmeyen yorumlayıcı: {executor}"})
             return
 
-        started = time.time()
-        try:
-            result = subprocess.run(  # noqa: S603
-                command,
-                capture_output=True,
-                text=True,
-                timeout=timeout,
-                check=False,
-                creationflags=(
-                    subprocess.CREATE_NO_WINDOW  # type: ignore[attr-defined]
-                    if IS_WINDOWS
-                    else 0
-                ),
-            )
-            self._send(
-                200,
-                {
-                    "ok": True,
-                    "exit_code": result.returncode,
-                    "stdout": (result.stdout or "")[:20000],
-                    "stderr": (result.stderr or "")[:8000],
-                    "duration_ms": int((time.time() - started) * 1000),
-                },
-            )
-        except subprocess.TimeoutExpired:
-            self._send(200, {"ok": False, "error": f"Zaman aşımı ({timeout}s).", "exit_code": None})
-        except OSError as exc:
-            self._send(200, {"ok": False, "error": f"Çalıştırılamadı: {exc}", "exit_code": None})
+        result = run_script(
+            script,
+            executor=executor,
+            timeout=timeout,
+            elevate=elevate,
+            args=_clean_args(payload.get("args")),
+        )
+
+        self._send(
+            200,
+            {
+                "ok": result["ok"],
+                "stdout": result["stdout"],
+                "stderr": result["stderr"],
+                "exit_code": result["exit_code"],
+                "duration_ms": result["duration_ms"],
+                "executor": executor,
+                "args": _clean_args(payload.get("args")),
+                "elevated": result.get("elevated", False),
+                "wants_elevation": result.get("wants_elevation", False),
+                "note": result.get("note", ""),
+            },
+        )
 
 
 # ======================================================================

@@ -213,3 +213,31 @@
   gap: 8px;
   margin-top: 9px;
 }
+
+/* Yönetici olarak çalıştır — UAC gerektiren scriptler için */
+.sw-elevate {
+  border-color: rgba(255, 180, 70, 0.55) !important;
+  color: #ffd79a !important;
+  background: rgba(255, 170, 60, 0.14) !important;
+  animation: sw-elevate-pulse 2.2s ease-in-out infinite;
+}
+
+.sw-elevate:hover:not(:disabled) {
+  background: rgba(255, 170, 60, 0.26) !important;
+}
+
+@keyframes sw-elevate-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 170, 60, 0); }
+  50% { box-shadow: 0 0 0 5px rgba(255, 170, 60, 0.16); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sw-elevate { animation: none; }
+}
+
+/* Betik parametreleri alanı */
+.sw-args {
+  width: 190px;
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 11.5px;
+}

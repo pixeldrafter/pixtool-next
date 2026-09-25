@@ -33,6 +33,10 @@ export interface RunOptions {
   confirmed?: boolean;
   /** Zaman aşımı (saniye) */
   timeoutSeconds?: number;
+  /** Windows: betiği yönetici hakkıyla çalıştır (UAC onayı ister) */
+  elevate?: boolean;
+  /** Betiğe geçirilecek parametreler (`-Quick` gibi) */
+  args?: string[];
   /** Köprü adresi (ayarlardan) */
   bridgeUrl?: string;
   /** Köprü tokenı (ayarlardan) */
@@ -51,6 +55,12 @@ export interface RunResult {
   message: string;
   /** Hangi hedefte çalıştı */
   target: RunTarget;
+  /** Yönetici hakkıyla mı çalıştı */
+  elevated?: boolean;
+  /** Betik kendini yükseltmeye çalışıyor ama başaramadı */
+  wantsElevation?: boolean;
+  /** Köprüden gelen ek açıklama */
+  note?: string;
 }
 
 /** İşletim sistemine göre varsayılan yorumlayıcı. */
@@ -147,6 +157,8 @@ async function runLocal(command: string, options: RunOptions): Promise<RunResult
         script: command,
         executor: options.executor && options.executor !== "auto" ? options.executor : autoExecutor(),
         timeout: options.timeoutSeconds ?? 120,
+        elevate: options.elevate ?? false,
+        args: options.args ?? [],
       }),
       signal: AbortSignal.timeout((options.timeoutSeconds ?? 120) * 1000 + 5000),
     });
@@ -169,6 +181,9 @@ async function runLocal(command: string, options: RunOptions): Promise<RunResult
       };
     }
 
+    const note = data["note"] ? String(data["note"]) : "";
+    const wantsElevation = Boolean(data["wants_elevation"]);
+
     return {
       ok: Boolean(data["ok"]),
       stdout: String(data["stdout"] ?? ""),
@@ -176,7 +191,10 @@ async function runLocal(command: string, options: RunOptions): Promise<RunResult
       exitCode: (data["exit_code"] as number | null) ?? null,
       durationMs: Number(data["duration_ms"] ?? 0),
       needsConfirmation: false,
-      message: data["error"] ? String(data["error"]) : "Tamamlandı.",
+      elevated: Boolean(data["elevated"]),
+      wantsElevation,
+      note,
+      message: note || (data["error"] ? String(data["error"]) : "Tamamlandı."),
       target: "local",
     };
   } catch (caught) {

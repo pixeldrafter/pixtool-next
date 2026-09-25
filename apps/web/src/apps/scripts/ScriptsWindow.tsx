@@ -74,6 +74,10 @@ export function ScriptsWindow() {
   const [error, setError] = useState<string | null>(null);
   const [runResult, setRunResult] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
+  /** Betik yönetici hakkı istiyor ama yükseltilmedi */
+  const [needsElevation, setNeedsElevation] = useState(false);
+  /** Betiğe geçirilecek parametreler (`-Quick -NoReport` gibi) */
+  const [scriptArgs, setScriptArgs] = useState("");
 
   /** Açık olan form (null → kapalı). */
   const [form, setForm] = useState<FormState | null>(null);
@@ -243,17 +247,25 @@ export function ScriptsWindow() {
     }
   }
 
-  async function handleRun(confirmed = false): Promise<void> {
+  async function handleRun(confirmed = false, elevate = false): Promise<void> {
     if (!current) return;
     setRunning(true);
     setRunResult(null);
     setPendingRun(null);
 
     // Scriptin **içeriğini** hedefte çalıştır
+    // Parametreler boşlukla ayrılır; tırnak gerekiyorsa kullanıcı yazar
+    const args = scriptArgs
+      .split(/\s+/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+
     const result = await runCommand(content || current.id, {
       target: runTarget,
       confirmed,
       executor: "auto",
+      elevate,
+      args,
       bridgeUrl: settings.bridge.url,
       bridgeToken: settings.bridge.token || undefined,
       timeoutSeconds: 300,
@@ -266,20 +278,34 @@ export function ScriptsWindow() {
       return;
     }
 
+    // Betik kendini yükseltmeye çalıştı ama yükseltilmedi
+    setNeedsElevation(Boolean(result.wantsElevation) && !result.elevated);
+
     const header = [
       `hedef   : ${runTarget === "local" ? "bu makine (köprü)" : "uzak sunucu (SSH)"}`,
       `durum   : ${result.ok ? "başarılı" : "başarısız"}`,
       `çıkış   : ${result.exitCode ?? "—"}`,
       `süre    : ${result.durationMs} ms`,
-    ].join("\n");
+      result.elevated ? "yetki   : YÖNETİCİ" : null,
+      args.length ? `parametre: ${args.join(" ")}` : null,
+    ]
+      .filter(Boolean)
+      .join("\n");
 
     const body = [result.stdout, result.stderr].filter(Boolean).join("\n");
-    setRunResult(`${header}\n\n${body || result.message}`);
+    const note = result.note && result.note !== result.message ? `\n\nℹ ${result.note}` : "";
+    setRunResult(`${header}\n\n${body || result.message}${note}`);
 
-    if (result.ok) {
+    if (result.ok && !result.wantsElevation) {
       toast.ok(
         `"${current.name}" çalıştı`,
         `${result.durationMs} ms · çıkış ${result.exitCode ?? "—"}`,
+        "Script Kütüphanesi",
+      );
+    } else if (result.wantsElevation) {
+      toast.warn(
+        `"${current.name}" yönetici hakkı istiyor`,
+        "Yukarıdaki 'Yönetici olarak çalıştır' düğmesini kullanın.",
         "Script Kütüphanesi",
       );
     } else {
@@ -605,6 +631,29 @@ export function ScriptsWindow() {
                 >
                   {running ? "…" : "▶ Çalıştır"}
                 </button>
+
+                {/* Betik parametreleri — `-Quick -NoReport` gibi */}
+                <input
+                  className="app-input sw-args"
+                  type="text"
+                  value={scriptArgs}
+                  onChange={(event) => setScriptArgs(event.target.value)}
+                  placeholder="parametre (-Quick -NoReport)"
+                  disabled={running}
+                  title="Betiğe geçirilecek parametreler, boşlukla ayrılır"
+                />
+
+                {/* Yönetici hakkı gerektiğinde ek düğme */}
+                {needsElevation && (
+                  <button
+                    className="app-btn sw-elevate"
+                    onClick={() => void handleRun(true, true)}
+                    disabled={running}
+                    title="Windows UAC onayı ister; pencere gizli açılır, çıktı yakalanır"
+                  >
+                    🛡 Yönetici olarak çalıştır
+                  </button>
+                )}
               </div>
 
               <dl className="app-facts">
