@@ -157,6 +157,34 @@ class NocoDBClient:
             response.raise_for_status()
             return response.json()
 
+    async def list_tables(self) -> list[dict[str, Any]]:
+        """
+        Yapılandırılmış base içindeki tabloları listeler.
+
+        Returns:
+            `[{id, title, table_name}, …]`
+        """
+        base_id = settings.nocodb_base_id
+        if not base_id:
+            return []
+
+        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+            response = await client.get(
+                self._url(f"/api/v2/meta/bases/{base_id}/tables"),
+                headers=self._headers,
+            )
+            response.raise_for_status()
+            data = response.json()
+
+        return [
+            {
+                "id": table.get("id"),
+                "title": table.get("title"),
+                "table_name": table.get("table_name"),
+            }
+            for table in (data.get("list") or [])
+        ]
+
     async def list_records(
         self,
         table: str,

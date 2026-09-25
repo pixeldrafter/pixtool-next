@@ -22,6 +22,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import PROJECT_ROOT, settings
 from app.integrations.nocodb import NocoDBClient
 from app.routers.auth import router as auth_router
+from app.routers.database import router as database_router
 from app.routers.devices import router as devices_router
 from app.routers.remote import router as remote_router
 from app.routers.scripts import router as scripts_router
@@ -71,6 +72,7 @@ app.add_middleware(
 
 # --- Uç nokta grupları ---
 app.include_router(auth_router)
+app.include_router(database_router)
 app.include_router(devices_router)
 app.include_router(scripts_router)
 app.include_router(remote_router)
