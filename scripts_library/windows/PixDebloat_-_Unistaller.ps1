@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     PixDebloat v2.0 - TITAN OPTIMIZER
     Developer: Omer Cataloglu

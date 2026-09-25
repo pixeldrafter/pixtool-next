@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     PixUser v1.0 - TITAN USER MANAGER
     Developer: Omer Cataloglu

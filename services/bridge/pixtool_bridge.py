@@ -53,6 +53,8 @@ from urllib.error import URLError
 from urllib.parse import parse_qs, quote
 from urllib.request import Request, urlopen
 
+import bridge_hardware as hw  # noqa: E402 — köprüye özel modül
+
 VERSION = "1.0.0"
 DEFAULT_PORT = 8765
 DEFAULT_HOST = "127.0.0.1"
@@ -1009,6 +1011,12 @@ def collect_all(parts: set[str] | None = None) -> dict[str, Any]:
         "programs": collect_programs,
         "security": collect_security,
         "environment": collect_environment,
+        # --- Donanım envanteri (bridge_hardware modülü) ---
+        "board": hw.collect_board_cached,
+        "bios_check": hw.collect_bios_check,
+        "memory_modules": hw.collect_memory_modules,
+        "thermal": hw.collect_thermal,
+        "ports": hw.collect_ports,
     }
 
     selected = {
@@ -1791,6 +1799,25 @@ class BridgeHandler(BaseHTTPRequestHandler):
                         "/fs/delete",
                         "/fs/upload",
                         "/fs/download",
+                    ],
+                    "collectors": [
+                        "system",
+                        "cpu",
+                        "memory",
+                        "memory_modules",
+                        "disks",
+                        "network",
+                        "gpu",
+                        "board",
+                        "bios_check",
+                        "thermal",
+                        "ports",
+                        "processes",
+                        "services",
+                        "users",
+                        "programs",
+                        "security",
+                        "environment",
                     ],
                     "hint": "Bu yerel köprüdür; arayüz /info ile makine bilgisini alır.",
                 },

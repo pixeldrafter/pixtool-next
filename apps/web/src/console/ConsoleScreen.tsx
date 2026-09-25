@@ -1,9 +1,11 @@
 /**
  * Konsol ekranı.
  *
- * Giriş sonrası çalışır: makinenin tüm bilgisini terminal akışıyla basar.
- * Sonunda **"bu bilgileri veritabanına kaydetmek ister misin?"** diye sorar;
- * onaylanırsa backend'e gönderir (NocoDB `devices` tablosu — Faz 2).
+ * Giriş sonrası çalışır: makinenin **tüm envanterini** terminal akışıyla basar.
+ * Sonunda "bu bilgileri veritabanına kaydetmek ister misin?" diye sorar.
+ *
+ * Toplama ~6-10 sn sürer (anakart/BIOS/ısı/port sorguları). Bu sırada başlıkta
+ * canlı durum gösterilir; hiçbir alan **uydurulmaz**.
  *
  * Ayar: `flow.consoleVerbosity`
  *   off        → bu ekran hiç açılmaz (App atlar)
@@ -40,13 +42,41 @@ export function ConsoleScreen({ onFinished, token }: ConsoleScreenProps) {
   const [asking, setAsking] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  /** Toplama aşaması — başlıkta canlı gösterilir */
+  const [stage, setStage] = useState("makine taranıyor");
+  /** Geçen süre (ms) */
+  const [elapsed, setElapsed] = useState(0);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Makine bilgisi topla (yerel köprü dahil — Faz 3)
+  // Geçen süre sayacı
+  useEffect(() => {
+    if (info) return undefined;
+    const started = Date.now();
+    const timer = window.setInterval(() => setElapsed(Date.now() - started), 250);
+    return () => window.clearInterval(timer);
+  }, [info]);
+
+  // Makine bilgisi topla (yerel köprü dahil)
   useEffect(() => {
     let cancelled = false;
     const useBridge = bridgeSettings.enabled && bridgeSettings.autoProbe;
+
+    const stages = [
+      "işlemci ve bellek okunuyor",
+      "anakart ve BIOS sorgulanıyor",
+      "RAM slotları taranıyor",
+      "diskler ve ağ okunuyor",
+      "ısı sensörleri sorgulanıyor",
+      "portlar taranıyor",
+      "süreç ve servisler sayılıyor",
+      "envanter tamamlanıyor",
+    ];
+    let stageIndex = 0;
+    const stageTimer = window.setInterval(() => {
+      stageIndex = Math.min(stageIndex + 1, stages.length - 1);
+      setStage(stages[stageIndex] ?? "taranıyor");
+    }, 1100);
 
     void (async () => {
       // Masaüstü kabuğunda köprüyü kabuk başlatır; adres+token oradan gelir
@@ -61,11 +91,17 @@ export function ConsoleScreen({ onFinished, token }: ConsoleScreenProps) {
         skipBridge: !useBridge,
         ...(bridgeOptions ?? {}),
       });
-      if (!cancelled) setInfo(result);
+
+      window.clearInterval(stageTimer);
+      if (!cancelled) {
+        setStage("envanter hazır");
+        setInfo(result);
+      }
     })();
 
     return () => {
       cancelled = true;
+      window.clearInterval(stageTimer);
     };
     // Köprü ayarları yalnızca açılışta okunur (konsol tek seferlik bir akıştır)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -135,12 +171,45 @@ export function ConsoleScreen({ onFinished, token }: ConsoleScreenProps) {
 
   const finished = revealed >= flatLines.length && flatLines.length > 0;
 
+  /** Kısa özet — altbilgide gösterilir. */
+  const summary = useMemo(() => {
+    const report = (info?.bridge?.report ?? {}) as Record<string, unknown>;
+    const ports = (report["ports"] ?? {}) as Record<string, unknown>;
+    const board = (report["board"] ?? {}) as Record<string, unknown>;
+    const thermal = (report["thermal"] ?? {}) as Record<string, unknown>;
+    const memoryModules = (report["memory_modules"] ?? {}) as Record<string, unknown>;
+    const bios = (board["bios"] ?? {}) as Record<string, unknown>;
+
+    return {
+      duration: info?.bridge?.duration_ms,
+      ports: Number(ports["tcp_count"] ?? 0) + Number(ports["udp_count"] ?? 0),
+      risky: Array.isArray(ports["risky"]) ? (ports["risky"] as unknown[]).length : 0,
+      riskScore: Number(ports["risk_score"] ?? 0),
+      slots: Array.isArray(memoryModules["modules"])
+        ? (memoryModules["modules"] as unknown[]).length
+        : 0,
+      slotsTotal: memoryModules["slots_total"],
+      temps: Array.isArray(thermal["temperatures"])
+        ? (thermal["temperatures"] as unknown[]).length
+        : 0,
+      fans: Array.isArray(thermal["fans"]) ? (thermal["fans"] as unknown[]).length : 0,
+      biosVersion: bios["version"],
+      biosAge: bios["age_days"],
+      bridge: Boolean(info?.bridge),
+    };
+  }, [info]);
+
   return (
     <div className="console-screen">
       <div className="console-screen__header mono">
-        <span className="console-screen__title">PIXTOOL — SYSTEM INVENTORY</span>
+        <span className="console-screen__title">PIXTOOL — MAKİNE ENVANTERİ</span>
         <span className="console-screen__level">
           {verbosity === "summary" ? "ÖZET" : "TAM DÖKÜM"}
+        </span>
+        <span className="console-screen__stage">
+          {info
+            ? `${flatLines.length} satır · ${summary.duration ?? 0} ms`
+            : `${stage}… ${(elapsed / 1000).toFixed(1)} sn`}
         </span>
       </div>
 
@@ -150,7 +219,11 @@ export function ConsoleScreen({ onFinished, token }: ConsoleScreenProps) {
   │   P I X T O O L   ·   M A K İ N E   E N V A N T E R İ       │
   └─────────────────────────────────────────────────────────────┘`}</pre>
 
-        {!info && <div className="console-line console-line--info">&gt; makine taranıyor…</div>}
+        {!info && (
+          <div className="console-line console-line--info">
+            &gt; {stage}… ({(elapsed / 1000).toFixed(1)} sn)
+          </div>
+        )}
 
         {flatLines.slice(0, revealed).map((line, index) => (
           <div
@@ -161,7 +234,36 @@ export function ConsoleScreen({ onFinished, token }: ConsoleScreenProps) {
           </div>
         ))}
 
-        {finished && !asking && <span className="console-cursor" />}
+        {finished && !asking && (
+          <>
+            <div className="console-line console-line--head">ÖZET</div>
+            <div className="console-line console-line--ok">
+              {`  Köprü             : ${summary.bridge ? "BAĞLI" : "YOK (tarayıcı verisiyle sınırlı)"}`}
+            </div>
+            {summary.bridge && (
+              <>
+                <div className="console-line console-line--default">
+                  {`  Toplam süre       : ${summary.duration} ms`}
+                </div>
+                <div className="console-line console-line--default">
+                  {`  RAM modülü        : ${summary.slots}${summary.slotsTotal ? ` / ${summary.slotsTotal} slot` : ""}`}
+                </div>
+                <div className="console-line console-line--default">
+                  {`  BIOS              : ${summary.biosVersion ?? "—"}${summary.biosAge ? ` (${summary.biosAge} gün)` : ""}`}
+                </div>
+                <div className="console-line console-line--default">
+                  {`  Sıcaklık sensörü  : ${summary.temps}  ·  Fan: ${summary.fans}`}
+                </div>
+                <div
+                  className={`console-line console-line--${summary.riskScore >= 70 ? "err" : summary.riskScore >= 45 ? "warn" : "ok"}`}
+                >
+                  {`  Dinlenen port     : ${summary.ports}  (riskli: ${summary.risky}, puan: ${summary.riskScore}/100)`}
+                </div>
+              </>
+            )}
+            <span className="console-cursor" />
+          </>
+        )}
 
         {asking && (
           <div className="console-screen__ask">

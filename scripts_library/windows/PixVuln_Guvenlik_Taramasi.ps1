@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     PixVuln - Guvenlik Zafiyet Taramasi (Windows)
 .DESCRIPTION

@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     PixRepair v1.0 - TITAN VERSIYON
     Developer: Omer Cataloglu
