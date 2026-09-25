@@ -24,6 +24,8 @@ import {
   TerminalWindow,
   ToolsWindow,
   NotesWindow,
+  BrowserWindow,
+  GamesWindow,
   UsersWindow,
 } from "../apps";
 import { DesktopItems } from "./DesktopItems";
@@ -114,6 +116,10 @@ export function Desktop({
         return <ToolsWindow />;
       case "notes":
         return <NotesWindow />;
+      case "browser":
+        return <BrowserWindow />;
+      case "games":
+        return <GamesWindow />;
       case "status":
         return (
           <StatusWindow

@@ -25,7 +25,9 @@ export type SystemIconName =
   | "note"
   | "folder"
   | "tools"
-  | "notes";
+  | "notes"
+  | "browser"
+  | "games";
 
 interface IconProps extends SVGProps<SVGSVGElement> {
   size?: number;
@@ -228,6 +230,30 @@ function NotesIcon(props: IconProps) {
   );
 }
 
+function BrowserIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <circle cx="16" cy="16" r="12" fill="#1f6fe0" />
+      <ellipse cx="16" cy="16" rx="5.2" ry="12" fill="none" stroke="#bfe3ff" strokeWidth="1.4" />
+      <path d="M4.4 12h23.2M4.4 20h23.2" stroke="#bfe3ff" strokeWidth="1.4" strokeLinecap="round" />
+      <circle cx="16" cy="16" r="12" fill="none" stroke="#0b2b4d" strokeWidth="1.4" />
+    </Svg>
+  );
+}
+
+function GamesIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <rect x="3" y="10" width="26" height="14" rx="7" fill="#3f3f46" />
+      <rect x="3" y="10" width="26" height="5" rx="2.5" fill="#52525b" />
+      <path d="M9.5 15v4M7.5 17h4" stroke="#e4e4e7" strokeWidth="1.7" strokeLinecap="round" />
+      <circle cx="21" cy="15.5" r="1.6" fill="#f2c14e" />
+      <circle cx="23.6" cy="18.6" r="1.6" fill="#7ee787" />
+      <circle cx="18.4" cy="18.6" r="1.6" fill="#ff6b6b" />
+    </Svg>
+  );
+}
+
 const REGISTRY = {
   overview: OverviewIcon,
   resources: ResourcesIcon,
@@ -243,6 +269,8 @@ const REGISTRY = {
   note: NoteIcon,
   tools: ToolsIcon,
   notes: NotesIcon,
+  browser: BrowserIcon,
+  games: GamesIcon,
 } as const;
 
 /** İsimle sistem ikonu çizer. */

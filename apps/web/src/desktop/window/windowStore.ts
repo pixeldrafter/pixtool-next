@@ -18,6 +18,8 @@ export type WindowApp =
   | "database"
   | "resources"
   | "tools"
+  | "games"
+  | "browser"
   | "notes"
   | "status"
   | "settings"
@@ -52,7 +54,9 @@ export const APP_DEFINITIONS: Record<
   users: { title: "Kullanıcılar", icon: "👥", width: 940, height: 600 },
   database: { title: "Veritabanı (NocoDB)", icon: "🗄️", width: 960, height: 680 },
   resources: { title: "Kaynaklar", icon: "📈", width: 980, height: 700 },
-  tools: { title: "Araçlar", icon: "🧰", width: 760, height: 620 },
+  tools: { title: "Araçlar", icon: "🧰", width: 1020, height: 700 },
+  games: { title: "Oyunlar", icon: "🎮", width: 760, height: 640 },
+  browser: { title: "Tarayıcı", icon: "🌐", width: 1180, height: 780 },
   notes: { title: "Yapışkan Notlar", icon: "🗒️", width: 720, height: 560 },
   status: { title: "Sistem Durumu", icon: "🖥️", width: 960, height: 640 },
   settings: { title: "Ayarlar", icon: "⚙️", width: 920, height: 680 },

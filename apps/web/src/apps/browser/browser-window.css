@@ -1,0 +1,183 @@
+/* Tarayıcı — sunucu üzerinden gezen web görünümü */
+
+.browser {
+  position: relative;
+}
+
+/* --- Çıkış IP göstergesi --- */
+.browser__exit {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid var(--border-weak);
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.26);
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.browser__exit strong {
+  color: var(--text-primary);
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-weight: 600;
+}
+
+.browser__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #6b7280;
+  flex-shrink: 0;
+}
+
+.browser__dot.is-on {
+  background: #4ad97a;
+  box-shadow: 0 0 8px rgba(74, 217, 122, 0.7);
+}
+
+/* --- Adres çubuğu --- */
+.browser__nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.browser__address {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--border-weak);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.34);
+  color: var(--text-primary);
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 12px;
+  outline: none;
+  transition: border-color 0.16s, box-shadow 0.16s;
+}
+
+.browser__address:focus {
+  border-color: var(--accent, #4cc2ff);
+  box-shadow: 0 0 0 3px rgba(76, 194, 255, 0.18);
+}
+
+.browser__address::placeholder {
+  color: var(--text-muted);
+  font-family: inherit;
+}
+
+/* --- Yer imleri --- */
+.browser__bookmarks {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  padding: 5px 8px;
+  border: 1px solid var(--border-weak);
+  border-radius: 7px;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.browser__bookmark {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid var(--border-weak);
+  border-radius: 6px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.browser__bookmark-go {
+  padding: 4px 9px;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.14s, color 0.14s;
+}
+
+.browser__bookmark-go:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+}
+
+.browser__bookmark-del {
+  padding: 0 6px;
+  border: 0;
+  border-left: 1px solid var(--border-weak);
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 9px;
+  cursor: pointer;
+  transition: background 0.14s, color 0.14s;
+}
+
+.browser__bookmark-del:hover {
+  background: rgba(196, 43, 28, 0.3);
+  color: #ffb3aa;
+}
+
+.browser__bookmarks-empty {
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 2px 4px;
+}
+
+/* --- Görünüm --- */
+.browser__stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  border: 1px solid var(--border-weak);
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.browser__frame {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+  background: #fff;
+}
+
+.browser__loading {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: rgba(10, 16, 26, 0.9);
+  color: var(--text-secondary);
+  font-size: 12.5px;
+}
+
+/* --- Durum çubuğu --- */
+.browser__status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  border: 1px solid var(--border-weak);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.24);
+  font-size: 10.5px;
+  color: var(--text-muted);
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+
+.browser__status > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 60%;
+}

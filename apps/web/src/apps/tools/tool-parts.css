@@ -1,0 +1,497 @@
+/* Araç parçaları — ortak görünüm */
+
+.tool {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  height: 100%;
+}
+
+.tool__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-weak);
+}
+
+.tool__spacer {
+  flex: 1;
+}
+
+.tool__hint {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* --- İki sütun: girdi / çıktı --- */
+.tool--split {
+  display: flex;
+  flex-direction: column;
+}
+
+.tool__pane {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Geniş ekranda yan yana */
+@media (min-width: 760px) {
+  .tool--split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 12px;
+    align-items: start;
+  }
+
+  .tool--split > .tool__actions,
+  .tool--split > .tool__pane--wide {
+    grid-column: 1 / -1;
+  }
+}
+
+.tool__label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* --- Alanlar --- */
+.tool__area,
+.tool__input {
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid var(--border-weak);
+  border-radius: 7px;
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 12.5px;
+  outline: none;
+  resize: vertical;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.tool__area.is-mono,
+.tool__input.is-mono {
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 12px;
+}
+
+.tool__area:focus,
+.tool__input:focus {
+  border-color: var(--accent, #4cc2ff);
+  box-shadow: 0 0 0 3px rgba(76, 194, 255, 0.16);
+}
+
+.tool__area::placeholder,
+.tool__input::placeholder {
+  color: var(--text-muted);
+  opacity: 0.75;
+}
+
+.tool__area[readonly] {
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--text-secondary);
+}
+
+/* --- Düğmeler --- */
+.tool__btn {
+  padding: 7px 12px;
+  border: 1px solid var(--border-weak);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.14s, color 0.14s, transform 0.07s;
+}
+
+.tool__btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text-primary);
+}
+
+.tool__btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.tool__btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.tool__btn.is-primary {
+  border-color: var(--accent, #4cc2ff);
+  background: var(--accent, #4cc2ff);
+  color: #06222e;
+  font-weight: 600;
+}
+
+/* --- Alan sarmalayıcıları --- */
+.tool__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.tool__field select,
+.tool__field input[type="number"] {
+  padding: 6px 9px;
+  border: 1px solid var(--border-weak);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: none;
+  outline: none;
+  min-width: 84px;
+}
+
+.tool__check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.tool__check input {
+  cursor: pointer;
+}
+
+.tool__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+}
+
+/* --- Sonuç tablosu --- */
+.tool__table {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-weak);
+  border-radius: 7px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.tool__table-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 6px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.045);
+  font-size: 12px;
+}
+
+.tool__table-row:last-child {
+  border-bottom: 0;
+}
+
+.tool__table-row > span {
+  flex-shrink: 0;
+  min-width: 96px;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.tool__table-row > code {
+  flex: 1;
+  min-width: 0;
+  color: var(--text-primary);
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 11.5px;
+  word-break: break-all;
+}
+
+.tool__copyable {
+  cursor: pointer;
+  border-bottom: 1px dashed transparent;
+  transition: border-color 0.14s;
+}
+
+.tool__copyable:hover {
+  border-bottom-color: currentColor;
+}
+
+/* --- Sonuç satırı (hash çıktıları) --- */
+.tool__result {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.045);
+}
+
+.tool__result-key {
+  flex-shrink: 0;
+  min-width: 74px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.tool__result-value {
+  flex: 1;
+  min-width: 0;
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 11.5px;
+  color: var(--text-primary);
+  word-break: break-all;
+}
+
+/* --- Liste --- */
+.tool__list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.tool__list-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 9px;
+  border: 1px solid var(--border-weak);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.2);
+  font-size: 11.5px;
+}
+
+.tool__list-row code {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  color: var(--text-primary);
+}
+
+.tool__list-index {
+  flex-shrink: 0;
+  min-width: 30px;
+  color: var(--text-muted);
+  font-size: 10.5px;
+}
+
+/* --- Durum mesajları --- */
+.tool__error {
+  padding: 8px 11px;
+  border: 1px solid rgba(255, 90, 90, 0.4);
+  border-radius: 7px;
+  background: rgba(255, 80, 80, 0.12);
+  color: #ff9a9a;
+  font-size: 11.5px;
+  font-family: ui-monospace, Consolas, monospace;
+  word-break: break-word;
+}
+
+.tool__empty {
+  padding: 14px 10px;
+  text-align: center;
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+/* --- Etiketler --- */
+.tool__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.tool__chip {
+  padding: 4px 9px;
+  border: 1px solid var(--border-weak);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.tool__chip strong {
+  color: var(--accent, #4cc2ff);
+}
+
+/* --- Renk aracı --- */
+.tool__color {
+  width: 42px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid var(--border-weak);
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.tool__swatch {
+  margin-top: 10px;
+  padding: 26px 12px;
+  border: 1px solid var(--border-weak);
+  border-radius: 8px;
+  text-align: center;
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 13px;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+/* --- Şifre aracı --- */
+.tool__password {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 12px;
+  border: 1px solid var(--border-weak);
+  border-radius: 7px;
+  background: rgba(0, 0, 0, 0.34);
+}
+
+.tool__password code {
+  flex: 1;
+  min-width: 0;
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 14px;
+  letter-spacing: 0.03em;
+  color: var(--text-primary);
+  word-break: break-all;
+}
+
+.tool__strength {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  font-size: 11.5px;
+  color: var(--text-secondary);
+}
+
+.tool__strength-bar {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.tool__strength-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: #ff6b6b;
+  transition: width 0.3s, background 0.3s;
+}
+
+.tool__strength.is-1 .tool__strength-bar > span { background: #ffb347; }
+.tool__strength.is-2 .tool__strength-bar > span { background: #f2c14e; }
+.tool__strength.is-3 .tool__strength-bar > span { background: #7ee787; }
+.tool__strength.is-4 .tool__strength-bar > span { background: #4ad97a; }
+
+/* --- Cron açıklaması --- */
+.tool__description {
+  margin-top: 10px;
+  padding: 11px 13px;
+  border: 1px solid rgba(76, 194, 255, 0.3);
+  border-radius: 8px;
+  background: rgba(76, 194, 255, 0.1);
+  color: var(--text-primary);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+/* --- Regex vurgulama --- */
+.tool__highlight {
+  padding: 9px 11px;
+  border: 1px solid var(--border-weak);
+  border-radius: 7px;
+  background: rgba(0, 0, 0, 0.3);
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 11.5px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+/* --- QR --- */
+.tool__qr {
+  display: grid;
+  place-items: center;
+  padding: 12px;
+  border: 1px solid var(--border-weak);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.tool__qr svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* --- HTTP kodları --- */
+.tool__http {
+  cursor: pointer;
+}
+
+.tool__http:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.tool__http-code {
+  flex-shrink: 0;
+  min-width: 42px;
+  font-family: ui-monospace, Consolas, monospace;
+  font-weight: 700;
+  font-size: 12.5px;
+}
+
+.tool__http-code.is-ok { color: #7ee787; }
+.tool__http-code.is-info { color: #9fd8ff; }
+.tool__http-code.is-accent { color: #f2c14e; }
+.tool__http-code.is-warn { color: #ffb347; }
+.tool__http-code.is-err { color: #ff8b82; }
+
+/* --- MIME --- */
+.tool__mime {
+  cursor: pointer;
+}
+
+.tool__mime:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.tool__mime-ext {
+  flex-shrink: 0;
+  min-width: 62px;
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 11.5px;
+  color: var(--accent, #4cc2ff);
+}

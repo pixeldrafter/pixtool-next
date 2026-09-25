@@ -31,6 +31,8 @@ const APP_SHORTCUTS: { app: WindowApp; label: string; icon: SystemIconName }[] =
   { app: "resources", label: "Kaynaklar", icon: "resources" },
   { app: "tools", label: "Araçlar", icon: "tools" },
   { app: "notes", label: "Notlar", icon: "notes" },
+  { app: "browser", label: "Tarayıcı", icon: "browser" },
+  { app: "games", label: "Oyunlar", icon: "games" },
   { app: "status", label: "Durum", icon: "status" },
   { app: "settings", label: "Ayarlar", icon: "settings" },
   { app: "about", label: "Hakkında", icon: "about" },

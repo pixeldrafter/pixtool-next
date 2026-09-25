@@ -189,6 +189,7 @@ def _telegram_text(request: AccessRequest) -> str:
     ]
     return "\n".join(lines)
 
+
 async def _notify_via_n8n(request: AccessRequest) -> tuple[bool, str]:
     """Talebi n8n webhook'una iletir (asıl yol)."""
     webhook = settings.n8n_register_webhook

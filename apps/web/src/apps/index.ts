@@ -12,3 +12,5 @@ export { DatabaseWindow } from "./database/DatabaseWindow";
 export { ResourcesWindow } from "./resources/ResourcesWindow";
 export { ToolsWindow } from "./tools/ToolsWindow";
 export { NotesWindow } from "./notes/NotesWindow";
+export { BrowserWindow } from "./browser/BrowserWindow";
+export { GamesWindow } from "./games/GamesWindow";
