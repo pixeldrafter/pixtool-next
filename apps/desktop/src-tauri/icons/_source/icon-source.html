@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <title>Pixtool ikon kaynağı</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: 1024px;
+        height: 1024px;
+        background: transparent;
+        overflow: hidden;
+      }
+      svg {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <!--
+      Pixtool ikonu — 5×7 piksel ızgaradan oluşan "P".
+
+      Tasarım notları:
+      • Gövde koyu lacivert (Windows 11 koyu tema tonu), çapraz gradyan.
+      • Harf buz mavisi → canlı mavi gradyan; arkasında yumuşak hale.
+      • Gövdenin alt ucundaki piksel beyaz yanar — terminal imleci göndermesi.
+      • 1024 tabanında blok 96 px, boşluk 13 px → harf 532×750, ortalanmış.
+    -->
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="1024"
+      height="1024"
+      viewBox="0 0 1024 1024"
+      fill="none"
+    >
+      <defs>
+        <linearGradient id="body" x1="120" y1="60" x2="920" y2="980" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stop-color="#17253f" />
+          <stop offset="0.45" stop-color="#101a2e" />
+          <stop offset="1" stop-color="#090f1c" />
+        </linearGradient>
+
+        <linearGradient id="pixel" x1="290" y1="160" x2="740" y2="880" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stop-color="#9ce6ff" />
+          <stop offset="0.4" stop-color="#4cc2ff" />
+          <stop offset="1" stop-color="#1f6fe0" />
+        </linearGradient>
+
+        <linearGradient id="lit" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#ffffff" />
+          <stop offset="1" stop-color="#9fe8ff" />
+        </linearGradient>
+
+        <radialGradient id="bloom" cx="0.5" cy="0.44" r="0.54">
+          <stop offset="0" stop-color="#3fa9ff" stop-opacity="0.3" />
+          <stop offset="0.62" stop-color="#2b7fff" stop-opacity="0.09" />
+          <stop offset="1" stop-color="#2b7fff" stop-opacity="0" />
+        </radialGradient>
+
+        <linearGradient id="gloss" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#ffffff" stop-opacity="0.085" />
+          <stop offset="0.55" stop-color="#ffffff" stop-opacity="0.015" />
+          <stop offset="1" stop-color="#ffffff" stop-opacity="0" />
+        </linearGradient>
+
+        <linearGradient id="blockSheen" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#ffffff" stop-opacity="0.34" />
+          <stop offset="0.45" stop-color="#ffffff" stop-opacity="0.05" />
+          <stop offset="1" stop-color="#ffffff" stop-opacity="0" />
+        </linearGradient>
+
+        <filter id="pixelGlow" x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur stdDeviation="24" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+
+        <filter id="softGlow" x="-40%" y="-40%" width="180%" height="180%">
+          <feGaussianBlur stdDeviation="30" />
+        </filter>
+
+        <clipPath id="bodyClip">
+          <rect x="0" y="0" width="1024" height="1024" rx="228" ry="228" />
+        </clipPath>
+
+        <!-- P — 5×7 ızgara, blok 96, boşluk 13, başlangıç (246,137) -->
+        <g id="letterP">
+          <!-- 1. sıra: üst çubuk -->
+          <rect x="246" y="137" width="96" height="96" rx="17" />
+          <rect x="355" y="137" width="96" height="96" rx="17" />
+          <rect x="464" y="137" width="96" height="96" rx="17" />
+          <rect x="573" y="137" width="96" height="96" rx="17" />
+          <!-- 2. sıra -->
+          <rect x="246" y="246" width="96" height="96" rx="17" />
+          <rect x="682" y="246" width="96" height="96" rx="17" />
+          <!-- 3. sıra -->
+          <rect x="246" y="355" width="96" height="96" rx="17" />
+          <rect x="682" y="355" width="96" height="96" rx="17" />
+          <!-- 4. sıra: göbek alt çubuğu -->
+          <rect x="246" y="464" width="96" height="96" rx="17" />
+          <rect x="355" y="464" width="96" height="96" rx="17" />
+          <rect x="464" y="464" width="96" height="96" rx="17" />
+          <rect x="573" y="464" width="96" height="96" rx="17" />
+          <!-- 5-7. sıra: gövde -->
+          <rect x="246" y="573" width="96" height="96" rx="17" />
+          <rect x="246" y="682" width="96" height="96" rx="17" />
+          <rect x="246" y="791" width="96" height="96" rx="17" />
+        </g>
+      </defs>
+
+      <!-- ============ GÖVDE ============ -->
+      <g clip-path="url(#bodyClip)">
+        <rect x="0" y="0" width="1024" height="1024" fill="url(#body)" />
+
+        <!-- piksel ızgara dokusu (ince) -->
+        <g opacity="0.038" stroke="#8fd4ff" stroke-width="2">
+          <path
+            d="M0 64H1024M0 128H1024M0 192H1024M0 256H1024M0 320H1024M0 384H1024M0 448H1024M0 512H1024M0 576H1024M0 640H1024M0 704H1024M0 768H1024M0 832H1024M0 896H1024M0 960H1024"
+          />
+          <path
+            d="M64 0V1024M128 0V1024M192 0V1024M256 0V1024M320 0V1024M384 0V1024M448 0V1024M512 0V1024M576 0V1024M640 0V1024M704 0V1024M768 0V1024M832 0V1024M896 0V1024M960 0V1024"
+          />
+        </g>
+
+        <rect x="0" y="0" width="1024" height="1024" fill="url(#bloom)" />
+        <rect x="0" y="0" width="1024" height="540" fill="url(#gloss)" />
+
+        <!-- sağ altta iz bırakan sönük pikseller (ekran/kayıt göndermesi) -->
+        <g fill="#4cc2ff" opacity="0.1">
+          <rect x="836" y="792" width="46" height="46" rx="11" />
+          <rect x="776" y="849" width="46" height="46" rx="11" />
+        </g>
+      </g>
+
+      <!-- ============ HARF ============ -->
+      <use href="#letterP" fill="#2b7fff" opacity="0.5" filter="url(#softGlow)" />
+      <use href="#letterP" fill="url(#pixel)" filter="url(#pixelGlow)" />
+      <use href="#letterP" fill="url(#blockSheen)" />
+
+      <!-- yanan uç pikseli -->
+      <rect x="246" y="791" width="96" height="96" rx="17" fill="url(#lit)" />
+      <rect x="246" y="791" width="96" height="96" rx="17" fill="url(#blockSheen)" />
+
+      <!-- harf dış hattı -->
+      <use href="#letterP" fill="none" stroke="#bfe9ff" stroke-opacity="0.22" stroke-width="2" />
+
+      <!-- ============ ÇERÇEVE ============ -->
+      <rect
+        x="14"
+        y="14"
+        width="996"
+        height="996"
+        rx="216"
+        ry="216"
+        fill="none"
+        stroke="#ffffff"
+        stroke-opacity="0.085"
+        stroke-width="4"
+      />
+      <rect
+        x="4"
+        y="4"
+        width="1016"
+        height="1016"
+        rx="226"
+        ry="226"
+        fill="none"
+        stroke="#4cc2ff"
+        stroke-opacity="0.13"
+        stroke-width="3"
+      />
+    </svg>
+  </body>
+</html>
