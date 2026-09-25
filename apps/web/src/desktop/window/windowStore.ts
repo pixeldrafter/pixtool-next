@@ -17,6 +17,8 @@ export type WindowApp =
   | "users"
   | "database"
   | "resources"
+  | "tools"
+  | "notes"
   | "status"
   | "settings"
   | "about";
@@ -50,6 +52,8 @@ export const APP_DEFINITIONS: Record<
   users: { title: "Kullanıcılar", icon: "👥", width: 940, height: 600 },
   database: { title: "Veritabanı (NocoDB)", icon: "🗄️", width: 960, height: 680 },
   resources: { title: "Kaynaklar", icon: "📈", width: 980, height: 700 },
+  tools: { title: "Araçlar", icon: "🧰", width: 760, height: 620 },
+  notes: { title: "Yapışkan Notlar", icon: "🗒️", width: 720, height: 560 },
   status: { title: "Sistem Durumu", icon: "🖥️", width: 960, height: 640 },
   settings: { title: "Ayarlar", icon: "⚙️", width: 920, height: 680 },
   about: { title: "Pixtool Hakkında", icon: "ℹ️", width: 640, height: 560 },

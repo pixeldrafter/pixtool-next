@@ -10,7 +10,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-/** Yapışkan kağıt renkleri (Windows Sticky Notes paleti). */
+/** Yapışkan kağıt renkleri (Windows Sticky Notes paleti + genişletilmiş). */
 export const NOTE_COLORS = [
   { id: "yellow", label: "Sarı", bg: "#fef3a0", ink: "#4a3f00" },
   { id: "green", label: "Yeşil", bg: "#c8f0a8", ink: "#1d3f0a" },
@@ -20,7 +20,31 @@ export const NOTE_COLORS = [
   { id: "orange", label: "Turuncu", bg: "#ffd4a8", ink: "#5a2d00" },
   { id: "mint", label: "Nane", bg: "#a8f0e4", ink: "#03423a" },
   { id: "white", label: "Beyaz", bg: "#f4f4f2", ink: "#242427" },
+  { id: "coral", label: "Mercan", bg: "#ffb3a7", ink: "#5e1508" },
+  { id: "lime", label: "Fıstık", bg: "#e2f78a", ink: "#3b4a00" },
+  { id: "sky", label: "Gökyüzü", bg: "#a5e8ff", ink: "#04384d" },
+  { id: "lavender", label: "Lavanta", bg: "#c9bff2", ink: "#2b1b58" },
+  { id: "sand", label: "Kum", bg: "#efdfc4", ink: "#4a3718" },
+  { id: "rose", label: "Gül", bg: "#ffd0d0", ink: "#5c1414" },
+  { id: "teal", label: "Deniz", bg: "#9fe0d4", ink: "#02352d" },
+  { id: "graphite", label: "Grafit", bg: "#d4d7dc", ink: "#1f2229" },
 ] as const;
+
+/**
+ * Not temaları — rengin üzerine uygulanan görsel işleme.
+ *
+ * `pastel` düz kâğıt, `paper` ince çizgili, `grid` kareli, `neon` parlayan
+ * kenar, `dark` karartılmış gövde (açık renkleri koyu zemine çevirir).
+ */
+export const NOTE_THEMES = [
+  { id: "pastel", label: "Düz", icon: "▪" },
+  { id: "paper", label: "Çizgili", icon: "☰" },
+  { id: "grid", label: "Kareli", icon: "▦" },
+  { id: "neon", label: "Neon", icon: "✦" },
+  { id: "dark", label: "Koyu", icon: "●" },
+] as const;
+
+export type NoteThemeId = (typeof NOTE_THEMES)[number]["id"];
 
 export type NoteColorId = (typeof NOTE_COLORS)[number]["id"];
 
@@ -37,6 +61,12 @@ export interface StickyNote {
   createdAt: number;
   /** Küçültülmüş (yalnızca başlık görünür) */
   collapsed: boolean;
+  /** Görsel tema (çizgili, kareli, neon…) */
+  theme: NoteThemeId;
+  /** Yazı boyutu (px) */
+  fontSize: number;
+  /** Sabitlenmiş — sürüklenemez */
+  pinned: boolean;
 }
 
 interface StickyState {
@@ -87,6 +117,9 @@ export const useStickyStore = create<StickyState>()(
           z: topZ,
           createdAt: Date.now(),
           collapsed: false,
+          theme: "pastel",
+          fontSize: 12.5,
+          pinned: false,
         };
 
         set({ notes: [...state.notes, note], topZ });
@@ -118,7 +151,20 @@ export const useStickyStore = create<StickyState>()(
     }),
     {
       name: "pixtool.stickies",
-      version: 1,
+      version: 2,
+      // v1 → v2: tema, yazı boyutu ve sabitleme alanları eklendi.
+      migrate: (persisted, version) => {
+        const state = persisted as { notes?: Partial<StickyNote>[] } | undefined;
+        if (version < 2 && state?.notes) {
+          state.notes = state.notes.map((note) => ({
+            theme: "pastel",
+            fontSize: 12.5,
+            pinned: false,
+            ...note,
+          }));
+        }
+        return state as never;
+      },
     },
   ),
 );

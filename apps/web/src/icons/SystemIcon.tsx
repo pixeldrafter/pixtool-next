@@ -23,7 +23,9 @@ export type SystemIconName =
   | "settings"
   | "about"
   | "note"
-  | "folder";
+  | "folder"
+  | "tools"
+  | "notes";
 
 interface IconProps extends SVGProps<SVGSVGElement> {
   size?: number;
@@ -201,6 +203,31 @@ function NoteIcon(props: IconProps) {
 /* ------------------------------------------------------------------ */
 /*  Kayıt defteri                                                      */
 /* ------------------------------------------------------------------ */
+function ToolsIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <rect x="3" y="18" width="26" height="9" rx="2.5" fill="#c0392b" />
+      <rect x="3" y="18" width="26" height="3" rx="1.5" fill="#e05244" />
+      <path d="M9 18v-4h2v4zM11 12h9v2H11z" fill="#b8c1cc" />
+      <rect x="7" y="8" width="12" height="4" rx="1.5" fill="#8b98a8" />
+      <path d="M21 7l3.2 12.2h-6.4z" fill="#f2c14e" />
+      <path d="M21 10.5l1.6 6h-3.2z" fill="#fff3cd" />
+      <circle cx="21" cy="6" r="1.8" fill="#e8eef5" />
+    </Svg>
+  );
+}
+
+function NotesIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <rect x="4" y="7" width="16" height="16" rx="2" fill="#ffd166" transform="rotate(-8 12 15)" />
+      <rect x="10" y="5" width="18" height="18" rx="2.5" fill="#7ee787" />
+      <path d="M14 11h10M14 15h10M14 19h6" stroke="#2f6b3a" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M10 5h18v2H10z" fill="#b7f0be" />
+    </Svg>
+  );
+}
+
 const REGISTRY = {
   overview: OverviewIcon,
   resources: ResourcesIcon,
@@ -214,6 +241,8 @@ const REGISTRY = {
   settings: SettingsIcon,
   about: AboutIcon,
   note: NoteIcon,
+  tools: ToolsIcon,
+  notes: NotesIcon,
 } as const;
 
 /** İsimle sistem ikonu çizer. */

@@ -29,6 +29,8 @@ const APP_SHORTCUTS: { app: WindowApp; label: string; icon: SystemIconName }[] =
   { app: "database", label: "Veritabanı", icon: "database" },
   { app: "users", label: "Kullanıcılar", icon: "users" },
   { app: "resources", label: "Kaynaklar", icon: "resources" },
+  { app: "tools", label: "Araçlar", icon: "tools" },
+  { app: "notes", label: "Notlar", icon: "notes" },
   { app: "status", label: "Durum", icon: "status" },
   { app: "settings", label: "Ayarlar", icon: "settings" },
   { app: "about", label: "Hakkında", icon: "about" },

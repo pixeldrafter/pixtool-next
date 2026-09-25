@@ -10,3 +10,5 @@ export { FilesWindow } from "./files/FilesWindow";
 export { UsersWindow } from "./users/UsersWindow";
 export { DatabaseWindow } from "./database/DatabaseWindow";
 export { ResourcesWindow } from "./resources/ResourcesWindow";
+export { ToolsWindow } from "./tools/ToolsWindow";
+export { NotesWindow } from "./notes/NotesWindow";

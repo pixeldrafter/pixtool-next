@@ -37,6 +37,8 @@ const START_ITEMS: StartItem[] = [
   { app: "files", key: "files", icon: "📁", groupKey: "start.group.manage" },
   { app: "users", key: "users", icon: "👥", groupKey: "start.group.manage" },
   { app: "database", key: "database", icon: "🗄️", groupKey: "start.group.manage" },
+  { app: "tools", key: "tools", icon: "🧰", groupKey: "start.group.manage" },
+  { app: "notes", key: "notes", icon: "🗒️", groupKey: "start.group.manage" },
   { app: "settings", key: "settings", icon: "⚙️", groupKey: "start.group.system" },
   { app: "about", key: "about", icon: "ℹ️", groupKey: "start.group.system" },
 ];
