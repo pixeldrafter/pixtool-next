@@ -7,6 +7,9 @@
  */
 
 export { LoginScreen } from "./LoginScreen";
+export { IntroVideo } from "./IntroVideo";
+export { LoginMarquee, LoginCopyright } from "./LoginOverlays";
+export { LOGIN_TEXT, MARQUEE_DURATION } from "./text";
 export { OtpStep } from "./OtpStep";
 export { YetiOtpStep } from "./YetiOtpStep";
 export { OtpDemo } from "./OtpDemo";

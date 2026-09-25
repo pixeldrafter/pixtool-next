@@ -1,0 +1,194 @@
+/* ==========================================================================
+ *  GİRİŞ EKRANI ÜST KATMANLARI
+ *
+ *  Kayan hoş geldiniz şeridi + nabız animasyonlu telif hakkı.
+ *  Formlar kendi tam ekran düzenlerini getirdiği için bu parçalar
+ *  `LoginScreen` üzerinde ayrı katmanlar olarak konumlanır.
+ * ========================================================================== */
+
+/* --------------------------------------------------------------------------
+ *  1) KAYAN HOŞ GELDİNİZ ŞERİDİ
+ *
+ *  Sonsuz kayan yazı: içerik iki kez çizilir ve kap genişliğinin %50'si kadar
+ *  kaydırılır — dikişsiz döngü (seamless loop) için standart teknik.
+ * -------------------------------------------------------------------------- */
+.login-marquee {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  overflow: hidden;
+  pointer-events: none;
+  padding: 11px 0;
+  background: linear-gradient(
+    180deg,
+    rgba(4, 8, 16, 0.82),
+    rgba(6, 12, 22, 0.55) 70%,
+    transparent
+  );
+  backdrop-filter: blur(7px);
+  mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+}
+
+.login-marquee__track {
+  display: flex;
+  width: max-content;
+  animation: login-marquee-scroll var(--marquee-duration, 18s) linear infinite;
+}
+
+.login-marquee__chunk {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.login-marquee__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 26px;
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  /* Renk tema değişkeninden gelir; form yoksa açık mavi */
+  color: var(--marquee-color, #9fd8ff);
+  text-shadow: 0 0 18px var(--marquee-glow, rgba(76, 194, 255, 0.45));
+}
+
+.login-marquee__dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.65;
+}
+
+@keyframes login-marquee-scroll {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+/* Şerit kayan yazıyı sevmeyenler için sabit dursun */
+@media (prefers-reduced-motion: reduce) {
+  .login-marquee__track {
+    animation: none;
+    justify-content: center;
+    width: 100%;
+  }
+  .login-marquee__chunk:last-child {
+    display: none;
+  }
+}
+
+/* --------------------------------------------------------------------------
+ *  2) NABIZ ANİMASYONLU TELİF HAKKI
+ *
+ *  Dikkat çekmesi isteniyor: hafif büyüyüp küçülme + nefes alan hale +
+ *  soldaki canlı nokta. `prefers-reduced-motion` durumunda sadeleşir.
+ * -------------------------------------------------------------------------- */
+.login-copyright {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 22px;
+  z-index: 40;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.login-copyright__inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 20px;
+  border: 1px solid var(--copyright-border, rgba(76, 194, 255, 0.28));
+  border-radius: 26px;
+  background: var(--copyright-bg, rgba(6, 14, 26, 0.62));
+  backdrop-filter: blur(9px);
+  box-shadow:
+    0 0 0 0 var(--copyright-glow, rgba(76, 194, 255, 0.35)),
+    0 8px 26px rgba(0, 0, 0, 0.42);
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--copyright-color, #cfe9ff);
+  white-space: nowrap;
+  animation: login-copyright-pulse 2.4s ease-in-out infinite;
+}
+
+/* Canlı nokta — kalp atışı gibi */
+.login-copyright__beacon {
+  position: relative;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--copyright-accent, #4cc2ff);
+  box-shadow: 0 0 10px var(--copyright-accent, #4cc2ff);
+  flex-shrink: 0;
+}
+
+.login-copyright__beacon::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--copyright-accent, #4cc2ff);
+  animation: login-copyright-beacon 1.6s ease-out infinite;
+}
+
+@keyframes login-copyright-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow:
+      0 0 0 0 var(--copyright-glow, rgba(76, 194, 255, 0.35)),
+      0 8px 26px rgba(0, 0, 0, 0.42);
+  }
+  50% {
+    transform: scale(1.028);
+    box-shadow:
+      0 0 0 9px var(--copyright-glow-fade, rgba(76, 194, 255, 0)),
+      0 10px 30px rgba(0, 0, 0, 0.48);
+  }
+}
+
+@keyframes login-copyright-beacon {
+  0% {
+    transform: scale(1);
+    opacity: 0.75;
+  }
+  100% {
+    transform: scale(3.4);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-copyright__inner {
+    animation: none;
+  }
+  .login-copyright__beacon::after {
+    animation: none;
+    opacity: 0;
+  }
+}
+
+/* Çok dar ekranda şerit ve telif üst üste binmesin */
+@media (max-height: 620px) {
+  .login-copyright {
+    bottom: 10px;
+  }
+  .login-copyright__inner {
+    font-size: 11px;
+    padding: 7px 14px;
+  }
+}

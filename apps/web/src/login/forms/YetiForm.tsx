@@ -18,6 +18,7 @@
 import { useState } from "react";
 
 import type { LoginFormProps } from "../types";
+import { LOGIN_TEXT } from "../text";
 import { YetiSvg } from "./YetiSvg";
 import "./yeti.css";
 
@@ -26,7 +27,9 @@ export function YetiForm({
   loading,
   error,
   disabled,
-  submitLabel = "Log in",
+  submitLabel = LOGIN_TEXT.signIn,
+  onRegister,
+  onForgot,
 }: LoginFormProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -50,7 +53,7 @@ export function YetiForm({
 
         <div className="inputGroup inputGroup1">
           <label htmlFor="loginEmail" id="loginEmailLabel">
-            Email
+            {LOGIN_TEXT.username}
           </label>
           <input
             type="email"
@@ -61,12 +64,12 @@ export function YetiForm({
             disabled={disabled || loading}
             onChange={(event) => setEmail(event.target.value)}
           />
-          <p className="helper helper1">email@domain.com</p>
+          <p className="helper helper1">kullanici@ornek.com</p>
         </div>
 
         <div className="inputGroup inputGroup2">
           <label htmlFor="loginPassword" id="loginPasswordLabel">
-            Password
+            {LOGIN_TEXT.password}
           </label>
           <input
             type={showPassword ? "text" : "password"}
@@ -79,7 +82,7 @@ export function YetiForm({
             onChange={(event) => setPassword(event.target.value)}
           />
           <label id="showPasswordToggle" htmlFor="showPasswordCheck">
-            Show
+            Göster
             <input
               id="showPasswordCheck"
               type="checkbox"
@@ -94,7 +97,28 @@ export function YetiForm({
 
         <div className="inputGroup inputGroup3">
           <button id="login" type="submit" disabled={disabled || loading}>
-            {loading ? "…" : submitLabel}
+            {loading ? LOGIN_TEXT.signingIn : submitLabel}
+          </button>
+        </div>
+
+        {/* Kayıt / parola bağlantıları */}
+        <div className="lf-links lf-links--yeti">
+          <button
+            type="button"
+            className="lf-link"
+            disabled={disabled || loading}
+            onClick={() => onForgot?.(email.trim())}
+          >
+            {LOGIN_TEXT.forgot}
+          </button>
+          <span className="lf-links__sep">·</span>
+          <button
+            type="button"
+            className="lf-link"
+            disabled={disabled || loading}
+            onClick={() => onRegister?.()}
+          >
+            {LOGIN_TEXT.register}
           </button>
         </div>
       </form>

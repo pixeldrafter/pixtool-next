@@ -15,6 +15,7 @@
 import { useState } from "react";
 
 import type { LoginFormProps } from "../types";
+import { LOGIN_TEXT } from "../text";
 import "./panda.css";
 
 export interface PandaFormProps extends LoginFormProps {
@@ -26,7 +27,9 @@ export function PandaForm({
   loading,
   error,
   disabled,
-  submitLabel = "Login",
+  submitLabel = LOGIN_TEXT.signIn,
+  onRegister,
+  onForgot,
 }: PandaFormProps) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -42,11 +45,11 @@ export function PandaForm({
     <div className={`lf--panda${shy ? " is-shy" : ""}`}>
       <div className="container">
         <form onSubmit={submit}>
-          <label htmlFor="panda-username">Username:</label>
+          <label htmlFor="panda-username">{LOGIN_TEXT.username}:</label>
           <input
             id="panda-username"
             type="text"
-            placeholder="Username here..."
+            placeholder={LOGIN_TEXT.usernamePlaceholder}
             autoComplete="username"
             value={username}
             disabled={disabled || loading}
@@ -54,11 +57,11 @@ export function PandaForm({
           />
           <br />
 
-          <label htmlFor="panda-password">Password:</label>
+          <label htmlFor="panda-password">{LOGIN_TEXT.password}:</label>
           <input
             id="panda-password"
             type="password"
-            placeholder="Password here..."
+            placeholder={LOGIN_TEXT.passwordPlaceholder}
             autoComplete="current-password"
             value={password}
             disabled={disabled || loading}
@@ -71,8 +74,29 @@ export function PandaForm({
           {error && <p className="lf-error">{error}</p>}
 
           <button type="submit" disabled={disabled || loading}>
-            {loading ? "…" : submitLabel}
+            {loading ? LOGIN_TEXT.signingIn : submitLabel}
           </button>
+
+          {/* Kayıt / parola bağlantıları */}
+          <div className="lf-links lf-links--panda">
+            <button
+              type="button"
+              className="lf-link"
+              disabled={disabled || loading}
+              onClick={() => onForgot?.(username.trim())}
+            >
+              {LOGIN_TEXT.forgot}
+            </button>
+            <span className="lf-links__sep">·</span>
+            <button
+              type="button"
+              className="lf-link"
+              disabled={disabled || loading}
+              onClick={() => onRegister?.()}
+            >
+              {LOGIN_TEXT.register}
+            </button>
+          </div>
         </form>
 
         {/* Panda — referanstaki yapı */}

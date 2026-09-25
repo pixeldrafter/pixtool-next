@@ -157,6 +157,22 @@ class NocoDBClient:
             response.raise_for_status()
             return response.json()
 
+    async def update_record(
+        self,
+        table: str,
+        record_id: str | int,
+        record: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Var olan kaydı günceller (PATCH)."""
+        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+            response = await client.patch(
+                self._url(f"/api/v2/tables/{table}/records"),
+                headers=self._headers,
+                json=[{"id": record_id, **record}],
+            )
+            response.raise_for_status()
+            return response.json()
+
     async def list_tables(self) -> list[dict[str, Any]]:
         """
         Yapılandırılmış base içindeki tabloları listeler.

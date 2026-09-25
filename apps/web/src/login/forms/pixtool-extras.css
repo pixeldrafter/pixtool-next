@@ -81,7 +81,74 @@
 }
 
 /* --------------------------------------------------------------------------
- *  4) YETİ — CSS tabanlı etkileşim
+ *  8) KAYIT / PAROLA BAĞLANTILARI (tüm formlarda ortak)
+ *
+ *  Formların kendi görsel dilini bozmadan, alt kısma ince bir bağlantı
+ *  satırı eklenir. Renk `currentColor`dan türetilir ki her tema uyum sağlasın.
+ * -------------------------------------------------------------------------- */
+.lf-links {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid currentColor;
+  border-top-color: color-mix(in srgb, currentColor 18%, transparent);
+  font-size: 12.5px;
+  flex-wrap: wrap;
+}
+
+.lf-links--panda,
+.lf-links--yeti {
+  margin-top: 14px;
+}
+
+.lf-link {
+  padding: 3px 2px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: inherit;
+  opacity: 0.95;
+  cursor: pointer;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: opacity 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.lf-link:hover:not(:disabled) {
+  opacity: 1;
+  border-bottom-color: currentColor;
+}
+
+.lf-link:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.lf-links__sep {
+  opacity: 0.42;
+}
+
+/* Lamba formunda bağlantı satırı koyu zeminde okunmalı */
+.lf--lamp .lf-links {
+  color: #f5e3c2;
+  font-weight: 600;
+}
+
+/* Panda formunda sarı zemin üstünde */
+.lf--panda .lf-links {
+  color: #4a3c00;
+  font-weight: 600;
+}
+
+/* Yeti formunda açık zeminde */
+.lf--yeti .lf-links {
+  color: #2d4a56;
+  font-weight: 600;
+}
  *
  *  Orijinal bunu GSAP + MorphSVGPlugin ile yapıyordu (ücretli eklenti).
  *  Burada kollar SVG dönüşümüyle kaldırılır ve gözler kapatılır.

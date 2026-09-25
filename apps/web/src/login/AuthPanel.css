@@ -1,0 +1,307 @@
+/* ==========================================================================
+ *  Kayıt / parola paneli — giriş formunun üstünde açılan katman
+ * ========================================================================== */
+
+.auth-panel-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 22px;
+  background: rgba(0, 0, 0, 0.62);
+  backdrop-filter: blur(6px);
+  animation: auth-panel-fade 220ms ease both;
+}
+
+@keyframes auth-panel-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.auth-panel {
+  width: 100%;
+  max-width: 420px;
+  max-height: 100%;
+  overflow-y: auto;
+  padding: 20px 22px 18px;
+  border: 1px solid var(--panel-border);
+  border-radius: 14px;
+  background: var(--panel-surface);
+  backdrop-filter: blur(18px);
+  box-shadow:
+    0 26px 70px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+  color: var(--panel-text);
+  animation: auth-panel-in 300ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes auth-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* --- Başlık --- */
+.auth-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.auth-panel__title {
+  margin: 0;
+  font-size: 16.5px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--panel-text);
+}
+
+.auth-panel__close {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--panel-border);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--panel-muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.auth-panel__close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--panel-text);
+}
+
+/* --- Form --- */
+.auth-panel__form {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+
+.auth-panel__intro {
+  margin: 0 0 2px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--panel-muted);
+}
+
+.auth-panel__field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--panel-muted);
+}
+
+.auth-panel__field input,
+.auth-panel__field textarea {
+  padding: 10px 12px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.28);
+  color: var(--panel-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: normal;
+  outline: none;
+  resize: vertical;
+  transition: border-color 0.16s, box-shadow 0.16s;
+}
+
+.auth-panel__field input::placeholder,
+.auth-panel__field textarea::placeholder {
+  color: var(--panel-muted);
+  opacity: 0.7;
+}
+
+.auth-panel__field input:focus,
+.auth-panel__field textarea:focus {
+  border-color: var(--panel-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--panel-accent) 22%, transparent);
+}
+
+.auth-panel__error {
+  margin: 0;
+  padding: 9px 11px;
+  border: 1px solid rgba(255, 90, 90, 0.4);
+  border-radius: 8px;
+  background: rgba(255, 80, 80, 0.12);
+  font-size: 12px;
+  color: #ff9a9a;
+}
+
+/* --- Düğmeler --- */
+.auth-panel__actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 3px;
+}
+
+.auth-panel__button {
+  flex: 1;
+  padding: 11px 16px;
+  border: 1px solid var(--panel-border);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--panel-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.16s, transform 0.08s, border-color 0.16s;
+}
+
+.auth-panel__button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.auth-panel__button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.auth-panel__button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.auth-panel__button.is-primary {
+  border-color: var(--panel-accent);
+  background: var(--panel-accent);
+  color: #05131f;
+}
+
+.auth-panel__button.is-primary:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.auth-panel__button.is-ghost {
+  flex: 0 0 auto;
+  background: transparent;
+  color: var(--panel-muted);
+}
+
+/* ==========================================================================
+ *  Durum ekranı (bekleme / onay / ret)
+ * ========================================================================== */
+
+.auth-panel__status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 4px 6px;
+  text-align: center;
+}
+
+.auth-panel__status-title {
+  margin: 0;
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--panel-text);
+}
+
+.auth-panel__status-hint {
+  margin: 0;
+  max-width: 320px;
+  font-size: 12px;
+  line-height: 1.65;
+  color: var(--panel-muted);
+}
+
+.auth-panel__icon {
+  font-size: 40px;
+  line-height: 1;
+}
+
+/* Dönen halka */
+.auth-panel__spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--panel-border);
+  border-top-color: var(--panel-accent);
+  border-radius: 50%;
+  animation: auth-panel-spin 900ms linear infinite;
+}
+
+@keyframes auth-panel-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Nabız noktaları */
+.auth-panel__pulse {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.auth-panel__pulse span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--panel-accent);
+  animation: auth-panel-pulse 1.3s ease-in-out infinite;
+}
+
+.auth-panel__pulse span:nth-child(2) {
+  animation-delay: 0.18s;
+}
+
+.auth-panel__pulse span:nth-child(3) {
+  animation-delay: 0.36s;
+}
+
+@keyframes auth-panel-pulse {
+  0%,
+  100% {
+    opacity: 0.28;
+    transform: scale(0.82);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.14);
+  }
+}
+
+/* Durum tonları */
+.auth-panel__status.is-ok .auth-panel__status-title {
+  color: #7ee787;
+}
+
+.auth-panel__status.is-danger .auth-panel__status-title {
+  color: #ff9a9a;
+}
+
+.auth-panel__status .auth-panel__button {
+  flex: 0 0 auto;
+  min-width: 150px;
+  margin-top: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-panel__spinner,
+  .auth-panel__pulse span {
+    animation: none;
+  }
+}

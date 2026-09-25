@@ -1,0 +1,142 @@
+/* ==========================================================================
+ *  Tanıtım videosu — giriş sonrası tam ekran katman
+ * ========================================================================== */
+
+.intro-video {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  display: flex;
+  flex-direction: column;
+  background: #05070c;
+  animation: intro-video-in 520ms ease both;
+}
+
+@keyframes intro-video-in {
+  from {
+    opacity: 0;
+    transform: scale(1.03);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.intro-video__player {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #05070c;
+}
+
+/* --- Üst marka şeridi --- */
+.intro-video__brand {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 22px 30px;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(5, 7, 12, 0.85), transparent);
+}
+
+.intro-video__logo {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  color: #eaf6ff;
+  text-shadow: 0 2px 18px rgba(76, 194, 255, 0.45);
+}
+
+.intro-video__tagline {
+  font-size: 11.5px;
+  letter-spacing: 0.06em;
+  color: rgba(190, 220, 245, 0.72);
+}
+
+/* --- Alt kontrol çubuğu --- */
+.intro-video__bar {
+  position: relative;
+  z-index: 2;
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 30px 24px;
+  background: linear-gradient(0deg, rgba(5, 7, 12, 0.9), transparent);
+}
+
+.intro-video__mute {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.07);
+  color: #dceaf7;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 0.16s, transform 0.12s;
+}
+
+.intro-video__mute:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.intro-video__mute:active {
+  transform: scale(0.93);
+}
+
+.intro-video__progress {
+  flex: 1;
+}
+
+.intro-video__hint {
+  font-size: 11.5px;
+  color: rgba(180, 205, 230, 0.6);
+}
+
+.intro-video__skip {
+  padding: 9px 18px;
+  border: 1px solid rgba(76, 194, 255, 0.45);
+  border-radius: 22px;
+  background: rgba(76, 194, 255, 0.14);
+  color: #d8f1ff;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: background 0.16s, border-color 0.16s;
+  animation: intro-skip-in 320ms ease both;
+}
+
+.intro-video__skip:hover {
+  background: rgba(76, 194, 255, 0.26);
+  border-color: rgba(76, 194, 255, 0.7);
+}
+
+@keyframes intro-skip-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* --- Video oynatılamadı --- */
+.intro-video--failed {
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  color: #cfdcea;
+  font-size: 13px;
+}

@@ -99,6 +99,10 @@ export interface LoginFormProps {
   disabled: boolean;
   /** Gönder düğmesi etiketi */
   submitLabel?: string;
+  /** "Yeni kullanıcı kaydı" tıklandı */
+  onRegister?: () => void;
+  /** "Parolamı unuttum" tıklandı — mevcut kullanıcı adı iletilir */
+  onForgot?: (username: string) => void;
 }
 
 // ----------------------------------------------------------------------

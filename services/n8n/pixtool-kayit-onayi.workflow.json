@@ -1,0 +1,125 @@
+{
+  "name": "PixTool Kayıt Onayı",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "nodes": [
+    {
+      "parameters": {
+        "updates": ["callback_query"]
+      },
+      "id": "px-telegram-tetik",
+      "name": "Telegram Buton",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [-620, 140],
+      "webhookId": "pixtool-karar",
+      "credentials": {
+        "telegramApi": {
+          "id": "REPLACE_TELEGRAM_CRED_ID",
+          "name": "PixTool Telegram"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// callback_data bicimi: px:<karar>:<talepKimligi>\n// Talep kimligi base64url oldugu icin ':' icermez.\nconst results = [];\n\nfor (const item of $input.all()) {\n  const cb = item.json && item.json.callback_query;\n  if (!cb) continue;\n\n  const raw = String(cb.data || '');\n  if (raw.indexOf('px:') !== 0) continue;\n\n  const parts = raw.split(':');\n  const decision = parts[1];\n  const requestId = parts.slice(2).join(':');\n\n  if (!requestId) continue;\n  if (decision !== 'approve' && decision !== 'reject') continue;\n\n  const who = (cb.from && cb.from.username)\n    ? ('telegram:@' + cb.from.username)\n    : ('telegram:' + ((cb.from && cb.from.id) || 'bilinmiyor'));\n\n  results.push({\n    json: {\n      requestId: requestId,\n      approve: decision === 'approve',\n      decidedBy: who,\n      callbackQueryId: cb.id,\n      chatId: cb.message && cb.message.chat ? cb.message.chat.id : null,\n      messageId: cb.message ? cb.message.message_id : null,\n      originalText: (cb.message && cb.message.text) || ''\n    }\n  });\n}\n\nreturn results;"
+      },
+      "id": "px-karar-cozumle",
+      "name": "Karari Cozumle",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-380, 140]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "REPLACE_API_CALLBACK_URL",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Pixtool-Secret",
+              "value": "REPLACE_WEBHOOK_SECRET"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ request_id: $json.requestId, approve: $json.approve, decided_by: $json.decidedBy }) }}",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "id": "px-api-bildir",
+      "name": "Panele Bildir",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-140, 140]
+    },
+    {
+      "parameters": {
+        "operation": "answerCallbackQuery",
+        "callbackQueryId": "={{ $('Karari Cozumle').item.json.callbackQueryId }}",
+        "additionalFields": {
+          "text": "={{ $('Karari Cozumle').item.json.approve ? 'Onaylandi' : 'Reddedildi' }}",
+          "show_alert": false
+        }
+      },
+      "id": "px-telegram-cevap",
+      "name": "Butona Cevap",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [120, 40],
+      "credentials": {
+        "telegramApi": {
+          "id": "REPLACE_TELEGRAM_CRED_ID",
+          "name": "PixTool Telegram"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "editMessageText",
+        "chatId": "={{ $('Karari Cozumle').item.json.chatId }}",
+        "messageId": "={{ $('Karari Cozumle').item.json.messageId }}",
+        "text": "={{ $('Karari Cozumle').item.json.originalText }}\n\n{{ $('Karari Cozumle').item.json.approve ? 'ONAYLANDI' : 'REDDEDILDI' }} — {{ $('Karari Cozumle').item.json.decidedBy }}",
+        "additionalFields": {}
+      },
+      "id": "px-telegram-guncelle",
+      "name": "Mesaji Guncelle",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [120, 260],
+      "credentials": {
+        "telegramApi": {
+          "id": "REPLACE_TELEGRAM_CRED_ID",
+          "name": "PixTool Telegram"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Telegram Buton": {
+      "main": [[{ "node": "Karari Cozumle", "type": "main", "index": 0 }]]
+    },
+    "Karari Cozumle": {
+      "main": [[{ "node": "Panele Bildir", "type": "main", "index": 0 }]]
+    },
+    "Panele Bildir": {
+      "main": [[{ "node": "Butona Cevap", "type": "main", "index": 0 }]]
+    },
+    "Butona Cevap": {
+      "main": [[{ "node": "Mesaji Guncelle", "type": "main", "index": 0 }]]
+    }
+  }
+}

@@ -17,11 +17,15 @@
 // ----------------------------------------------------------------------
 
 /** Uygulama açılış adımları. Sırası kullanıcı tarafından değiştirilebilir. */
-export type FlowStep = "login" | "console" | "boot" | "desktop";
+export type FlowStep = "login" | "intro" | "console" | "boot" | "desktop";
 
 export interface FlowSettings {
   /** Açılış adımlarının sırası. Tam ve eksiksiz olmalıdır. */
   order: FlowStep[];
+  /** Tanıtım videosu yolu (girişten sonra oynar) */
+  introVideo: string;
+  /** "Atla" düğmesi kaç saniye sonra görünsün */
+  introSkipAfterSeconds: number;
   /**
    * Konsol ayrıntı seviyesi — "her şeyi ekrana bas" anahtarı.
    *   off        → konsol atlanır, doğrudan boot edilir (kimseyi rahatsız etmez)
@@ -108,6 +112,12 @@ export interface LoginSettings {
    * önce ipi çekmen gerekir.
    */
   lampStartLit: boolean;
+  /** Üstteki kayan "hoş geldiniz" şeridi görünsün mü */
+  marqueeEnabled: boolean;
+  /** Şerit tur süresi (saniye) — küçük değer hızlı kaydırır */
+  marqueeSeconds: number;
+  /** Formun altındaki nabız animasyonlu telif hakkı görünsün mü */
+  copyrightEnabled: boolean;
   /** Kullanıcı adı alanı etiketi (formlar arası ortak) */
   usernameLabel: string;
   passwordLabel: string;

@@ -16,6 +16,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { LoginFormProps } from "../types";
+import { LOGIN_TEXT } from "../text";
 import { useSettingsStore } from "../../settings/store";
 import "./lamp.css";
 
@@ -28,7 +29,15 @@ const MAX_PULL = 60;
 /** Bu eşiğin üzerinde çekilirse lamba açılır/kapanır. */
 const PULL_THRESHOLD = 30;
 
-export function LampForm({ onSubmit, loading, error, disabled, submitLabel = "Sign In" }: LoginFormProps) {
+export function LampForm({
+  onSubmit,
+  loading,
+  error,
+  disabled,
+  submitLabel = LOGIN_TEXT.signIn,
+  onRegister,
+  onForgot,
+}: LoginFormProps) {
   // Ayardan: lamba açılışta yanık başlasın mı (form görünür olsun mu)
   const startLit = useSettingsStore((state) => state.settings.login.lampStartLit);
   const [isOn, setIsOn] = useState(startLit);
@@ -135,15 +144,15 @@ export function LampForm({ onSubmit, loading, error, disabled, submitLabel = "Si
         </div>
 
         <div className={`login-form${isOn ? " active" : ""}`}>
-          <h2>Welcome</h2>
+          <h2>{LOGIN_TEXT.welcome}</h2>
 
           <form onSubmit={submit}>
             <div className="form-group">
-              <label htmlFor="lamp-username">Username</label>
+              <label htmlFor="lamp-username">{LOGIN_TEXT.username}</label>
               <input
                 id="lamp-username"
                 type="text"
-                placeholder="Enter name"
+                placeholder={LOGIN_TEXT.usernamePlaceholder}
                 autoComplete="username"
                 value={username}
                 disabled={disabled || loading}
@@ -152,11 +161,11 @@ export function LampForm({ onSubmit, loading, error, disabled, submitLabel = "Si
             </div>
 
             <div className="form-group">
-              <label htmlFor="lamp-password">Password</label>
+              <label htmlFor="lamp-password">{LOGIN_TEXT.password}</label>
               <input
                 id="lamp-password"
                 type="password"
-                placeholder="Enter Password"
+                placeholder={LOGIN_TEXT.passwordPlaceholder}
                 autoComplete="current-password"
                 value={password}
                 disabled={disabled || loading}
@@ -167,8 +176,29 @@ export function LampForm({ onSubmit, loading, error, disabled, submitLabel = "Si
             {error && <p className="lf-error">{error}</p>}
 
             <button className="login-btn" type="submit" disabled={disabled || loading}>
-              {loading ? "Signing in…" : submitLabel}
+              {loading ? LOGIN_TEXT.signingIn : submitLabel}
             </button>
+
+            {/* Kayıt / parola bağlantıları */}
+            <div className="lf-links">
+              <button
+                type="button"
+                className="lf-link"
+                disabled={disabled || loading}
+                onClick={() => onForgot?.(username.trim())}
+              >
+                {LOGIN_TEXT.forgot}
+              </button>
+              <span className="lf-links__sep">·</span>
+              <button
+                type="button"
+                className="lf-link"
+                disabled={disabled || loading}
+                onClick={() => onRegister?.()}
+              >
+                {LOGIN_TEXT.register}
+              </button>
+            </div>
           </form>
         </div>
       </div>

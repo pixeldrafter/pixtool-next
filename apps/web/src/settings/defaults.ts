@@ -23,8 +23,10 @@ export const DEFAULT_SETTINGS: PixSettings = {
   },
 
   flow: {
-    // Onaylanan akış: Giriş → Konsol → Boot → Masaüstü
-    order: ["login", "console", "boot", "desktop"],
+    // Onaylanan akış: Giriş → Tanıtım videosu → Konsol → Boot → Masaüstü
+    order: ["login", "intro", "console", "boot", "desktop"],
+    introVideo: "/vendor/pixtool.mp4",
+    introSkipAfterSeconds: 2,
     // "her şeyi ekrana bas" — varsayılan açık
     consoleVerbosity: "everything",
     askSaveReport: true,
@@ -54,6 +56,9 @@ export const DEFAULT_SETTINGS: PixSettings = {
     form: "lamp", // varsayılan: Login Form Lamp
     // Lamba KAPALI başlar — kullanıcı ipi çekince ışık yanar ve form görünür.
     lampStartLit: false,
+    marqueeEnabled: true,
+    marqueeSeconds: 18,
+    copyrightEnabled: true,
     usernameLabel: "Kullanıcı adı",
     passwordLabel: "Parola",
     jokes: {

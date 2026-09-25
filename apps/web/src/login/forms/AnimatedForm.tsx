@@ -11,12 +11,13 @@
 import { useState } from "react";
 
 import type { LoginFormProps } from "../types";
+import { LOGIN_TEXT } from "../text";
 import "./animated.css";
 
 /** Referanstaki yüzen küre sayısı. */
 const BUBBLE_COUNT = 13;
 
-export function AnimatedForm({ onSubmit, loading, error, disabled, submitLabel = "Login" }: LoginFormProps) {
+export function AnimatedForm({ onSubmit, loading, error, disabled, submitLabel = LOGIN_TEXT.signIn, onRegister, onForgot }: LoginFormProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -30,19 +31,19 @@ export function AnimatedForm({ onSubmit, loading, error, disabled, submitLabel =
     <div className="lf--animated">
       <div className="container">
         <div className="login-box">
-          <h2>Login</h2>
+          <h2>{LOGIN_TEXT.welcome}</h2>
           <form onSubmit={submit}>
             <div className="input-box">
               <input
                 id="animated-email"
-                type="email"
+                type="text"
                 required
                 autoComplete="username"
                 value={email}
                 disabled={disabled || loading}
                 onChange={(event) => setEmail(event.target.value)}
               />
-              <label htmlFor="animated-email">Email</label>
+              <label htmlFor="animated-email">{LOGIN_TEXT.username}</label>
             </div>
 
             <div className="input-box">
@@ -55,24 +56,36 @@ export function AnimatedForm({ onSubmit, loading, error, disabled, submitLabel =
                 disabled={disabled || loading}
                 onChange={(event) => setPassword(event.target.value)}
               />
-              <label htmlFor="animated-password">Password</label>
+              <label htmlFor="animated-password">{LOGIN_TEXT.password}</label>
             </div>
 
             {error && <p className="lf-error">{error}</p>}
 
             <div className="forgot-password">
-              <a href="#forgot" onClick={(event) => event.preventDefault()}>
-                Forgot Password?
+              <a
+                href="#forgot"
+                onClick={(event) => {
+                  event.preventDefault();
+                  onForgot?.(email.trim());
+                }}
+              >
+                {LOGIN_TEXT.forgot}
               </a>
             </div>
 
             <button type="submit" className="btn" disabled={disabled || loading}>
-              {loading ? "…" : submitLabel}
+              {loading ? LOGIN_TEXT.signingIn : submitLabel}
             </button>
 
             <div className="signup-link">
-              <a href="#signup" onClick={(event) => event.preventDefault()}>
-                Signup
+              <a
+                href="#signup"
+                onClick={(event) => {
+                  event.preventDefault();
+                  onRegister?.();
+                }}
+              >
+                {LOGIN_TEXT.register}
               </a>
             </div>
           </form>

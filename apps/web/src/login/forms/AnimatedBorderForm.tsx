@@ -11,6 +11,7 @@
 import { useState } from "react";
 
 import type { LoginFormProps } from "../types";
+import { LOGIN_TEXT } from "../text";
 import "./animatedBorder.css";
 
 export function AnimatedBorderForm({
@@ -18,7 +19,9 @@ export function AnimatedBorderForm({
   loading,
   error,
   disabled,
-  submitLabel = "Sign in",
+  submitLabel = LOGIN_TEXT.signIn,
+  onRegister,
+  onForgot,
 }: LoginFormProps) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -36,14 +39,14 @@ export function AnimatedBorderForm({
           <div className="loginBx">
             <h2>
               <i className="fa-solid fa-right-to-bracket" aria-hidden="true" />
-              Login
+              {LOGIN_TEXT.welcome}
               <i className="fa-solid fa-heart" aria-hidden="true" />
             </h2>
 
             <form onSubmit={submit}>
               <input
                 type="text"
-                placeholder="Username"
+                placeholder={LOGIN_TEXT.username}
                 autoComplete="username"
                 value={username}
                 disabled={disabled || loading}
@@ -51,7 +54,7 @@ export function AnimatedBorderForm({
               />
               <input
                 type="password"
-                placeholder="Password"
+                placeholder={LOGIN_TEXT.password}
                 autoComplete="current-password"
                 value={password}
                 disabled={disabled || loading}
@@ -62,17 +65,29 @@ export function AnimatedBorderForm({
 
               <input
                 type="submit"
-                value={loading ? "…" : submitLabel}
+                value={loading ? LOGIN_TEXT.signingIn : submitLabel}
                 disabled={disabled || loading}
               />
             </form>
 
             <div className="group">
-              <a href="#forgot" onClick={(event) => event.preventDefault()}>
-                Forgot Password
+              <a
+                href="#forgot"
+                onClick={(event) => {
+                  event.preventDefault();
+                  onForgot?.(username.trim());
+                }}
+              >
+                {LOGIN_TEXT.forgot}
               </a>
-              <a href="#signup" onClick={(event) => event.preventDefault()}>
-                Sign up
+              <a
+                href="#signup"
+                onClick={(event) => {
+                  event.preventDefault();
+                  onRegister?.();
+                }}
+              >
+                {LOGIN_TEXT.register}
               </a>
             </div>
           </div>

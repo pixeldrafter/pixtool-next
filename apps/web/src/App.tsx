@@ -20,7 +20,7 @@ import { CursorLayer } from "./cursor";
 import { Desktop } from "./desktop/Desktop";
 import { IdleScreen, useIdle } from "./idle";
 import { describeError, fetchStatus, type StatusResponse } from "./lib/api";
-import { LoginScreen, OtpDemo, type LoginSession } from "./login";
+import { IntroVideo, LoginScreen, OtpDemo, type LoginSession } from "./login";
 import { PunishmentScreen } from "./login/PunishmentScreen";
 import { getLoginTheme } from "./login/themes";
 import { ToastLayer } from "./notifications";
@@ -178,6 +178,7 @@ export default function App() {
   useEffect(() => {
     const titles: Record<FlowStep, string> = {
       login: "PIXTOOL — Giriş",
+      intro: "PIXTOOL — Tanıtım",
       console: "PIXTOOL — Sistem Envanteri",
       boot: "PIXTOOL — System Boot",
       desktop: "PIXTOOL — Masaüstü",
@@ -205,6 +206,15 @@ export default function App() {
               setSession(granted);
               goNext();
             }}
+          />
+        );
+
+      case "intro":
+        return (
+          <IntroVideo
+            src={settings.flow.introVideo}
+            skipAfterSeconds={settings.flow.introSkipAfterSeconds}
+            onFinished={goNext}
           />
         );
 

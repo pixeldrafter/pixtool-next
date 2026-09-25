@@ -1,0 +1,275 @@
+{
+  "name": "PixTool Kayıt Onayı",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "pixtool-kayit",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "px-webhook-talebi",
+      "name": "Talep Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -620,
+        -220
+      ],
+      "webhookId": "pixtool-kayit"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.body.chatId || $json.chatId }}",
+        "text": "={{ $json.body.text || $json.text }}",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "✅ Onayla",
+                    "additionalFields": {
+                      "callback_data": "=px:approve:{{ $json.body.requestId || $json.requestId }}"
+                    }
+                  },
+                  {
+                    "text": "❌ Reddet",
+                    "additionalFields": {
+                      "callback_data": "=px:reject:{{ $json.body.requestId || $json.requestId }}"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {
+          "disable_web_page_preview": true
+        }
+      },
+      "id": "px-telegram-bildirim",
+      "name": "Telegram Bildirim",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -380,
+        -220
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "Q0qBV7L9xuCo8bdk",
+          "name": "PixTool Telegram"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: true, notified: true, requestId: $('Talep Webhook').item.json.body.requestId } }}",
+        "options": {}
+      },
+      "id": "px-webhook-yanit",
+      "name": "Yanıt",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -140,
+        -220
+      ]
+    },
+    {
+      "parameters": {
+        "updates": [
+          "callback_query"
+        ]
+      },
+      "id": "px-telegram-tetik",
+      "name": "Telegram Buton",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -620,
+        140
+      ],
+      "webhookId": "pixtool-karar",
+      "credentials": {
+        "telegramApi": {
+          "id": "Q0qBV7L9xuCo8bdk",
+          "name": "PixTool Telegram"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// callback_data biçimi: px:<karar>:<talepKimliği>\n// (talepKimliği base64url olduğu için ':' içermez)\nconst results = [];\n\nfor (const item of $input.all()) {\n  const cb = item.json?.callback_query;\n  if (!cb) continue;\n\n  const raw = String(cb.data || '');\n  if (!raw.startsWith('px:')) continue;\n\n  const parts = raw.split(':');\n  const decision = parts[1];\n  const requestId = parts.slice(2).join(':');\n\n  if (!requestId || (decision !== 'approve' && decision !== 'reject')) continue;\n\n  results.push({\n    json: {\n      requestId,\n      approve: decision === 'approve',\n      decidedBy: cb.from?.username\n        ? `telegram:@${cb.from.username}`\n        : `telegram:${cb.from?.id || 'bilinmiyor'}`,\n      callbackQueryId: cb.id,\n      chatId: cb.message?.chat?.id,\n      messageId: cb.message?.message_id,\n      originalText: cb.message?.text || '',\n      from: cb.from?.first_name || '',\n      chosen: decision === 'approve' ? 'ONAYLANDI' : 'REDDEDİLDİ'\n    }\n  });\n}\n\nreturn results;"
+      },
+      "id": "px-karar-cozumle",
+      "name": "Kararı Çözümle",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -380,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://pixtool.omercataloglu.com/api/v1/access/callback",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Pixtool-Secret",
+              "value": "95abf7a16ed5f34be367281e0d47da8a2a170f82c6a30c652d3da697d0bb39b6"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ request_id: $json.requestId, approve: $json.approve, decided_by: $json.decidedBy }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true,
+              "fullResponse": true
+            }
+          },
+          "timeout": 20000
+        }
+      },
+      "id": "px-api-bildir",
+      "name": "Panele Bildir",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -140,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "answerCallbackQuery",
+        "callbackQueryId": "={{ $('Kararı Çözümle').item.json.callbackQueryId }}",
+        "additionalFields": {
+          "text": "={{ $('Kararı Çözümle').item.json.approve ? 'Onaylandı' : 'Reddedildi' }}",
+          "show_alert": false
+        }
+      },
+      "id": "px-telegram-cevap",
+      "name": "Butona Cevap",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        100,
+        40
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "Q0qBV7L9xuCo8bdk",
+          "name": "PixTool Telegram"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "editMessageText",
+        "chatId": "={{ $('Kararı Çözümle').item.json.chatId }}",
+        "messageId": "={{ $('Kararı Çözümle').item.json.messageId }}",
+        "text": "={{ $('Kararı Çözümle').item.json.originalText }}\\n\\n{{ $('Kararı Çözümle').item.json.approve ? '✅ ONAYLANDI' : '❌ REDDEDİLDİ' }} — {{ $('Kararı Çözümle').item.json.decidedBy }}\\n{{ $json.body?.message || '' }}",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "px-telegram-guncelle",
+      "name": "Mesajı Güncelle",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        340,
+        140
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "Q0qBV7L9xuCo8bdk",
+          "name": "PixTool Telegram"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Talep Webhook": {
+      "main": [
+        [
+          {
+            "node": "Telegram Bildirim",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Bildirim": {
+      "main": [
+        [
+          {
+            "node": "Yanıt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Buton": {
+      "main": [
+        [
+          {
+            "node": "Kararı Çözümle",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Kararı Çözümle": {
+      "main": [
+        [
+          {
+            "node": "Panele Bildir",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Panele Bildir": {
+      "main": [
+        [
+          {
+            "node": "Butona Cevap",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Mesajı Güncelle",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  }
+}

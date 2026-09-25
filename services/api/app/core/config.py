@@ -98,6 +98,7 @@ class Settings(BaseSettings):
     # --- 5) n8n ---
     n8n_base_url: str = ""
     n8n_login_webhook: str = ""
+    n8n_register_webhook: str = ""
     n8n_webhook_secret: str = ""
 
     # --- 6) Telegram ---
