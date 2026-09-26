@@ -18,6 +18,7 @@ import json
 import logging
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 from fastapi import APIRouter, HTTPException, status
 
@@ -93,6 +94,56 @@ def _read_local(limit: int = 50) -> list[dict]:
     return records
 
 
+def _primary_ipv4(network: dict[str, Any]) -> str:
+    """Ag arayüzlerinden ilk yerel IPv4 adresini bulur."""
+    interfaces = network.get("interfaces") or []
+    if isinstance(interfaces, list):
+        for iface in interfaces:
+            if not isinstance(iface, dict):
+                continue
+            for addr in iface.get("addresses") or []:
+                if not isinstance(addr, dict):
+                    continue
+                address = str(addr.get("address") or "")
+                if addr.get("kind") == "ipv4" and address and not address.startswith("127."):
+                    return address
+    return str(network.get("external_ip") or "")
+
+
+def _nocodb_record(payload: DeviceReportRequest, device_id: str) -> dict[str, Any]:
+    """
+    Raporu NocoDB `Devices` tablosunun sütunlarına eşler.
+
+    Tablo sütunları: `Name, Host, Platform, LastSeen, Notes`. (Eskiden
+    `device_id/collected_at/...` adlarıyla yazılıyordu; tablo bunları
+    tanımadığı için kayıtlar boş kalıyordu.)
+    """
+    report = payload.report if isinstance(payload.report, dict) else {}
+    system = report.get("system") if isinstance(report.get("system"), dict) else {}
+    network = report.get("network") if isinstance(report.get("network"), dict) else {}
+
+    name = str(system.get("hostname") or system.get("fqdn") or device_id)
+    platform_parts = [str(system.get("platform") or ""), str(system.get("release") or "")]
+    platform_text = " ".join(part for part in platform_parts if part).strip()
+    host = _primary_ipv4(network)
+
+    collected = payload.collected_at or datetime.now(UTC).isoformat()
+    notes = json.dumps(
+        {"device_id": device_id, "user_agent": payload.user_agent, "report": report},
+        ensure_ascii=False,
+    )
+    if len(notes) > 20000:
+        notes = notes[:20000] + "…"
+
+    return {
+        "Name": name,
+        "Host": host,
+        "Platform": platform_text,
+        "LastSeen": collected,
+        "Notes": notes,
+    }
+
+
 @router.post("/report", response_model=DeviceReportResponse)
 async def save_report(payload: DeviceReportRequest) -> DeviceReportResponse:
     """
@@ -120,15 +171,7 @@ async def save_report(payload: DeviceReportRequest) -> DeviceReportResponse:
 
         try:
             client = NocoDBClient()
-            await client.insert_record(
-                table,
-                {
-                    "device_id": device_id,
-                    "collected_at": payload.collected_at or datetime.now(UTC).isoformat(),
-                    "user_agent": payload.user_agent or "",
-                    "report": json.dumps(payload.report, ensure_ascii=False),
-                },
-            )
+            await client.insert_record(table, _nocodb_record(payload, device_id))
         except Exception as exc:  # noqa: BLE001 — yerel yedeğe düşmek istiyoruz
             logger.warning("NocoDB kaydı başarısız, yerel dosyaya yazılıyor: %s", exc)
             _write_local(payload, device_id)

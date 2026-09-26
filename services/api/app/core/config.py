@@ -105,6 +105,8 @@ class Settings(BaseSettings):
     # --- 6) Telegram ---
     telegram_bot_token: str = ""
     telegram_chat_id: str = ""
+    # Telegram webhook doğrulama gizli anahtarı (setWebhook secret_token)
+    telegram_webhook_secret: str = ""
 
     # --- 7) Yerel köprü ---
     bridge_host: str = "127.0.0.1"

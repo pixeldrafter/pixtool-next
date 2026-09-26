@@ -48,6 +48,9 @@ export interface DesktopItem {
 /** Izgara adımı (px). */
 export const GRID_SIZE = 96;
 
+/** Izgaranın başlangıç ofseti (px) — tüm hizalama bu ofseti kullanır. */
+export const GRID_ORIGIN = 16;
+
 interface ItemsState {
   items: DesktopItem[];
   /** Sürükleme ızgaraya hizalansın mı */
@@ -92,7 +95,13 @@ function makeId(): string {
 
 /** Bir konumu ızgaraya hizalar. */
 export function snap(value: number, enabled: boolean): number {
-  return enabled ? Math.round(value / GRID_SIZE) * GRID_SIZE : Math.round(value);
+  if (!enabled) return Math.round(value);
+  return Math.round((value - GRID_ORIGIN) / GRID_SIZE) * GRID_SIZE + GRID_ORIGIN;
+}
+
+/** Konumun ızgara hücre indeksleri (ofsetten bağımsız karşılaştırma için). */
+function cellOf(value: number): number {
+  return Math.round((value - GRID_ORIGIN) / GRID_SIZE);
 }
 
 /**
@@ -102,16 +111,17 @@ export function snap(value: number, enabled: boolean): number {
  * masaüstü davranışı.
  */
 function nextFreeSpot(items: DesktopItem[], viewportHeight = 800): { x: number; y: number } {
-  const occupied = new Set(items.map((item) => `${item.x},${item.y}`));
-  const startX = 16;
-  const startY = 16;
+  // Hücre indeksleriyle karşılaştır — ofset/snap farkından etkilenmez.
+  const occupied = new Set(items.map((item) => `${cellOf(item.x)},${cellOf(item.y)}`));
+  const startX = GRID_ORIGIN;
+  const startY = GRID_ORIGIN;
   const perColumn = Math.max(1, Math.floor((viewportHeight - 120) / GRID_SIZE));
 
   for (let column = 0; column < 30; column += 1) {
     for (let row = 0; row < perColumn; row += 1) {
       const x = startX + column * GRID_SIZE;
       const y = startY + row * GRID_SIZE;
-      if (!occupied.has(`${x},${y}`)) return { x, y };
+      if (!occupied.has(`${column},${row}`)) return { x, y };
     }
   }
   return { x: startX, y: startY };
@@ -136,8 +146,8 @@ function nearestFree(
   aligned: boolean,
 ): { x: number; y: number } {
   const step = GRID_SIZE;
-  const baseX = aligned ? Math.round(x / step) * step : Math.round(x);
-  const baseY = aligned ? Math.round(y / step) * step : Math.round(y);
+  const baseX = aligned ? snap(x, true) : Math.round(x);
+  const baseY = aligned ? snap(y, true) : Math.round(y);
   const maxX = Math.max(0, window.innerWidth - GRID_SIZE);
   const maxY = Math.max(0, window.innerHeight - GRID_SIZE - 46);
   const clamp = (value: number, max: number): number => Math.max(0, Math.min(value, max));

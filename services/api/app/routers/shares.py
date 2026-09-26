@@ -19,7 +19,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
 from app.core.deps import require_user
-from app.services import access_service
+from app.services import permissions_service
 
 logger = logging.getLogger("pixtool.shares")
 
@@ -41,14 +41,14 @@ class ShareCreatePayload(BaseModel):
 @router.get("")
 async def list_shares(username: str = Depends(require_user)) -> dict[str, Any]:
     """Bana yapılan paylaşımlar."""
-    shares = await access_service.list_shares(username)
+    shares = await permissions_service.list_shares(username)
     return {"ok": True, "count": len(shares), "shares": shares}
 
 
 @router.get("/recipients")
 async def list_recipients(username: str = Depends(require_user)) -> dict[str, Any]:
     """Paylaşım yapılabilecek kullanıcı adları (kendisi hariç)."""
-    users = await access_service.list_users()
+    users = await permissions_service.list_users()
     names = [str(user["username"]) for user in users if str(user["username"]) != username]
     return {"ok": True, "count": len(names), "users": sorted(names)}
 
@@ -64,7 +64,7 @@ async def create_share(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Geçersiz alıcı.")
 
     # Alıcı gerçekten var mı?
-    if not await access_service.get_user(target):
+    if not await permissions_service.get_user(target):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"'{target}' kullanıcısı bulunamadı.",
@@ -79,7 +79,7 @@ async def create_share(
         body["note"] = payload.note
 
     try:
-        share = await access_service.create_share(
+        share = await permissions_service.create_share(
             sender=username,
             to=target,
             kind=payload.kind,
@@ -101,7 +101,7 @@ async def create_share(
 async def delete_share(share_id: str, username: str = Depends(require_user)) -> dict[str, Any]:
     """Paylaşımı kaldırır (yalnızca alıcı)."""
     try:
-        await access_service.delete_share(username, share_id)
+        await permissions_service.delete_share(username, share_id)
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,

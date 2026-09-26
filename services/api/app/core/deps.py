@@ -10,7 +10,7 @@ from __future__ import annotations
 from fastapi import Depends, Header, HTTPException, status
 
 from app.core.security import verify_token
-from app.services import access_service
+from app.services import permissions_service
 
 
 async def require_user(authorization: str | None = Header(default=None)) -> str:
@@ -31,7 +31,7 @@ async def require_user(authorization: str | None = Header(default=None)) -> str:
 
 async def require_admin(username: str = Depends(require_user)) -> str:
     """Yalnızca yönetici rolündeki kullanıcıya izin verir."""
-    if not await access_service.is_admin(username):
+    if not await permissions_service.is_admin(username):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Bu işlem için yönetici yetkisi gerekli.",

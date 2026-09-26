@@ -16,7 +16,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
 from app.core.deps import require_admin, require_user
-from app.services import access_service
+from app.services import permissions_service
 
 logger = logging.getLogger("pixtool.admin")
 
@@ -36,23 +36,23 @@ class UserUpdatePayload(BaseModel):
 @router.get("/me")
 async def me(username: str = Depends(require_user)) -> dict[str, Any]:
     """Kendi rolü ve etkin izinleri."""
-    permissions = await access_service.get_permissions(username)
+    permissions = await permissions_service.get_permissions(username)
     return {"ok": True, "username": username, **permissions}
 
 
 @router.get("/users")
 async def users(_admin: str = Depends(require_admin)) -> dict[str, Any]:
     """Tüm uygulama kullanıcıları + izinleri."""
-    listed = await access_service.list_users()
+    listed = await permissions_service.list_users()
     enriched: list[dict[str, Any]] = []
     for user in listed:
-        permissions = await access_service.get_permissions(str(user["username"]))
+        permissions = await permissions_service.get_permissions(str(user["username"]))
         enriched.append({**user, "permissions": permissions})
     return {
         "ok": True,
         "count": len(enriched),
         "users": enriched,
-        "allApps": access_service.ALL_APPS,
+        "allApps": permissions_service.ALL_APPS,
     }
 
 
@@ -81,7 +81,7 @@ async def update_user(
         )
 
     try:
-        await access_service.update_user(record_id, patch)
+        await permissions_service.update_user(record_id, patch)
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
@@ -98,13 +98,13 @@ async def set_permissions(
     _admin: str = Depends(require_admin),
 ) -> dict[str, Any]:
     """Kullanıcının erişebileceği uygulamaları ayarlar."""
-    if await access_service.is_admin(username):
+    if await permissions_service.is_admin(username):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Yönetici kullanıcının izinleri kısıtlanamaz.",
         )
     try:
-        result = await access_service.set_permissions(username, payload.apps)
+        result = await permissions_service.set_permissions(username, payload.apps)
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,

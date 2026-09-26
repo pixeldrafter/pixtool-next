@@ -225,6 +225,72 @@ fn generate_token() -> String {
     out
 }
 
+/// Port boş mu? (kısa süreliğine bağlanıp bırakır)
+fn port_is_free(port: u16) -> bool {
+    std::net::TcpListener::bind(("127.0.0.1", port)).is_ok()
+}
+
+///
+/// Köprü için port seçer.
+///
+/// Tercih edilen port boşsa onu kullanır; dolu ise (ör. önceki bir oturumdan
+/// kalan eski köprü) işletim sisteminin verdiği boş bir portu seçer. Böylece
+/// eski bir köprünün yanlış token'ıyla karışma (401) önlenir.
+fn pick_bridge_port(preferred: u16) -> u16 {
+    if port_is_free(preferred) {
+        return preferred;
+    }
+    std::net::TcpListener::bind(("127.0.0.1", 0))
+        .and_then(|listener| listener.local_addr())
+        .map(|addr| addr.port())
+        .unwrap_or(preferred)
+}
+
+///
+/// Köprünün gerçekten ayakta ve **verilen token'la** erişilebilir olduğunu
+/// doğrular (kısa aralıklarla yeniden dener).
+///
+/// Yanıt 401 ise portu tutan başka bir köprü vardır → çağıran taraf süreci
+/// sonlandırır.
+fn bridge_reachable_with_token(port: u16, token: &str) -> bool {
+    let client = match reqwest::blocking::Client::builder()
+        .timeout(Duration::from_secs(2))
+        .build()
+    {
+        Ok(client) => client,
+        Err(_) => return false,
+    };
+    let url = format!("http://127.0.0.1:{port}/info?parts=system");
+    for _ in 0..20 {
+        if let Ok(response) = client.get(&url).header("X-Pixtool-Token", token).send() {
+            if response.status().is_success() {
+                return true;
+            }
+        }
+        std::thread::sleep(Duration::from_millis(300));
+    }
+    false
+}
+
+///
+/// Köprü süreçlerini işletim sistemi düzeyinde sonlandırır.
+///
+/// PyInstaller tek-dosya köprüsü bir **bootloader** başlatır; bootloader'ı
+/// öldürmek arkadaki asıl köprü sürecini öldürmeyebilir. Güncelleme sırasında
+/// dosya kilidi ve eski token sorununu önlemek için Windows'ta isimle
+/// sonlandırma yapılır (tek-örnek koruması olduğu için güvenlidir).
+fn kill_bridge_processes() {
+    #[cfg(target_os = "windows")]
+    {
+        use std::process::{Command, Stdio};
+        let _ = Command::new("taskkill")
+            .args(["/IM", "pixtool-bridge.exe", "/F"])
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status();
+    }
+}
+
 /// Köprüyü başlatır (sidecar → yoksa Python).
 #[tauri::command]
 fn bridge_start(
@@ -236,7 +302,8 @@ fn bridge_start(
         port: None,
         token: None,
     });
-    let port = args.port.unwrap_or(8765);
+    let preferred = args.port.unwrap_or(8765);
+    let port = pick_bridge_port(preferred);
     let token = args.token.unwrap_or_else(generate_token);
 
     let mut inner = match state.inner.lock() {
@@ -337,6 +404,22 @@ fn bridge_start(
             inner.port = port;
             inner.token = Some(token.clone());
 
+            // Doğrula: köprü gerçekten ayakta ve bu token'ı kabul ediyor mu?
+            // (Eski bir köprü portu tutuyorsa yanlış token'la 401 alınırdı.)
+            if !bridge_reachable_with_token(port, &token) {
+                if let Some(child) = inner.child.take() {
+                    let _ = child.kill();
+                }
+                inner.token = None;
+                return BridgeStatus {
+                    running: false,
+                    port,
+                    url: format!("http://127.0.0.1:{port}"),
+                    token: None,
+                    error: Some("Köprü başlatıldı ama yanıt vermedi (port/token).".into()),
+                };
+            }
+
             BridgeStatus {
                 running: true,
                 port,
@@ -366,6 +449,7 @@ fn bridge_stop(state: State<'_, BridgeState>) -> BridgeStatus {
     if let Some(child) = inner.child.take() {
         let _ = child.kill();
     }
+    kill_bridge_processes();
     inner.token = None;
 
     BridgeStatus {
@@ -499,6 +583,7 @@ pub fn run() {
                 if let Some(child) = child {
                     let _ = child.kill();
                 }
+                kill_bridge_processes();
             }
         });
 }

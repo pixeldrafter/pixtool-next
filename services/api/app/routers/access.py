@@ -23,6 +23,7 @@ import logging
 import secrets
 import string
 
+import httpx
 from fastapi import APIRouter, Header, HTTPException, status
 
 from app.core.config import settings
@@ -248,6 +249,15 @@ async def decision_callback(
             detail="Talep bulunamadı.",
         )
 
+    return await _decide(request, payload.approve, payload.decided_by)
+
+
+async def _decide(
+    request: access_service.AccessRequest,
+    approve: bool,
+    decided_by: str,
+) -> AccessDecisionResponse:
+    """Talebe karar uygular (onay/red) — HTTP callback ve Telegram webhook ortak."""
     if request.status != "pending":
         return AccessDecisionResponse(
             ok=True,
@@ -262,11 +272,11 @@ async def decision_callback(
         return AccessDecisionResponse(ok=True, status="expired", message="Talebin süresi dolmuş.")
 
     # --- Red ---
-    if not payload.approve:
+    if not approve:
         updated = access_service.mark_decision(
             request.id,
             approved=False,
-            decided_by=payload.decided_by,
+            decided_by=decided_by,
             message="Yönetici reddetti.",
         )
         return AccessDecisionResponse(
@@ -287,14 +297,14 @@ async def decision_callback(
 
     if not ok:
         access_service.mark_decision(
-            request.id, approved=False, decided_by=payload.decided_by, message=message
+            request.id, approved=False, decided_by=decided_by, message=message
         )
         return AccessDecisionResponse(ok=False, status="failed", message=message)
 
     updated = access_service.mark_decision(
         request.id,
         approved=True,
-        decided_by=payload.decided_by,
+        decided_by=decided_by,
         message=message,
         issued_password=temporary_password,
     )
@@ -307,6 +317,134 @@ async def decision_callback(
         status=updated.status if updated else "approved",
         message=message,
     )
+
+
+# ----------------------------------------------------------------------
+#  Telegram webhook (buton kararları — n8n olmadan)
+# ----------------------------------------------------------------------
+
+
+def _telegram_api(method: str) -> str:
+    return f"https://api.telegram.org/bot{settings.telegram_bot_token}/{method}"
+
+
+async def _telegram_answer(callback_query_id: str | None, text: str) -> None:
+    """Butona basıldığında Telegram'daki yükleniyor göstergesini kapatır."""
+    if not callback_query_id or not settings.telegram_bot_token:
+        return
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            await client.post(
+                _telegram_api("answerCallbackQuery"),
+                json={"callback_query_id": callback_query_id, "text": text[:180]},
+            )
+    except Exception:  # noqa: BLE001
+        logger.warning("answerCallbackQuery gönderilemedi")
+
+
+async def _telegram_edit(callback_query: dict, text: str) -> None:
+    """Orijinal mesajı sonuçla günceller ve butonları kaldırır."""
+    message = callback_query.get("message") or {}
+    chat_id = (message.get("chat") or {}).get("id")
+    message_id = message.get("message_id")
+    if chat_id is None or message_id is None or not settings.telegram_bot_token:
+        return
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            await client.post(
+                _telegram_api("editMessageText"),
+                json={
+                    "chat_id": chat_id,
+                    "message_id": message_id,
+                    "text": text[:3500],
+                    "reply_markup": {"inline_keyboard": []},
+                },
+            )
+    except Exception:  # noqa: BLE001
+        logger.warning("editMessageText gönderilemedi")
+
+
+@router.post("/telegram-webhook")
+async def telegram_webhook(
+    update: dict,
+    x_telegram_bot_api_secret_token: str | None = Header(default=None),
+) -> dict:
+    """
+    Telegram bot webhook'u — satır içi buton (Onayla/Reddet) kararlarını işler.
+
+    NocoDB/n8n gerektirmez. Bot webhook'u bu adrese ayarlanmalıdır
+    (`setWebhook`). `TELEGRAM_WEBHOOK_SECRET` tanımlıysa gizli başlık doğrulanır.
+    """
+    if settings.telegram_webhook_secret and (
+        not x_telegram_bot_api_secret_token
+        or not secrets.compare_digest(
+            x_telegram_bot_api_secret_token, settings.telegram_webhook_secret
+        )
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Geçersiz Telegram webhook imzası.",
+        )
+
+    callback_query = update.get("callback_query")
+    if not callback_query:
+        return {"ok": True}
+
+    data = str(callback_query.get("data") or "")
+    parts = data.split(":")
+    if len(parts) != 4 or parts[0] != "px":
+        return {"ok": True}
+
+    _, kind, action, request_id = parts
+    request = access_service.get_request(request_id)
+    if not request:
+        await _telegram_answer(callback_query.get("id"), "Talep bulunamadı.")
+        return {"ok": True}
+
+    result = await _decide(request, action == "approve", decided_by="telegram")
+
+    label = "✅ ONAYLANDI" if action == "approve" and result.ok else "❌ REDDEDİLDİ"
+    decided_by = callback_query.get("from") or {}
+    who = decided_by.get("username") or decided_by.get("first_name") or "yönetici"
+    summary = (
+        f"{label}\n\n"
+        f"👤 {request.username}  ({kind})\n"
+        f"{result.message}\n"
+        f"👮 Karar: {who}"
+    )
+    await _telegram_answer(callback_query.get("id"), result.message)
+    await _telegram_edit(callback_query, summary)
+
+    return {"ok": True}
+
+
+@router.post("/telegram-webhook/register")
+async def telegram_webhook_register() -> dict:
+    """Bot webhook'unu bu API'ye ayarlar (kurulumda bir kez çağrılır)."""
+    if not settings.telegram_bot_token:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="TELEGRAM_BOT_TOKEN tanımlı değil.",
+        )
+    base = (settings.web_base_url or settings.api_base_url or "").rstrip("/")
+    if not base:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="WEB_BASE_URL/API_BASE_URL tanımlı değil.",
+        )
+    url = f"{base}/api/v1/access/telegram-webhook"
+    body: dict[str, object] = {"url": url, "allowed_updates": ["callback_query"]}
+    if settings.telegram_webhook_secret:
+        body["secret_token"] = settings.telegram_webhook_secret
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            response = await client.post(_telegram_api("setWebhook"), json=body)
+        return {"ok": response.is_success, "url": url, "telegram": response.json()}
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"setWebhook başarısız: {exc}",
+        ) from exc
 
 
 # ----------------------------------------------------------------------
