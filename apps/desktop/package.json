@@ -1,6 +1,6 @@
 {
   "name": "@pixtool/desktop",
-  "version": "1.2.6",
+  "version": "1.2.7",
   "private": true,
   "description": "Pixtool Next — masaüstü kabuğu (Tauri 2)",
   "type": "module",

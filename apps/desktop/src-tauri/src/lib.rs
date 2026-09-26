@@ -382,11 +382,11 @@ fn bridge_start(
 
     // 1) Sidecar (paketlenmiş köprü)
     let sidecar = app.shell().sidecar("pixtool-bridge").map(|command| {
-        command.args([
+        // Token'ı komut satırı yerine **ortam değişkeni** ile ver: aynı makinedeki
+        // başka süreçler `Win32_Process.CommandLine`'dan okuyamasın.
+        command.env("PIXTOOL_BRIDGE_TOKEN", token.clone()).args([
             "--port",
             &port.to_string(),
-            "--token",
-            &token,
             "--parent-pid",
             &parent_pid,
         ])
@@ -407,12 +407,11 @@ fn bridge_start(
                 Some(path) => app
                     .shell()
                     .command("python")
+                    .env("PIXTOOL_BRIDGE_TOKEN", token.clone())
                     .args([
                         path.to_string_lossy().to_string(),
                         "--port".into(),
                         port.to_string(),
-                        "--token".into(),
-                        token.clone(),
                         "--parent-pid".into(),
                         parent_pid.clone(),
                     ])

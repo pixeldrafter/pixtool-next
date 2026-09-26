@@ -1,6 +1,6 @@
 [package]
 name = "pixtool-desktop"
-version = "1.2.6"
+version = "1.2.7"
 description = "Pixtool Next masaüstü kabuğu"
 authors = ["Pixtool"]
 edition = "2021"
