@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-reload-ui"
+description = "Enables the reload_ui command without any pre-configured scope."
+commands.allow = ["reload_ui"]
+
+[[permission]]
+identifier = "deny-reload-ui"
+description = "Denies the reload_ui command without any pre-configured scope."
+commands.deny = ["reload_ui"]

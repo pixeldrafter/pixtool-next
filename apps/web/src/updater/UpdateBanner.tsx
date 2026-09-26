@@ -82,7 +82,7 @@ type TauriGlobal = {
 type Phase = "idle" | "checking" | "available" | "downloading" | "installing" | "done" | "error";
 
 /** Yerel uygulama sürümü (gömülü — Tauri'de komuttan okunur) */
-const LOCAL_SHELL_VERSION = "1.2.5";
+const LOCAL_SHELL_VERSION = "1.2.6";
 
 /** Sürüm karşılaştırması: `a > b` mi? */
 function isNewer(a: string, b: string): boolean {
