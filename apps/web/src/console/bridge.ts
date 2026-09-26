@@ -111,9 +111,23 @@ export async function bridgeFromTauri(): Promise<{
     const tauri = (window as unknown as { __TAURI__?: TauriGlobal }).__TAURI__;
     const invoke = tauri?.core?.invoke ?? tauri?.invoke;
     if (!invoke) return null;
-    const status = await invoke<{ running: boolean; url: string; token: string | null }>(
+
+    let status = await invoke<{ running: boolean; url: string; token: string | null }>(
       "bridge_status",
     );
+
+    // Köprü kapalıysa kabuktan başlatmasını iste (idempotent) ve tekrar sor.
+    // Böylece açılışta zamanlama yarışı olsa bile arayüz kendini onarır.
+    if (!status?.running) {
+      try {
+        status = await invoke<{ running: boolean; url: string; token: string | null }>(
+          "bridge_start",
+        );
+      } catch {
+        /* başlatılamadı — aşağıdaki status döner */
+      }
+    }
+
     return status ?? null;
   } catch {
     return null;

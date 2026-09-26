@@ -254,14 +254,16 @@ fn pick_bridge_port(preferred: u16) -> u16 {
 /// sonlandırır.
 fn bridge_reachable_with_token(port: u16, token: &str) -> bool {
     let client = match reqwest::blocking::Client::builder()
-        .timeout(Duration::from_secs(2))
+        .timeout(Duration::from_secs(1))
         .build()
     {
         Ok(client) => client,
         Err(_) => return false,
     };
-    let url = format!("http://127.0.0.1:{port}/info?parts=system");
-    for _ in 0..20 {
+    // Hafif ve korumalı uç: `/ping` anında yanıt verir. (`/info` toplaması
+    // yavaş olabildigi için doğrulamada kullanılmaz.)
+    let url = format!("http://127.0.0.1:{port}/ping");
+    for _ in 0..25 {
         if let Ok(response) = client.get(&url).header("X-Pixtool-Token", token).send() {
             if response.status().is_success() {
                 return true;
@@ -306,20 +308,21 @@ fn bridge_start(
     let port = pick_bridge_port(preferred);
     let token = args.token.unwrap_or_else(generate_token);
 
-    let mut inner = match state.inner.lock() {
-        Ok(guard) => guard,
-        Err(poisoned) => poisoned.into_inner(),
-    };
-
-    // Zaten çalışıyorsa mevcut bilgiyi döndür
-    if inner.child.is_some() {
-        return BridgeStatus {
-            running: true,
-            port: inner.port,
-            url: format!("http://127.0.0.1:{}", inner.port),
-            token: inner.token.clone(),
-            error: None,
+    {
+        let inner = match state.inner.lock() {
+            Ok(guard) => guard,
+            Err(poisoned) => poisoned.into_inner(),
         };
+        // Zaten çalışıyorsa mevcut bilgiyi döndür
+        if inner.child.is_some() {
+            return BridgeStatus {
+                running: true,
+                port: inner.port,
+                url: format!("http://127.0.0.1:{}", inner.port),
+                token: inner.token.clone(),
+                error: None,
+            };
+        }
     }
 
     // Ebeveyn bekçisi için kendi PID'imizi gönderiyoruz: uygulama kapanınca
@@ -400,16 +403,25 @@ fn bridge_start(
                 }
             });
 
-            inner.child = Some(child);
-            inner.port = port;
-            inner.token = Some(token.clone());
+            {
+                let mut inner = match state.inner.lock() {
+                    Ok(guard) => guard,
+                    Err(poisoned) => poisoned.into_inner(),
+                };
+                inner.child = Some(child);
+                inner.port = port;
+                inner.token = Some(token.clone());
+            }
 
-            // Doğrula: köprü gerçekten ayakta ve bu token'ı kabul ediyor mu?
-            // (Eski bir köprü portu tutuyorsa yanlış token'la 401 alınırdı.)
+            // Doğrula: köprü ayakta mı ve bu token'ı kabul ediyor mu?
+            // Kilit TUTULMAZ — web bu sırada `bridge_status` alabilir.
             if !bridge_reachable_with_token(port, &token) {
-                if let Some(child) = inner.child.take() {
-                    let _ = child.kill();
-                }
+                kill_bridge_processes();
+                let mut inner = match state.inner.lock() {
+                    Ok(guard) => guard,
+                    Err(poisoned) => poisoned.into_inner(),
+                };
+                inner.child = None;
                 inner.token = None;
                 return BridgeStatus {
                     running: false,

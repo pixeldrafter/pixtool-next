@@ -2171,6 +2171,15 @@ class BridgeHandler(BaseHTTPRequestHandler):
             )
             return
 
+        # Hafif, korumalı canlılık ucu — kabuk köprüyü bununla doğrular.
+        # (`/info` toplaması yavaş olabilir; doğrulama için kullanılmaz.)
+        if path == "/ping":
+            if not self._authorized():
+                self._send(401, {"ok": False, "error": "Yetkisiz — X-Pixtool-Token gerekli."})
+                return
+            self._send(200, {"ok": True, "service": "pixtool-bridge", "version": VERSION})
+            return
+
         if path == "/info":
             if not self._authorized():
                 self._send(401, {"ok": False, "error": "Yetkisiz — X-Pixtool-Token gerekli."})

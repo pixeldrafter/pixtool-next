@@ -41,7 +41,7 @@ logger = logging.getLogger("pixtool.version")
 router = APIRouter(prefix="/api/v1/app", tags=["uygulama"])
 
 #: Arayüzün gömülü sürümü (build sırasında güncellenir)
-UI_VERSION = "1.2.3"
+UI_VERSION = "1.2.4"
 
 #: Sürüm dosyalarının bulunduğu dizin
 RELEASES_DIR = Path(__file__).resolve().parent.parent.parent.parent / "releases"
