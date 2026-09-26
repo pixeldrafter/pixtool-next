@@ -134,16 +134,15 @@ async function runRemote(command: string, options: RunOptions): Promise<RunResul
  * Yerel makinede (köprü üzerinden) komut çalıştırır.
  */
 async function runLocal(command: string, options: RunOptions): Promise<RunResult> {
-  // Köprü adresi + token: Tauri kabuğundan veya ayarlardan
+  // Köprü adresi + token: **kabuk öncelikli**. Ayarlardaki token eski/bayat
+  // olabileceği için çalışan kabuk köprüsünün token'ı her zaman kazanır.
   let url = (options.bridgeUrl || DEFAULT_BRIDGE_URL).replace(/\/+$/, "");
   let token = options.bridgeToken ?? "";
 
-  if (!token) {
-    const shell = await bridgeFromTauri();
-    if (shell?.running && shell.token) {
-      url = shell.url.replace(/\/+$/, "");
-      token = shell.token;
-    }
+  const shell = await bridgeFromTauri();
+  if (shell?.running && shell.token) {
+    url = shell.url.replace(/\/+$/, "");
+    token = shell.token;
   }
 
   const headers: Record<string, string> = { "Content-Type": "application/json", "X-Pixtool-Client": "web" };

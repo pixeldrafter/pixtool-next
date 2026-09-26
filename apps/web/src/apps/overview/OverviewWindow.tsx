@@ -32,6 +32,7 @@ import {
   type BridgeInfo,
 } from "../../lib/bridgeInfo";
 import { runCommand } from "../../lib/runTarget";
+import { useBridgeFsOptions } from "../../lib/useBridgeFsOptions";
 import { useSettings } from "../../settings";
 import "../apps.css";
 import "./overview-window.css";
@@ -44,6 +45,8 @@ function clampPercent(value: number | null | undefined): number | null {
 
 export function OverviewWindow() {
   const { settings } = useSettings();
+  // Köprü adresi + token: kabuk köprüsü öncelikli (ayarlardaki token bayat olabilir)
+  const bridgeOptions = useBridgeFsOptions();
 
   const [status, setStatus] = useState<StatusResponse | null>(null);
   const [remoteStatus, setRemoteStatus] = useState<RemoteStatus | null>(null);
@@ -80,8 +83,8 @@ export function OverviewWindow() {
 
     // --- Yerel köprü (paralel, kritik degil) ---
     const bridgePromise = fetchBridgeInfo(["system", "cpu", "memory", "disks", "network", "gpu", "processes", "services"], {
-      baseUrl: settings.bridge.url,
-      token: settings.bridge.token || undefined,
+      baseUrl: bridgeOptions.baseUrl,
+      token: bridgeOptions.token,
     })
       .then((info) => {
         setBridge(info);
@@ -136,7 +139,7 @@ export function OverviewWindow() {
 
     await Promise.all([bridgePromise, remotePromise]);
     setLoading(false);
-  }, [settings.bridge.url, settings.bridge.token]);
+  }, [bridgeOptions.baseUrl, bridgeOptions.token]);
 
   useEffect(() => {
     void load();
