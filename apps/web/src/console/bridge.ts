@@ -100,38 +100,62 @@ export function isTauriShell(): boolean {
   return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 }
 
+/** Kabuk tarafından sayfaya enjekte edilen köprü kimliklerini okur. */
+function readInjectedBridge(): { url: string; token: string } | null {
+  if (typeof window === "undefined") return null;
+  const injected = (
+    window as unknown as { __PIXTOOL_BRIDGE__?: { url?: string; token?: string } }
+  ).__PIXTOOL_BRIDGE__;
+  if (injected?.url && injected.token) return { url: injected.url, token: injected.token };
+  return null;
+}
+
 /** Tauri'den köprü durumunu okur (kabuk köprüyü kendi başlatır). */
 export async function bridgeFromTauri(): Promise<{
   running: boolean;
   url: string;
   token: string | null;
 } | null> {
-  if (!isTauriShell()) return null;
-  try {
-    const tauri = (window as unknown as { __TAURI__?: TauriGlobal }).__TAURI__;
-    const invoke = tauri?.core?.invoke ?? tauri?.invoke;
-    if (!invoke) return null;
+  const shellPresent =
+    typeof window !== "undefined" &&
+    ("__TAURI_INTERNALS__" in window || "__TAURI__" in window);
 
-    let status = await invoke<{ running: boolean; url: string; token: string | null }>(
-      "bridge_status",
-    );
+  // Köprü hazır olana kadar kısa süre bekle (açılışta zamanlama yarışına karşı).
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    // 1) Enjekte edilen kimlikler — IPC'den bağımsız, uzak origin'de de çalışır
+    const injected = readInjectedBridge();
+    if (injected) return { running: true, url: injected.url, token: injected.token };
 
-    // Köprü kapalıysa kabuktan başlatmasını iste (idempotent) ve tekrar sor.
-    // Böylece açılışta zamanlama yarışı olsa bile arayüz kendini onarır.
-    if (!status?.running) {
-      try {
-        status = await invoke<{ running: boolean; url: string; token: string | null }>(
-          "bridge_start",
+    // Düz tarayıcıda (kabuk yok) beklemeden çık
+    if (!shellPresent) return null;
+
+    // 2) IPC yolu
+    try {
+      const tauri = (window as unknown as { __TAURI__?: TauriGlobal }).__TAURI__;
+      const invoke = tauri?.core?.invoke ?? tauri?.invoke;
+      if (invoke) {
+        let status = await invoke<{ running: boolean; url: string; token: string | null }>(
+          "bridge_status",
         );
-      } catch {
-        /* başlatılamadı — aşağıdaki status döner */
+        if (!status?.running) {
+          try {
+            status = await invoke<{ running: boolean; url: string; token: string | null }>(
+              "bridge_start",
+            );
+          } catch {
+            /* başlatılamadı */
+          }
+        }
+        if (status?.running && status.token) return status;
       }
+    } catch {
+      /* yoksay — tekrar dene */
     }
 
-    return status ?? null;
-  } catch {
-    return null;
+    await new Promise((resolve) => setTimeout(resolve, 500));
   }
+
+  return null;
 }
 
 /**

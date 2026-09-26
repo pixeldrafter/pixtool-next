@@ -100,15 +100,35 @@ fn ui_source(app: tauri::AppHandle) -> UiSource {
 
 /// Webview'ı verilen adrese yönlendirir.
 #[tauri::command]
-fn navigate_ui(window: tauri::WebviewWindow, url: String) -> Result<(), String> {
+fn navigate_ui(
+    app: tauri::AppHandle,
+    window: tauri::WebviewWindow,
+    url: String,
+) -> Result<(), String> {
     let parsed = url.parse().map_err(|err| format!("Geçersiz adres: {err}"))?;
-    window.navigate(parsed).map_err(|err| err.to_string())
+    window.navigate(parsed).map_err(|err| err.to_string())?;
+    let handle = app.clone();
+    std::thread::spawn(move || {
+        for _ in 0..10 {
+            std::thread::sleep(Duration::from_millis(500));
+            inject_current_bridge(&handle);
+        }
+    });
+    Ok(())
 }
 
 /// Arayüzü yeniler (uzak adres kullanılıyorsa sunucudan tekrar çeker).
 #[tauri::command]
-fn reload_ui(window: tauri::WebviewWindow) -> Result<(), String> {
-    window.reload().map_err(|err| err.to_string())
+fn reload_ui(app: tauri::AppHandle, window: tauri::WebviewWindow) -> Result<(), String> {
+    window.reload().map_err(|err| err.to_string())?;
+    let handle = app.clone();
+    std::thread::spawn(move || {
+        for _ in 0..10 {
+            std::thread::sleep(Duration::from_millis(500));
+            inject_current_bridge(&handle);
+        }
+    });
+    Ok(())
 }
 
 /// Kabuk sürümü.
@@ -293,6 +313,37 @@ fn kill_bridge_processes() {
     }
 }
 
+/// Köprü adresi + token'ını sayfaya **doğrudan** enjekte eder.
+///
+/// Neden? Arayüz uzak sunucudan (`https://…`) yüklendiğinde `window.__TAURI__`
+/// IPC'sinin çalışacağı garanti değildir. Bu enjeksiyon, arayüzün çalışan
+/// köprünün token'ını **kesin** almasını sağlar (IPC'den bağımsız yedek).
+fn inject_bridge_credentials(app: &tauri::AppHandle, port: u16, token: &str) {
+    if let Some(window) = app.get_webview_window("main") {
+        // Token üretilen alfabede tırnak yok ama yine de kaçış uygula.
+        let safe = token.replace('\\', "\\\\").replace('\'', "\\'");
+        let script = format!(
+            "window.__PIXTOOL_BRIDGE__={{url:'http://127.0.0.1:{port}',token:'{safe}'}};"
+        );
+        let _ = window.eval(&script);
+    }
+}
+
+/// Durumdaki köprü kimliklerini (varsa) sayfaya enjekte eder.
+fn inject_current_bridge(app: &tauri::AppHandle) {
+    let state = app.state::<BridgeState>();
+    let (port, token) = {
+        let inner = match state.inner.lock() {
+            Ok(guard) => guard,
+            Err(poisoned) => poisoned.into_inner(),
+        };
+        (inner.port, inner.token.clone())
+    };
+    if let Some(token) = token {
+        inject_bridge_credentials(app, port, &token);
+    }
+}
+
 /// Köprüyü başlatır (sidecar → yoksa Python).
 #[tauri::command]
 fn bridge_start(
@@ -432,6 +483,9 @@ fn bridge_start(
                 };
             }
 
+            // Arayüz uzak yüklenmiş olabilir: token'ı sayfaya doğrudan ver.
+            inject_bridge_credentials(&app, port, &token);
+
             BridgeStatus {
                 running: true,
                 port,
@@ -480,6 +534,12 @@ fn bridge_status(state: State<'_, BridgeState>) -> BridgeStatus {
         Ok(guard) => guard,
         Err(poisoned) => poisoned.into_inner(),
     };
+
+    println!(
+        "[bridge_status] çağrıldı -> running={} token_set={}",
+        inner.child.is_some(),
+        inner.token.is_some()
+    );
 
     BridgeStatus {
         running: inner.child.is_some(),
@@ -566,6 +626,15 @@ pub fn run() {
                             Ok(url) => {
                                 if window.navigate(url).is_ok() {
                                     println!("[pixtool] arayüz uzaktan yüklendi: {remote}");
+                                    // Sayfa yüklendikten sonra köprü kimliklerini
+                                    // birkaç kez enjekte et (IPC'den bağımsız yedek).
+                                    let inject_handle = handle.clone();
+                                    std::thread::spawn(move || {
+                                        for _ in 0..10 {
+                                            std::thread::sleep(Duration::from_millis(500));
+                                            inject_current_bridge(&inject_handle);
+                                        }
+                                    });
                                 }
                             }
                             Err(err) => eprintln!("[pixtool] geçersiz arayüz adresi: {err}"),
